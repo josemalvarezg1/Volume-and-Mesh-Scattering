@@ -61,6 +61,9 @@ void CGLSLProgram::loadShader(std::string strFileName, SHADERTYPE typeShader)
 {
 	GLuint hShader = 0;
 	GLint status;
+	glewExperimental = GL_TRUE;
+	if (glewInit() != GLEW_OK)
+		exit(0);
 
 	//Create shader object
 	switch (typeShader)

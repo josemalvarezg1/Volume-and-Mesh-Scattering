@@ -1,18 +1,31 @@
 #include "Main.h"
+#include "Model.h"
 
 GLFWwindow *gWindow;
 int gWidth, gHeight;
 GLfloat deltaTime = 0.0f, lastFrame = 0.0f;
 bool keys[1024], keysPressed[1024];
-glm::mat4 projection, view, model;
-
+glm::mat4 projection, view, model_view;
+TwBar *menuTW, *modelTW;
 camera *sceneCamera;
 
-void rescale(GLFWwindow *window, int width, int height)
+float shinyBlinn = 128.0, scaleT = 1.00, ejeX = 0.0, ejeY = 0.0, ejeZ = 0.0, ejeXL = 0.23, ejeYL = 1.18, ejeZL = 0.0;
+float rotacionPrincipal[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+vector<model> models; //Todos los modelos irán en este vector
+model m;
+CGLSLProgram glslProgram;
+
+glm::mat4 project_mat; //Matriz de Proyección
+glm::mat4 view_mat; //Matriz de View
+glm::vec3 eye(0.0f, 0.0f, 2.0f); // Ojo
+float lightDirection[] = { -1.31, -0.12, 1.10 };
+
+void reshape(GLFWwindow *window, int width, int height)
 {
 	gWidth = width;
 	gHeight = height;
 	glViewport(0, 0, gWidth, gHeight);
+	TwWindowSize(width, height);
 }
 
 void keyInput(GLFWwindow *window, int key, int scancode, int action, int mods)
@@ -57,6 +70,10 @@ void charInput(GLFWwindow* window, unsigned int scanChar)
 		return;
 }
 
+void TW_CALL exit(void *clientData) {
+	exit(1);
+}
+
 void dropPath(GLFWwindow* window, int count, const char** paths)
 {
 	//volumes->dropPath(count, paths);
@@ -70,25 +87,28 @@ bool initGlfw()
 	if (!glfwInit())
 		return false;
 
-	glfwWindowHint(GLFW_SAMPLES, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
+	glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
 
-	gWindow = glfwCreateWindow(gWidth, gHeight, "Volume and Mesh Scattering", NULL, NULL);
-
+	gWindow = glfwCreateWindow(gWidth, gHeight, "Volume and Mesh Scattering", nullptr, nullptr);
 	if (!gWindow)
 	{
 		glfwTerminate();
 		return false;
 	}
 
+	glfwSetFramebufferSizeCallback(gWindow, reshape);
 	glfwMakeContextCurrent(gWindow);
+	glfwSetInputMode(gWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 
 	const GLFWvidmode * vidMode = glfwGetVideoMode(glfwGetPrimaryMonitor());
 	glfwSetWindowPos(gWindow, (vidMode->width - gWidth) >> 1, (vidMode->height - gHeight) >> 1);
-
-	glfwSetWindowSizeCallback(gWindow, rescale);
+	glfwSetFramebufferSizeCallback(gWindow, reshape);
+	glfwMakeContextCurrent(gWindow);
+	glfwSetInputMode(gWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+	glfwSetWindowSizeCallback(gWindow, reshape);
 	glfwSetKeyCallback(gWindow, keyInput);
 	glfwSetMouseButtonCallback(gWindow, click);
 	glfwSetCursorPosCallback(gWindow, posCursor);
@@ -101,6 +121,7 @@ bool initGlfw()
 
 bool initGlew()
 {
+	TwInit(TW_OPENGL, NULL);
 	glewExperimental = GL_TRUE;
 	if (glewInit() != GLEW_OK)
 		return false;
@@ -111,14 +132,50 @@ bool initGlew()
 		std::cout << "Vendor: " << glGetString(GL_VENDOR) << std::endl;
 		std::cout << "Renderer: " << glGetString(GL_RENDERER) << std::endl;
 
+		glslProgram.loadShader("Shaders/program.vert", CGLSLProgram::VERTEX);
+		glslProgram.loadShader("Shaders/program.frag", CGLSLProgram::FRAGMENT);
+		glslProgram.create_link();
+		glslProgram.enable();
+		glslProgram.addAttribute("position");
+		glslProgram.addAttribute("normal");
+
+		glslProgram.addUniform("view_matrix");
+		glslProgram.addUniform("projection_matrix");
+		glslProgram.addUniform("model_matrix");
+		glslProgram.addUniform("lightPos");
+		glslProgram.addUniform("view");
+		glslProgram.addUniform("shinyBlinn");
+
+		glslProgram.disable();
+
 		return true;
 	}
 }
 
 bool initAntTweakBar()
 {
-	if (!TwInit(TW_OPENGL_CORE, NULL))
-		return false;
+
+	menuTW = TwNewBar("Menú");
+	TwDefine("Menú visible=false size='270 80' position='20 20' color='128 0 0' label='Volume and Mesh Scattering'");
+	TwAddButton(menuTW, "exit", exit, NULL, " label='Salir' key=Esc");
+
+	modelTW = TwNewBar("Figura");
+	TwWindowSize(200, 400);
+	TwDefine("Figura visible=true size='270 520' position='20 20' color='128 0 0' label='Objeto'");
+
+	TwAddVarRW(modelTW, "scale", TW_TYPE_FLOAT, &scaleT, "min=0.01 step=0.01 label='Escalar' group='Transformaciones'");
+	TwAddVarRW(modelTW, "ejeX", TW_TYPE_FLOAT, &ejeX, "step=0.01 label='Traslación x' group='Transformaciones'");
+	TwAddVarRW(modelTW, "ejeY", TW_TYPE_FLOAT, &ejeY, "step=0.01 label='Traslación y' group='Transformaciones'");
+	TwAddVarRW(modelTW, "ejeZ", TW_TYPE_FLOAT, &ejeZ, "step=0.01 label='Traslación z' group='Transformaciones'");
+	TwAddVarRW(modelTW, "rotation", TW_TYPE_QUAT4F, &rotacionPrincipal, " label='Rotación' opened=true group='Transformaciones'");
+	
+	TwAddVarRW(modelTW, "ejeXL", TW_TYPE_FLOAT, &ejeXL, "step=0.01 label='x' min=-1.79 max=1.75 group='Trasladar luz' group='Luz'");
+	TwAddVarRW(modelTW, "ejeYL", TW_TYPE_FLOAT, &ejeYL, "step=0.01 label='y' group='Trasladar luz' group='Luz'");
+	TwAddVarRW(modelTW, "ejeZL", TW_TYPE_FLOAT, &ejeZL, "step=0.01 label='z' min=-1.82 max=1.82 group='Trasladar luz' group='Luz'");
+	TwAddVarRW(modelTW, "BrilloBlinn", TW_TYPE_FLOAT, &shinyBlinn, "min=1.0 max=400.0 step=1.0 label='Shininess' group='Luz'");
+
+	TwAddButton(modelTW, "exitF", exit, NULL, " label='Salir' key=Esc");
+
 	return true;
 }
 
@@ -153,6 +210,71 @@ void display()
 	projection = glm::perspective(sceneCamera->zoom, (float)gWidth / (float)gHeight, 0.1f, 100.0f);
 	VP = projection * view;
 	viewPos = sceneCamera->position;
+	
+	for (int i = 0; i<models.size(); i++) { //Para los modelos
+
+		glStencilFunc(GL_ALWAYS, i, -1);
+		glslProgram.enable();
+		GLuint view_matr_loc = glslProgram.getLocation("view_matrix");
+		GLuint model_matr_loc = glslProgram.getLocation("model_matrix");
+		GLuint proj_matr_loc = glslProgram.getLocation("projection_matrix");
+		GLuint light_loc = glslProgram.getLocation("lightPos");
+		GLuint view_loc = glslProgram.getLocation("view");
+		GLuint shinyBlinn_loc = glslProgram.getLocation("shinyBlinn");
+		GLuint lightDir_loc = glslProgram.getLocation("lightSpotDir");
+
+		glUniform3f(view_loc, 0.0, 0.0, 3.0);
+		glUniform3f(lightDir_loc, lightDirection[0], lightDirection[1], lightDirection[2]);
+		glUniform3f(light_loc, ejeXL, ejeYL, ejeZL);
+		glUniform1f(shinyBlinn_loc, models[i].shinyBlinn);
+
+		//Matrices de view y projection
+		glm::mat4 model_mat;
+		glm::vec3 norm(0.0f, 0.0f, 0.0f);
+		glm::vec3 up(0.0f, 1.0f, 0.0f);
+		view_mat = glm::lookAt(eye, norm, up);
+		view_mat = sceneCamera->getViewMatrix();
+		gluLookAt(eye[0], eye[1], eye[2], norm[0], norm[1], norm[2], up[0], up[1], up[2]);
+
+		model_mat = m.translate_en_matriz(models[i].ejeX, models[i].ejeY, models[i].ejeZ);
+		model_mat = model_mat * m.rotacion_en_matriz(models[i].rotacion[0], models[i].rotacion[1], models[i].rotacion[2], models[i].rotacion[3]);
+		model_mat = model_mat * m.scale_en_matriz(models[i].scaleT);
+
+		glUniformMatrix4fv(model_matr_loc, 1, GL_FALSE, glm::value_ptr(model_mat));
+		glUniformMatrix4fv(view_matr_loc, 1, GL_FALSE, glm::value_ptr(view_mat));
+		project_mat = glm::perspective(sceneCamera->zoom, (float)gWidth / (float)gHeight, 0.1f, 1000.0f);
+		glUniformMatrix4fv(proj_matr_loc, 1, GL_FALSE, glm::value_ptr(project_mat));
+
+		glBindBuffer(GL_ARRAY_BUFFER, models[i].vbo);
+		//Se bindean los vértices, normales y coordenadas de texturas
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+		glEnableVertexAttribArray(0);
+
+		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(models[i].vertices.size() * sizeof(float)));
+		glEnableVertexAttribArray(1);
+
+		glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(models[i].vertices.size() * sizeof(float) + (models[i].coord_texturas.size() * sizeof(float))));
+		glEnableVertexAttribArray(2);
+
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+		glDrawArrays(GL_TRIANGLES, 0, models[i].vertices.size() / 3);
+		glDisableClientState(GL_VERTEX_ARRAY);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+		glDisableVertexAttribArray(0);
+		glDisableVertexAttribArray(1);
+
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+		glslProgram.disable();
+
+		glPushMatrix();
+		glPopMatrix();
+
+	}
 }
 
 void destroy()
@@ -167,8 +289,8 @@ int main()
 		return EXIT_FAILURE;
 
 	initScene();
-	rescale(gWindow, gWidth, gHeight);
-
+	reshape(gWindow, gWidth, gHeight);
+	m.read_obj("Models/obj/mickey.obj");
 	while (!glfwWindowShouldClose(gWindow))
 	{
 		GLfloat currentFrame = float(glfwGetTime());
@@ -177,7 +299,7 @@ int main()
 		glfwPollEvents();
 		movement();
 		display();
-		//TwDraw();
+		TwDraw();
 		glfwSwapBuffers(gWindow);
 	}
 
