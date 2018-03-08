@@ -161,13 +161,6 @@ void model::read_obj(char *filename) {
 			t2 = faces[i].t[aux2];
 			t3 = faces[i].t[++aux2];
 
-			m.coord_texturas.push_back(coord_texturasAux[t1].x);
-			m.coord_texturas.push_back(coord_texturasAux[t1].y);
-			m.coord_texturas.push_back(coord_texturasAux[t2].x);
-			m.coord_texturas.push_back(coord_texturasAux[t2].y);
-			m.coord_texturas.push_back(coord_texturasAux[t3].x);
-			m.coord_texturas.push_back(coord_texturasAux[t3].y);
-
 			//Saco normales
 			u.x = auxVertices_2[v2].x - auxVertices_2[v1].x;
 			u.y = auxVertices_2[v2].y - auxVertices_2[v1].y;

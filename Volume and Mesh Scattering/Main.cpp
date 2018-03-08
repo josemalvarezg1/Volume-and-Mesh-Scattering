@@ -204,7 +204,7 @@ void display()
 {
 	glm::mat4 VP;
 	glm::vec3 viewPos;
-	glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	view = sceneCamera->getViewMatrix();
 	projection = glm::perspective(sceneCamera->zoom, (float)gWidth / (float)gHeight, 0.1f, 100.0f);
@@ -223,10 +223,10 @@ void display()
 		GLuint shinyBlinn_loc = glslProgram.getLocation("shinyBlinn");
 		GLuint lightDir_loc = glslProgram.getLocation("lightSpotDir");
 
-		glUniform3f(view_loc, 0.0, 0.0, 3.0);
+		glUniform3f(view_loc, sceneCamera->position[0], sceneCamera->position[1], sceneCamera->position[2]);
 		glUniform3f(lightDir_loc, lightDirection[0], lightDirection[1], lightDirection[2]);
 		glUniform3f(light_loc, ejeXL, ejeYL, ejeZL);
-		glUniform1f(shinyBlinn_loc, models[i].shinyBlinn);
+		glUniform1f(shinyBlinn_loc, shinyBlinn);
 
 		//Matrices de view y projection
 		glm::mat4 model_mat;
@@ -290,7 +290,7 @@ int main()
 
 	initScene();
 	reshape(gWindow, gWidth, gHeight);
-	m.read_obj("Models/obj/mickey.obj");
+	m.read_obj("Models/obj/cornell-box.obj");
 	while (!glfwWindowShouldClose(gWindow))
 	{
 		GLfloat currentFrame = float(glfwGetTime());
