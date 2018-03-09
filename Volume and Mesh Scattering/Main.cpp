@@ -287,7 +287,6 @@ void display()
 
 	models[selectedModel].scaleT = scaleT;
 	models[selectedModel].shinyBlinn = shinyBlinn;*/
-
 	for (int i = 0; i<models.size(); i++) 
 	{
 		glStencilFunc(GL_ALWAYS, i, -1);
@@ -323,7 +322,6 @@ void display()
 			glUniformMatrix4fv(proj_matr_loc, 1, GL_FALSE, glm::value_ptr(project_mat));
 
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-			std::cout << models[i].vao << std::endl;
 			glBindVertexArray(models[i].vao);
 				glDrawArrays(GL_TRIANGLES, 0, models[i].vertices.size());
 			glBindVertexArray(0);
@@ -350,6 +348,7 @@ int main()
 	initScene();
 	reshape(gWindow, gWidth, gHeight);
 	m.load("Models/obj/cornell-box.obj");
+	models.push_back(m);
 	while (!glfwWindowShouldClose(gWindow))
 	{
 		GLfloat currentFrame = float(glfwGetTime());
