@@ -4,10 +4,11 @@
 GLFWwindow *gWindow;
 int gWidth, gHeight;
 GLfloat deltaTime = 0.0f, lastFrame = 0.0f;
-bool keys[1024], keysPressed[1024];
+bool keys[1024], keysPressed[1024], selecting = false;
 glm::mat4 projection, view, model_view;
 TwBar *menuTW, *modelTW;
 camera *sceneCamera;
+double cursor[2] = { 0, 0 };
 
 float shinyBlinn = 128.0, scaleT = 5.00, ejeX = 1.51, ejeY = 0.26, ejeZ = -1.33, ejeXL = 0.23, ejeYL = 1.18, ejeZL = 0.0;
 float rotacionPrincipal[] = { 0.0f, 0.0f, 0.0f, 1.0f };
@@ -52,17 +53,52 @@ void click(GLFWwindow* window, int button, int action, int mods)
 {
 	if (TwEventMouseButtonGLFW(button, action))
 		return;
+
+	if (action == GLFW_PRESS) {
+		GLint index;
+		glReadPixels(cursor[0], gHeight - cursor[1], 1, 1, GL_STENCIL_INDEX, GL_UNSIGNED_INT, &index);
+		bool ISelected = false;
+		if (index >= 0) {
+			ISelected = true;
+			//Se absorben las propiedades y se cambia el menú de AntTweakBar
+			selectedModel = index;
+			TwDefine("Menú visible=false");
+			TwDefine("Figura visible=true");
+			selecting = true;
+			rotacionPrincipal[0] = models[selectedModel].rotacion[0];
+			rotacionPrincipal[1] = models[selectedModel].rotacion[1];
+			rotacionPrincipal[2] = models[selectedModel].rotacion[2];
+			rotacionPrincipal[3] = models[selectedModel].rotacion[3];
+			scaleT = models[selectedModel].scaleT;
+			shinyBlinn = models[selectedModel].shinyBlinn;
+			ejeX = models[selectedModel].ejeX;
+			ejeY = models[selectedModel].ejeY;
+			ejeZ = models[selectedModel].ejeZ;
+		}
+		if (!ISelected) {
+			selecting = false;
+			TwDefine("Menú visible=true");
+			TwDefine("Figura visible=false");
+		}
+	}
+}
+
+void scroll(GLFWwindow* window, double xoffset, double yoffset) {
+	if (TwEventMouseWheelGLFW(yoffset)) return;
+	if (yoffset == 1 && selecting) {
+		scaleT += 0.05;
+	}
+	if (yoffset == -1 && selecting) {
+		scaleT -= 0.05;
+	}
 }
 
 void posCursor(GLFWwindow* window, double x, double y)
 {
+	cursor[0] = x;
+	cursor[1] = y;
 	if (TwEventMousePosGLFW(int(x), int(y)))
 		return;
-}
-
-void scroll(GLFWwindow* window, double xoffset, double yoffset)
-{
-	//volumes->scrollVolume(yoffset);
 }
 
 void charInput(GLFWwindow* window, unsigned int scanChar)
@@ -78,6 +114,32 @@ void TW_CALL exit(void *clientData) {
 void dropPath(GLFWwindow* window, int count, const char** paths)
 {
 	//volumes->dropPath(count, paths);
+}
+
+//Función para seleciconar un modelo
+void TW_CALL selectModel(void *clientData) {
+	if (models.size() > 0) {
+		if (!selecting) {
+			TwDefine("Menú visible=false");
+			TwDefine("Figura visible=true");
+			selecting = true;
+			rotacionPrincipal[0] = models[selectedModel].rotacion[0];
+			rotacionPrincipal[1] = models[selectedModel].rotacion[1];
+			rotacionPrincipal[2] = models[selectedModel].rotacion[2];
+			rotacionPrincipal[3] = models[selectedModel].rotacion[3];
+			scaleT = models[selectedModel].scaleT;
+			shinyBlinn = models[selectedModel].shinyBlinn;
+			ejeX = models[selectedModel].ejeX;
+			ejeY = models[selectedModel].ejeY;
+			ejeZ = models[selectedModel].ejeZ;
+		}
+		else {
+			TwDefine("Menú visible=true");
+			TwDefine("Figura visible=false");
+			models[selectedModel].shinyBlinn = shinyBlinn;
+			selecting = false;
+		}
+	}
 }
 
 bool initGlfw()
@@ -112,9 +174,9 @@ bool initGlfw()
 	glfwSetWindowSizeCallback(gWindow, reshape);
 	glfwSetKeyCallback(gWindow, keyInput);
 	glfwSetMouseButtonCallback(gWindow, click);
+	glfwSetScrollCallback(gWindow, scroll);
 	glfwSetCursorPosCallback(gWindow, posCursor);
 	glfwSetCharCallback(gWindow, charInput);
-	glfwSetScrollCallback(gWindow, scroll);
 	glfwSetDropCallback(gWindow, dropPath);
 
 	return true;
@@ -155,15 +217,15 @@ bool initGlew()
 
 bool initAntTweakBar()
 {
-
 	menuTW = TwNewBar("Menú");
-	TwDefine("Menú visible=false size='270 80' position='20 20' color='128 0 0' label='Volume and Mesh Scattering'");
+	TwDefine("Menú visible=true size='270 80' position='20 20' color='128 0 0' label='Volume and Mesh Scattering'");
 	TwAddButton(menuTW, "exit", exit, NULL, " label='Salir' key=Esc");
 
 	modelTW = TwNewBar("Figura");
 	TwWindowSize(200, 400);
-	TwDefine("Figura visible=true size='270 520' position='20 20' color='128 0 0' label='Objeto'");
+	TwDefine("Figura visible=false size='270 520' position='20 20' color='128 0 0' label='Objeto'");
 
+	TwAddButton(modelTW, "select", selectModel, NULL, " label='Volver al Menú' key=m");
 	TwAddVarRW(modelTW, "scale", TW_TYPE_FLOAT, &scaleT, "min=0.01 step=0.01 label='Escalar' group='Transformaciones'");
 	TwAddVarRW(modelTW, "ejeX", TW_TYPE_FLOAT, &ejeX, "step=0.01 label='Traslación x' group='Transformaciones'");
 	TwAddVarRW(modelTW, "ejeY", TW_TYPE_FLOAT, &ejeY, "step=0.01 label='Traslación y' group='Transformaciones'");
@@ -228,7 +290,7 @@ void display()
 
 	for (int i = 0; i<models.size(); i++) {
 
-		//glStencilFunc(GL_ALWAYS, i, -1);
+		glStencilFunc(GL_ALWAYS, i, -1);
 		glslProgram.enable();
 		GLuint view_matr_loc = glslProgram.getLocation("view_matrix");
 		GLuint model_matr_loc = glslProgram.getLocation("model_matrix");
