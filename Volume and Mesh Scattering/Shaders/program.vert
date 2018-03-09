@@ -8,8 +8,7 @@ uniform vec3 view; //Vector de EYE
 uniform float shinyBlinn;
 
 layout (location=0) in vec3 position; //Posicion de los vertices
-layout (location=1) in vec2 coord_texturas;
-layout (location=2) in vec3 normal; //Posicion de normales
+layout (location=1) in vec3 normal; //Posicion de normales
 
 out vec3 FragPos;
 out vec3 normales;

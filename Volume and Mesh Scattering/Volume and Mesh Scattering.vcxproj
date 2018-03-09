@@ -137,6 +137,10 @@
     <ClInclude Include="Main.h" />
     <ClInclude Include="Model.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Shaders\program.frag" />
+    <None Include="Shaders\program.vert" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

@@ -32,6 +32,6 @@ void main() {
     
 	//Resultado final
 	result = (ambient + diffuse + specular);
-	color =  result;
+	color =  vec4(norm, 1.0f);
 
 }

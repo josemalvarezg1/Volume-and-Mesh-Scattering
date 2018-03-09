@@ -65,7 +65,7 @@ void click(GLFWwindow* window, int button, int action, int mods)
 			TwDefine("Menú visible=false");
 			TwDefine("Figura visible=true");
 			selecting = true;
-			rotacionPrincipal[0] = models[selectedModel].rotacion[0];
+			/*rotacionPrincipal[0] = models[selectedModel].rotacion[0];
 			rotacionPrincipal[1] = models[selectedModel].rotacion[1];
 			rotacionPrincipal[2] = models[selectedModel].rotacion[2];
 			rotacionPrincipal[3] = models[selectedModel].rotacion[3];
@@ -73,7 +73,7 @@ void click(GLFWwindow* window, int button, int action, int mods)
 			shinyBlinn = models[selectedModel].shinyBlinn;
 			ejeX = models[selectedModel].ejeX;
 			ejeY = models[selectedModel].ejeY;
-			ejeZ = models[selectedModel].ejeZ;
+			ejeZ = models[selectedModel].ejeZ;*/
 		}
 		if (!ISelected) {
 			selecting = false;
@@ -123,7 +123,7 @@ void TW_CALL selectModel(void *clientData) {
 			TwDefine("Menú visible=false");
 			TwDefine("Figura visible=true");
 			selecting = true;
-			rotacionPrincipal[0] = models[selectedModel].rotacion[0];
+			/*rotacionPrincipal[0] = models[selectedModel].rotacion[0];
 			rotacionPrincipal[1] = models[selectedModel].rotacion[1];
 			rotacionPrincipal[2] = models[selectedModel].rotacion[2];
 			rotacionPrincipal[3] = models[selectedModel].rotacion[3];
@@ -131,12 +131,12 @@ void TW_CALL selectModel(void *clientData) {
 			shinyBlinn = models[selectedModel].shinyBlinn;
 			ejeX = models[selectedModel].ejeX;
 			ejeY = models[selectedModel].ejeY;
-			ejeZ = models[selectedModel].ejeZ;
+			ejeZ = models[selectedModel].ejeZ;*/
 		}
 		else {
 			TwDefine("Menú visible=true");
 			TwDefine("Figura visible=false");
-			models[selectedModel].shinyBlinn = shinyBlinn;
+			//models[selectedModel].shinyBlinn = shinyBlinn;
 			selecting = false;
 		}
 	}
@@ -276,7 +276,7 @@ void display()
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
 	//Colocar este código en una función setCurrentValues(selectedModel)
-	models[selectedModel].rotacion[0] = rotacionPrincipal[0];
+	/*models[selectedModel].rotacion[0] = rotacionPrincipal[0];
 	models[selectedModel].rotacion[1] = rotacionPrincipal[1];
 	models[selectedModel].rotacion[2] = rotacionPrincipal[2];
 	models[selectedModel].rotacion[3] = rotacionPrincipal[3];
@@ -286,65 +286,47 @@ void display()
 	models[selectedModel].ejeZ = ejeZ;
 
 	models[selectedModel].scaleT = scaleT;
-	models[selectedModel].shinyBlinn = shinyBlinn;
+	models[selectedModel].shinyBlinn = shinyBlinn;*/
 
-	for (int i = 0; i<models.size(); i++) {
-
+	for (int i = 0; i<models.size(); i++) 
+	{
 		glStencilFunc(GL_ALWAYS, i, -1);
 		glslProgram.enable();
-		GLuint view_matr_loc = glslProgram.getLocation("view_matrix");
-		GLuint model_matr_loc = glslProgram.getLocation("model_matrix");
-		GLuint proj_matr_loc = glslProgram.getLocation("projection_matrix");
-		GLuint light_loc = glslProgram.getLocation("lightPos");
-		GLuint view_loc = glslProgram.getLocation("view");
-		GLuint shinyBlinn_loc = glslProgram.getLocation("shinyBlinn");
-		GLuint lightDir_loc = glslProgram.getLocation("lightSpotDir");
+			GLuint view_matr_loc = glslProgram.getLocation("view_matrix");
+			GLuint model_matr_loc = glslProgram.getLocation("model_matrix");
+			GLuint proj_matr_loc = glslProgram.getLocation("projection_matrix");
+			GLuint light_loc = glslProgram.getLocation("lightPos");
+			GLuint view_loc = glslProgram.getLocation("view");
+			GLuint shinyBlinn_loc = glslProgram.getLocation("shinyBlinn");
+			GLuint lightDir_loc = glslProgram.getLocation("lightSpotDir");
 
-		glUniform3f(view_loc, sceneCamera->position[0], sceneCamera->position[1], sceneCamera->position[2]);
-		glUniform3f(lightDir_loc, lightDirection[0], lightDirection[1], lightDirection[2]);
-		glUniform3f(light_loc, ejeXL, ejeYL, ejeZL);
-		glUniform1f(shinyBlinn_loc, models[i].shinyBlinn);
+			glUniform3f(view_loc, sceneCamera->position[0], sceneCamera->position[1], sceneCamera->position[2]);
+			glUniform3f(lightDir_loc, lightDirection[0], lightDirection[1], lightDirection[2]);
+			glUniform3f(light_loc, ejeXL, ejeYL, ejeZL);
+			glUniform1f(shinyBlinn_loc, 128);
 
-		//Matrices de view y projection
-		glm::mat4 model_mat;
-		glm::vec3 norm(0.0f, 0.0f, 0.0f);
-		glm::vec3 up(0.0f, 1.0f, 0.0f);
-		view_mat = glm::lookAt(eye, norm, up);
-		view_mat = sceneCamera->getViewMatrix();
-		gluLookAt(eye[0], eye[1], eye[2], norm[0], norm[1], norm[2], up[0], up[1], up[2]);
+			//Matrices de view y projection
+			glm::mat4 model_mat;
+			glm::vec3 norm(0.0f, 0.0f, 0.0f);
+			glm::vec3 up(0.0f, 1.0f, 0.0f);
+			view_mat = glm::lookAt(eye, norm, up);
+			view_mat = sceneCamera->getViewMatrix();
+			gluLookAt(eye[0], eye[1], eye[2], norm[0], norm[1], norm[2], up[0], up[1], up[2]);
 
-		model_mat = m.translate_en_matriz(models[i].ejeX, models[i].ejeY, models[i].ejeZ);
-		model_mat = model_mat * m.rotacion_en_matriz(models[i].rotacion[0], models[i].rotacion[1], models[i].rotacion[2], models[i].rotacion[3]);
-		model_mat = model_mat * m.scale_en_matriz(models[i].scaleT);
+			model_mat = m.translate_en_matriz(models[i].translation.x, models[i].translation.y, models[i].translation.z);
+			model_mat = model_mat * m.rotacion_en_matriz(models[i].rotation[0], models[i].rotation[1], models[i].rotation[2], models[i].rotation[3]);
+			model_mat = model_mat * m.scale_en_matriz(models[i].scale);
 
-		glUniformMatrix4fv(model_matr_loc, 1, GL_FALSE, glm::value_ptr(model_mat));
-		glUniformMatrix4fv(view_matr_loc, 1, GL_FALSE, glm::value_ptr(view_mat));
-		project_mat = glm::perspective(sceneCamera->zoom, (float)gWidth / (float)gHeight, 0.1f, 1000.0f);
-		glUniformMatrix4fv(proj_matr_loc, 1, GL_FALSE, glm::value_ptr(project_mat));
+			glUniformMatrix4fv(model_matr_loc, 1, GL_FALSE, glm::value_ptr(model_mat));
+			glUniformMatrix4fv(view_matr_loc, 1, GL_FALSE, glm::value_ptr(view_mat));
+			project_mat = glm::perspective(sceneCamera->zoom, (float)gWidth / (float)gHeight, 0.1f, 1000.0f);
+			glUniformMatrix4fv(proj_matr_loc, 1, GL_FALSE, glm::value_ptr(project_mat));
 
-		glBindBuffer(GL_ARRAY_BUFFER, models[i].vbo);
-		//Se bindean los vértices, normales y coordenadas de texturas
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-		glEnableVertexAttribArray(0);
-
-		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(models[i].vertices.size() * sizeof(float)));
-		glEnableVertexAttribArray(1);
-
-		glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(models[i].vertices.size() * sizeof(float) + (models[i].coord_texturas.size() * sizeof(float))));
-		glEnableVertexAttribArray(2);
-
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-		glDrawArrays(GL_TRIANGLES, 0, models[i].vertices.size() / 3);
-		glDisableClientState(GL_VERTEX_ARRAY);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-		glDisableVertexAttribArray(0);
-		glDisableVertexAttribArray(1);
-
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-		glBindTexture(GL_TEXTURE_2D, 0);
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+			std::cout << models[i].vao << std::endl;
+			glBindVertexArray(models[i].vao);
+				glDrawArrays(GL_TRIANGLES, 0, models[i].vertices.size());
+			glBindVertexArray(0);
 
 		glslProgram.disable();
 
@@ -367,7 +349,7 @@ int main()
 
 	initScene();
 	reshape(gWindow, gWidth, gHeight);
-	m.read_obj("Models/obj/cornell-box.obj");
+	m.load("Models/obj/cornell-box.obj");
 	while (!glfwWindowShouldClose(gWindow))
 	{
 		GLfloat currentFrame = float(glfwGetTime());
