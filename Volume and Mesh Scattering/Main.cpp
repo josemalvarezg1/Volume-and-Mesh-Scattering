@@ -28,6 +28,7 @@ void reshape(GLFWwindow *window, int width, int height)
 	gHeight = height;
 	glViewport(0, 0, gWidth, gHeight);
 	TwWindowSize(width, height);
+	glEnable(GL_DEPTH_TEST);
 }
 
 void keyInput(GLFWwindow *window, int key, int scancode, int action, int mods)
@@ -65,15 +66,15 @@ void click(GLFWwindow* window, int button, int action, int mods)
 			TwDefine("Menú visible=false");
 			TwDefine("Figura visible=true");
 			selecting = true;
-			/*rotacionPrincipal[0] = models[selectedModel].rotacion[0];
-			rotacionPrincipal[1] = models[selectedModel].rotacion[1];
-			rotacionPrincipal[2] = models[selectedModel].rotacion[2];
-			rotacionPrincipal[3] = models[selectedModel].rotacion[3];
-			scaleT = models[selectedModel].scaleT;
-			shinyBlinn = models[selectedModel].shinyBlinn;
-			ejeX = models[selectedModel].ejeX;
-			ejeY = models[selectedModel].ejeY;
-			ejeZ = models[selectedModel].ejeZ;*/
+			rotacionPrincipal[0] = models[selectedModel].rotation[0];
+			rotacionPrincipal[1] = models[selectedModel].rotation[1];
+			rotacionPrincipal[2] = models[selectedModel].rotation[2];
+			rotacionPrincipal[3] = models[selectedModel].rotation[3];
+			scaleT = models[selectedModel].scale;
+			shinyBlinn = models[selectedModel].shininess;
+			ejeX = models[selectedModel].translation.x;
+			ejeY = models[selectedModel].translation.y;
+			ejeZ = models[selectedModel].translation.z;
 		}
 		if (!ISelected) {
 			selecting = false;
@@ -123,20 +124,20 @@ void TW_CALL selectModel(void *clientData) {
 			TwDefine("Menú visible=false");
 			TwDefine("Figura visible=true");
 			selecting = true;
-			/*rotacionPrincipal[0] = models[selectedModel].rotacion[0];
-			rotacionPrincipal[1] = models[selectedModel].rotacion[1];
-			rotacionPrincipal[2] = models[selectedModel].rotacion[2];
-			rotacionPrincipal[3] = models[selectedModel].rotacion[3];
-			scaleT = models[selectedModel].scaleT;
-			shinyBlinn = models[selectedModel].shinyBlinn;
-			ejeX = models[selectedModel].ejeX;
-			ejeY = models[selectedModel].ejeY;
-			ejeZ = models[selectedModel].ejeZ;*/
+			rotacionPrincipal[0] = models[selectedModel].rotation[0];
+			rotacionPrincipal[1] = models[selectedModel].rotation[1];
+			rotacionPrincipal[2] = models[selectedModel].rotation[2];
+			rotacionPrincipal[3] = models[selectedModel].rotation[3];
+			scaleT = models[selectedModel].scale;
+			shinyBlinn = models[selectedModel].shininess;
+			ejeX = models[selectedModel].translation.x;
+			ejeY = models[selectedModel].translation.y;
+			ejeZ = models[selectedModel].translation.z;
 		}
 		else {
 			TwDefine("Menú visible=true");
 			TwDefine("Figura visible=false");
-			//models[selectedModel].shinyBlinn = shinyBlinn;
+			models[selectedModel].shininess = shinyBlinn;
 			selecting = false;
 		}
 	}
@@ -276,17 +277,17 @@ void display()
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
 	//Colocar este código en una función setCurrentValues(selectedModel)
-	/*models[selectedModel].rotacion[0] = rotacionPrincipal[0];
-	models[selectedModel].rotacion[1] = rotacionPrincipal[1];
-	models[selectedModel].rotacion[2] = rotacionPrincipal[2];
-	models[selectedModel].rotacion[3] = rotacionPrincipal[3];
+	models[selectedModel].rotation[0] = rotacionPrincipal[0];
+	models[selectedModel].rotation[1] = rotacionPrincipal[1];
+	models[selectedModel].rotation[2] = rotacionPrincipal[2];
+	models[selectedModel].rotation[3] = rotacionPrincipal[3];
 
-	models[selectedModel].ejeX = ejeX;
-	models[selectedModel].ejeY = ejeY;
-	models[selectedModel].ejeZ = ejeZ;
+	models[selectedModel].translation.x = ejeX;
+	models[selectedModel].translation.y = ejeY;
+	models[selectedModel].translation.z = ejeZ;
 
-	models[selectedModel].scaleT = scaleT;
-	models[selectedModel].shinyBlinn = shinyBlinn;*/
+	models[selectedModel].scale = scaleT;
+	models[selectedModel].shininess = shinyBlinn;
 	for (int i = 0; i<models.size(); i++) 
 	{
 		glStencilFunc(GL_ALWAYS, i, -1);
@@ -302,13 +303,12 @@ void display()
 			glUniform3f(view_loc, sceneCamera->position[0], sceneCamera->position[1], sceneCamera->position[2]);
 			glUniform3f(lightDir_loc, lightDirection[0], lightDirection[1], lightDirection[2]);
 			glUniform3f(light_loc, ejeXL, ejeYL, ejeZL);
-			glUniform1f(shinyBlinn_loc, 128);
+			glUniform1f(shinyBlinn_loc, models[i].shininess);
 
 			//Matrices de view y projection
 			glm::mat4 model_mat;
 			glm::vec3 norm(0.0f, 0.0f, 0.0f);
 			glm::vec3 up(0.0f, 1.0f, 0.0f);
-			view_mat = glm::lookAt(eye, norm, up);
 			view_mat = sceneCamera->getViewMatrix();
 			gluLookAt(eye[0], eye[1], eye[2], norm[0], norm[1], norm[2], up[0], up[1], up[2]);
 
@@ -327,7 +327,6 @@ void display()
 			glBindVertexArray(0);
 
 		glslProgram.disable();
-
 		glPushMatrix();
 		glPopMatrix();
 
