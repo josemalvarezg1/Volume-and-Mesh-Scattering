@@ -14,13 +14,67 @@ float shinyBlinn = 128.0, scaleT = 5.00, ejeX = 1.51, ejeY = 0.26, ejeZ = -1.33,
 float rotacionPrincipal[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 vector<model> models; //Todos los modelos irán en este vector
 model m;
-CGLSLProgram glslProgram;
+CGLSLProgram glslProgram, glslGBuffer, glslGBufferP;
 int selectedModel = 0;
 
 glm::mat4 project_mat; //Matriz de Proyección
 glm::mat4 view_mat; //Matriz de View
 glm::vec3 eye(0.0f, 0.0f, 2.0f); // Ojo
 float lightDirection[] = { -1.31, -0.12, 1.10 };
+
+GLuint quadVAO, quadVBO;
+unsigned int gBuffer;
+unsigned int gPosition, gNormal, gAlbedoSpec;
+unsigned int attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+
+void create_gbuffer()
+{
+	glGenFramebuffers(1, &gBuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
+
+	glGenTextures(1, &gPosition);
+	glBindTexture(GL_TEXTURE_2D, gPosition);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, gWidth, gHeight, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gPosition, 0);
+	
+	glGenTextures(1, &gNormal);
+	glBindTexture(GL_TEXTURE_2D, gNormal);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, gWidth, gHeight, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, gNormal, 0);
+
+	glDrawBuffers(2, attachments);
+}
+
+void renderQuad() 
+{
+	if (quadVAO == 0) {
+
+		GLfloat quadVertices[] = {
+			-1.0f,  1.0f, 0.0f,  0.0f, 1.0f,
+			-1.0f, -1.0f, 0.0f,  0.0f, 0.0f,
+			1.0f,  1.0f, 0.0f,  1.0f, 1.0f,
+			1.0f, -1.0f, 0.0f,  1.0f, 0.0f,
+		};
+
+		glGenVertexArrays(1, &quadVAO);
+		glGenBuffers(1, &quadVBO);
+		glBindVertexArray(quadVAO);
+		glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)0);
+		glEnableVertexAttribArray(1);
+		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+	}
+	glBindVertexArray(quadVAO);
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	glBindVertexArray(0);
+
+}
 
 void reshape(GLFWwindow *window, int width, int height)
 {
@@ -29,7 +83,6 @@ void reshape(GLFWwindow *window, int width, int height)
 	glViewport(0, 0, gWidth, gHeight);
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	TwWindowSize(width, height);
-	glEnable(GL_DEPTH_TEST);
 }
 
 void keyInput(GLFWwindow *window, int key, int scancode, int action, int mods)
@@ -60,9 +113,9 @@ void click(GLFWwindow* window, int button, int action, int mods)
 		GLint index = -1;
 		glReadPixels(cursor.x, gHeight - cursor.y, 1, 1, GL_STENCIL_INDEX, GL_UNSIGNED_INT, &index);
 		// Cambiar a > 0 para no habilitar el fondo ni la caja de Cornell
-		if (index >= 0) {
+		if (index > 0) {
 			//Se absorben las propiedades y se cambia el menú de AntTweakBar
-			selectedModel = index;
+			selectedModel = index - 1;
 			TwDefine("Menú visible=false");
 			TwDefine("Figura visible=true");
 			selecting = true;
@@ -197,19 +250,43 @@ bool initGlew()
 
 		glslProgram.loadShader("Shaders/program.vert", CGLSLProgram::VERTEX);
 		glslProgram.loadShader("Shaders/program.frag", CGLSLProgram::FRAGMENT);
+		glslGBuffer.loadShader("Shaders/gBuffer.vert", CGLSLProgram::VERTEX);
+		glslGBuffer.loadShader("Shaders/gBuffer.frag", CGLSLProgram::FRAGMENT);
+		glslGBufferP.loadShader("Shaders/gBufferPosition.vert", CGLSLProgram::VERTEX);
+		glslGBufferP.loadShader("Shaders/gBufferPosition.frag", CGLSLProgram::FRAGMENT);
+
 		glslProgram.create_link();
+		glslGBuffer.create_link();
+		glslGBufferP.create_link();
+
 		glslProgram.enable();
-		glslProgram.addAttribute("position");
-		glslProgram.addAttribute("normal");
+			glslProgram.addAttribute("position");
+			glslProgram.addAttribute("normal");
 
-		glslProgram.addUniform("view_matrix");
-		glslProgram.addUniform("projection_matrix");
-		glslProgram.addUniform("model_matrix");
-		glslProgram.addUniform("lightPos");
-		glslProgram.addUniform("view");
-		glslProgram.addUniform("shinyBlinn");
-
+			glslProgram.addUniform("view_matrix");
+			glslProgram.addUniform("projection_matrix");
+			glslProgram.addUniform("model_matrix");
+			glslProgram.addUniform("lightPos");
+			glslProgram.addUniform("view");
+			glslProgram.addUniform("shinyBlinn");
 		glslProgram.disable();
+
+		glslGBuffer.enable();
+			glslGBuffer.addAttribute("position");
+			glslGBuffer.addAttribute("normal");
+
+			glslGBuffer.addUniform("view_matrix");
+			glslGBuffer.addUniform("projection_matrix");
+			glslGBuffer.addUniform("model_matrix");
+		glslGBuffer.disable();
+
+		glslGBufferP.enable();
+			glslGBufferP.addAttribute("position");
+			glslGBufferP.addAttribute("texCoords");
+
+			glslGBufferP.addUniform("model_matrix");
+			glslGBufferP.addUniform("position_tex");
+		glslGBufferP.disable();
 
 		return true;
 	}
@@ -261,10 +338,12 @@ void movement()
 void initScene()
 {
 	sceneCamera = new camera(glm::vec3(1.0f, 0.0f, 6.0f));
+	create_gbuffer();
 }
 
 void display()
 {
+	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_STENCIL_TEST);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
@@ -280,10 +359,42 @@ void display()
 
 	models[selectedModel].scale = scaleT;
 	models[selectedModel].shininess = shinyBlinn;
-	for (int i = 0; i < models.size(); i++)
-	{
-		glStencilFunc(GL_ALWAYS, i, -1);
-		glslProgram.enable();
+
+	glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	glslGBuffer.enable();
+		GLuint view_matr_loc1 = glslGBuffer.getLocation("view_matrix");
+		GLuint model_matr_loc1 = glslGBuffer.getLocation("model_matrix");
+		GLuint proj_matr_loc1 = glslGBuffer.getLocation("projection_matrix");
+		
+		for (int i = 0; i < models.size(); i++)
+		{
+			glm::mat4 model_mat;
+			glm::vec3 norm(0.0f, 0.0f, 0.0f);
+			glm::vec3 up(0.0f, 1.0f, 0.0f);
+			view_mat = sceneCamera->getViewMatrix();
+			gluLookAt(eye[0], eye[1], eye[2], norm[0], norm[1], norm[2], up[0], up[1], up[2]);
+
+			model_mat = m.translate_en_matriz(models[i].translation.x, models[i].translation.y, models[i].translation.z);
+			model_mat = model_mat * m.rotacion_en_matriz(models[i].rotation[0], models[i].rotation[1], models[i].rotation[2], models[i].rotation[3]);
+			model_mat = model_mat * m.scale_en_matriz(models[i].scale);
+
+			glUniformMatrix4fv(model_matr_loc1, 1, GL_FALSE, glm::value_ptr(model_mat));
+			glUniformMatrix4fv(view_matr_loc1, 1, GL_FALSE, glm::value_ptr(view_mat));
+			project_mat = glm::perspective(sceneCamera->zoom, (float)gWidth / (float)gHeight, 0.1f, 1000.0f);
+			glUniformMatrix4fv(proj_matr_loc1, 1, GL_FALSE, glm::value_ptr(project_mat));
+
+			glBindVertexArray(models[i].vao);
+				glDrawArrays(GL_TRIANGLES, 0, models[i].vertices.size());
+			glBindVertexArray(0);
+		}
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glslGBuffer.disable();
+
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	glslProgram.enable();
 		GLuint view_matr_loc = glslProgram.getLocation("view_matrix");
 		GLuint model_matr_loc = glslProgram.getLocation("model_matrix");
 		GLuint proj_matr_loc = glslProgram.getLocation("projection_matrix");
@@ -291,39 +402,47 @@ void display()
 		GLuint view_loc = glslProgram.getLocation("view");
 		GLuint shinyBlinn_loc = glslProgram.getLocation("shinyBlinn");
 		GLuint lightDir_loc = glslProgram.getLocation("lightSpotDir");
+		for (int i = 0; i < models.size(); i++)
+		{
+			glStencilFunc(GL_ALWAYS, i + 1, -1);
+			glUniform3f(view_loc, sceneCamera->position[0], sceneCamera->position[1], sceneCamera->position[2]);
+			glUniform3f(lightDir_loc, lightDirection[0], lightDirection[1], lightDirection[2]);
+			glUniform3f(light_loc, ejeXL, ejeYL, ejeZL);
+			glUniform1f(shinyBlinn_loc, models[i].shininess);
 
-		glUniform3f(view_loc, sceneCamera->position[0], sceneCamera->position[1], sceneCamera->position[2]);
-		glUniform3f(lightDir_loc, lightDirection[0], lightDirection[1], lightDirection[2]);
-		glUniform3f(light_loc, ejeXL, ejeYL, ejeZL);
-		glUniform1f(shinyBlinn_loc, models[i].shininess);
+			//Matrices de view y projection
+			glm::mat4 model_mat;
+			glm::vec3 norm(0.0f, 0.0f, 0.0f);
+			glm::vec3 up(0.0f, 1.0f, 0.0f);
+			view_mat = sceneCamera->getViewMatrix();
+			gluLookAt(eye[0], eye[1], eye[2], norm[0], norm[1], norm[2], up[0], up[1], up[2]);
 
-		//Matrices de view y projection
-		glm::mat4 model_mat;
-		glm::vec3 norm(0.0f, 0.0f, 0.0f);
-		glm::vec3 up(0.0f, 1.0f, 0.0f);
-		view_mat = sceneCamera->getViewMatrix();
-		gluLookAt(eye[0], eye[1], eye[2], norm[0], norm[1], norm[2], up[0], up[1], up[2]);
+			model_mat = m.translate_en_matriz(models[i].translation.x, models[i].translation.y, models[i].translation.z);
+			model_mat = model_mat * m.rotacion_en_matriz(models[i].rotation[0], models[i].rotation[1], models[i].rotation[2], models[i].rotation[3]);
+			model_mat = model_mat * m.scale_en_matriz(models[i].scale);
 
-		model_mat = m.translate_en_matriz(models[i].translation.x, models[i].translation.y, models[i].translation.z);
-		model_mat = model_mat * m.rotacion_en_matriz(models[i].rotation[0], models[i].rotation[1], models[i].rotation[2], models[i].rotation[3]);
-		model_mat = model_mat * m.scale_en_matriz(models[i].scale);
+			glUniformMatrix4fv(model_matr_loc, 1, GL_FALSE, glm::value_ptr(model_mat));
+			glUniformMatrix4fv(view_matr_loc, 1, GL_FALSE, glm::value_ptr(view_mat));
+			project_mat = glm::perspective(sceneCamera->zoom, (float)gWidth / (float)gHeight, 0.1f, 1000.0f);
+			glUniformMatrix4fv(proj_matr_loc, 1, GL_FALSE, glm::value_ptr(project_mat));
+			
+			glBindVertexArray(models[i].vao);
+				glDrawArrays(GL_TRIANGLES, 0, models[i].vertices.size());
+			glBindVertexArray(0);
+		}
+	glslProgram.disable();
 
-		glUniformMatrix4fv(model_matr_loc, 1, GL_FALSE, glm::value_ptr(model_mat));
-		glUniformMatrix4fv(view_matr_loc, 1, GL_FALSE, glm::value_ptr(view_mat));
-		project_mat = glm::perspective(sceneCamera->zoom, (float)gWidth / (float)gHeight, 0.1f, 1000.0f);
-		glUniformMatrix4fv(proj_matr_loc, 1, GL_FALSE, glm::value_ptr(project_mat));
-
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		glBindVertexArray(models[i].vao);
-		glDrawArrays(GL_TRIANGLES, 0, models[i].vertices.size());
-		glBindVertexArray(0);
-
-		glslProgram.disable();
-		glPushMatrix();
-		glPopMatrix();
-
-	}
 	glDisable(GL_STENCIL_TEST);
+
+	glslGBufferP.enable();
+		glm::mat4 model_gbuffer = glm::mat4(1.0f);
+		model_gbuffer = glm::translate(model_gbuffer, glm::vec3(0.7, -0.7, -1.0));
+		model_gbuffer = glm::scale(model_gbuffer, glm::vec3(0.3f));
+		glUniformMatrix4fv(glslGBufferP.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_gbuffer));
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, gPosition);
+		renderQuad();
+	glslGBufferP.disable();
 }
 
 void destroy()
@@ -339,7 +458,8 @@ int main()
 
 	initScene();
 	reshape(gWindow, gWidth, gHeight);
-	m.load("Models/obj/cornell-box.obj");
+	
+	m.load("Models/obj/cyborg.obj");
 	models.push_back(m);
 	while (!glfwWindowShouldClose(gWindow))
 	{

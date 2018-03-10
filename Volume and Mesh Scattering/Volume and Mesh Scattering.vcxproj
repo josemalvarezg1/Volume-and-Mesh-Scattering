@@ -138,6 +138,10 @@
     <ClInclude Include="Model.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Shaders\gBuffer.frag" />
+    <None Include="Shaders\gBuffer.vert" />
+    <None Include="Shaders\gBufferPosition.frag" />
+    <None Include="Shaders\gBufferPosition.vert" />
     <None Include="Shaders\program.frag" />
     <None Include="Shaders\program.vert" />
   </ItemGroup>
