@@ -8,7 +8,7 @@ bool keys[1024], keysPressed[1024], selecting = false;
 glm::mat4 projection, view, model_view;
 TwBar *menuTW, *modelTW;
 camera *sceneCamera;
-double cursor[2] = { 0, 0 };
+glm::vec2 cursor;
 
 float shinyBlinn = 128.0, scaleT = 5.00, ejeX = 1.51, ejeY = 0.26, ejeZ = -1.33, ejeXL = 0.23, ejeYL = 1.18, ejeZL = 0.0;
 float rotacionPrincipal[] = { 0.0f, 0.0f, 0.0f, 1.0f };
@@ -27,6 +27,7 @@ void reshape(GLFWwindow *window, int width, int height)
 	gWidth = width;
 	gHeight = height;
 	glViewport(0, 0, gWidth, gHeight);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	TwWindowSize(width, height);
 	glEnable(GL_DEPTH_TEST);
 }
@@ -56,11 +57,10 @@ void click(GLFWwindow* window, int button, int action, int mods)
 		return;
 
 	if (action == GLFW_PRESS) {
-		GLint index;
-		glReadPixels(cursor[0], gHeight - cursor[1], 1, 1, GL_STENCIL_INDEX, GL_UNSIGNED_INT, &index);
-		bool ISelected = false;
+		GLint index = -1;
+		glReadPixels(cursor.x, gHeight - cursor.y, 1, 1, GL_STENCIL_INDEX, GL_UNSIGNED_INT, &index);
+		// Cambiar a > 0 para no habilitar el fondo ni la caja de Cornell
 		if (index >= 0) {
-			ISelected = true;
 			//Se absorben las propiedades y se cambia el menú de AntTweakBar
 			selectedModel = index;
 			TwDefine("Menú visible=false");
@@ -75,8 +75,7 @@ void click(GLFWwindow* window, int button, int action, int mods)
 			ejeX = models[selectedModel].translation.x;
 			ejeY = models[selectedModel].translation.y;
 			ejeZ = models[selectedModel].translation.z;
-		}
-		if (!ISelected) {
+		} else {
 			selecting = false;
 			TwDefine("Menú visible=true");
 			TwDefine("Figura visible=false");
@@ -232,7 +231,7 @@ bool initAntTweakBar()
 	TwAddVarRW(modelTW, "ejeY", TW_TYPE_FLOAT, &ejeY, "step=0.01 label='Traslación y' group='Transformaciones'");
 	TwAddVarRW(modelTW, "ejeZ", TW_TYPE_FLOAT, &ejeZ, "step=0.01 label='Traslación z' group='Transformaciones'");
 	TwAddVarRW(modelTW, "rotation", TW_TYPE_QUAT4F, &rotacionPrincipal, " label='Rotación' opened=true group='Transformaciones'");
-	
+
 	TwAddVarRW(modelTW, "ejeXL", TW_TYPE_FLOAT, &ejeXL, "step=0.01 label='x' group='Trasladar luz' group='Luz'");
 	TwAddVarRW(modelTW, "ejeYL", TW_TYPE_FLOAT, &ejeYL, "step=0.01 label='y' group='Trasladar luz' group='Luz'");
 	TwAddVarRW(modelTW, "ejeZL", TW_TYPE_FLOAT, &ejeZL, "step=0.01 label='z' group='Trasladar luz' group='Luz'");
@@ -261,21 +260,14 @@ void movement()
 
 void initScene()
 {
-	sceneCamera = new camera(glm::vec3(1.0f, 0.0f, 6.0f));	
+	sceneCamera = new camera(glm::vec3(1.0f, 0.0f, 6.0f));
 }
 
 void display()
 {
-	glm::mat4 VP;
-	glm::vec3 viewPos;
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	view = sceneCamera->getViewMatrix();
-	projection = glm::perspective(sceneCamera->zoom, (float)gWidth / (float)gHeight, 0.1f, 100.0f);
-	VP = projection * view;
-	viewPos = sceneCamera->position;
-	glEnable(GL_CULL_FACE);
-	glCullFace(GL_BACK);
+	glEnable(GL_STENCIL_TEST);
+	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 	//Colocar este código en una función setCurrentValues(selectedModel)
 	models[selectedModel].rotation[0] = rotacionPrincipal[0];
 	models[selectedModel].rotation[1] = rotacionPrincipal[1];
@@ -288,49 +280,50 @@ void display()
 
 	models[selectedModel].scale = scaleT;
 	models[selectedModel].shininess = shinyBlinn;
-	for (int i = 0; i<models.size(); i++) 
+	for (int i = 0; i < models.size(); i++)
 	{
 		glStencilFunc(GL_ALWAYS, i, -1);
 		glslProgram.enable();
-			GLuint view_matr_loc = glslProgram.getLocation("view_matrix");
-			GLuint model_matr_loc = glslProgram.getLocation("model_matrix");
-			GLuint proj_matr_loc = glslProgram.getLocation("projection_matrix");
-			GLuint light_loc = glslProgram.getLocation("lightPos");
-			GLuint view_loc = glslProgram.getLocation("view");
-			GLuint shinyBlinn_loc = glslProgram.getLocation("shinyBlinn");
-			GLuint lightDir_loc = glslProgram.getLocation("lightSpotDir");
+		GLuint view_matr_loc = glslProgram.getLocation("view_matrix");
+		GLuint model_matr_loc = glslProgram.getLocation("model_matrix");
+		GLuint proj_matr_loc = glslProgram.getLocation("projection_matrix");
+		GLuint light_loc = glslProgram.getLocation("lightPos");
+		GLuint view_loc = glslProgram.getLocation("view");
+		GLuint shinyBlinn_loc = glslProgram.getLocation("shinyBlinn");
+		GLuint lightDir_loc = glslProgram.getLocation("lightSpotDir");
 
-			glUniform3f(view_loc, sceneCamera->position[0], sceneCamera->position[1], sceneCamera->position[2]);
-			glUniform3f(lightDir_loc, lightDirection[0], lightDirection[1], lightDirection[2]);
-			glUniform3f(light_loc, ejeXL, ejeYL, ejeZL);
-			glUniform1f(shinyBlinn_loc, models[i].shininess);
+		glUniform3f(view_loc, sceneCamera->position[0], sceneCamera->position[1], sceneCamera->position[2]);
+		glUniform3f(lightDir_loc, lightDirection[0], lightDirection[1], lightDirection[2]);
+		glUniform3f(light_loc, ejeXL, ejeYL, ejeZL);
+		glUniform1f(shinyBlinn_loc, models[i].shininess);
 
-			//Matrices de view y projection
-			glm::mat4 model_mat;
-			glm::vec3 norm(0.0f, 0.0f, 0.0f);
-			glm::vec3 up(0.0f, 1.0f, 0.0f);
-			view_mat = sceneCamera->getViewMatrix();
-			gluLookAt(eye[0], eye[1], eye[2], norm[0], norm[1], norm[2], up[0], up[1], up[2]);
+		//Matrices de view y projection
+		glm::mat4 model_mat;
+		glm::vec3 norm(0.0f, 0.0f, 0.0f);
+		glm::vec3 up(0.0f, 1.0f, 0.0f);
+		view_mat = sceneCamera->getViewMatrix();
+		gluLookAt(eye[0], eye[1], eye[2], norm[0], norm[1], norm[2], up[0], up[1], up[2]);
 
-			model_mat = m.translate_en_matriz(models[i].translation.x, models[i].translation.y, models[i].translation.z);
-			model_mat = model_mat * m.rotacion_en_matriz(models[i].rotation[0], models[i].rotation[1], models[i].rotation[2], models[i].rotation[3]);
-			model_mat = model_mat * m.scale_en_matriz(models[i].scale);
+		model_mat = m.translate_en_matriz(models[i].translation.x, models[i].translation.y, models[i].translation.z);
+		model_mat = model_mat * m.rotacion_en_matriz(models[i].rotation[0], models[i].rotation[1], models[i].rotation[2], models[i].rotation[3]);
+		model_mat = model_mat * m.scale_en_matriz(models[i].scale);
 
-			glUniformMatrix4fv(model_matr_loc, 1, GL_FALSE, glm::value_ptr(model_mat));
-			glUniformMatrix4fv(view_matr_loc, 1, GL_FALSE, glm::value_ptr(view_mat));
-			project_mat = glm::perspective(sceneCamera->zoom, (float)gWidth / (float)gHeight, 0.1f, 1000.0f);
-			glUniformMatrix4fv(proj_matr_loc, 1, GL_FALSE, glm::value_ptr(project_mat));
+		glUniformMatrix4fv(model_matr_loc, 1, GL_FALSE, glm::value_ptr(model_mat));
+		glUniformMatrix4fv(view_matr_loc, 1, GL_FALSE, glm::value_ptr(view_mat));
+		project_mat = glm::perspective(sceneCamera->zoom, (float)gWidth / (float)gHeight, 0.1f, 1000.0f);
+		glUniformMatrix4fv(proj_matr_loc, 1, GL_FALSE, glm::value_ptr(project_mat));
 
-			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-			glBindVertexArray(models[i].vao);
-				glDrawArrays(GL_TRIANGLES, 0, models[i].vertices.size());
-			glBindVertexArray(0);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		glBindVertexArray(models[i].vao);
+		glDrawArrays(GL_TRIANGLES, 0, models[i].vertices.size());
+		glBindVertexArray(0);
 
 		glslProgram.disable();
 		glPushMatrix();
 		glPopMatrix();
 
 	}
+	glDisable(GL_STENCIL_TEST);
 }
 
 void destroy()
