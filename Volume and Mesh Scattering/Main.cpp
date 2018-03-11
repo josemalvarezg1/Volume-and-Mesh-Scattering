@@ -18,8 +18,7 @@ model m;
 CGLSLProgram glslProgram, glslGBuffer, glslGBufferP;
 int selectedModel = 0;
 
-glm::mat4 project_mat; //Matriz de Proyección
-glm::mat4 view_mat; //Matriz de View
+glm::mat4 project_mat, view_mat;
 glm::vec3 eye(0.0f, 0.0f, 2.0f); // Ojo
 float lightDirection[] = { -1.31, -0.12, 1.10 };
 
@@ -138,7 +137,8 @@ void click(GLFWwindow* window, int button, int action, int mods)
 	}
 }
 
-void scroll(GLFWwindow* window, double xoffset, double yoffset) {
+void scroll(GLFWwindow* window, double xoffset, double yoffset)
+{
 	if (TwEventMouseWheelGLFW(yoffset)) return;
 	if (yoffset == 1 && selecting) {
 		scaleT += 0.05;
@@ -171,7 +171,6 @@ void dropPath(GLFWwindow* window, int count, const char** paths)
 	//volumes->dropPath(count, paths);
 }
 
-//Función para seleciconar un modelo
 void TW_CALL selectModel(void *clientData) {
 	if (models.size() > 0) {
 		if (!selecting) {
@@ -346,8 +345,6 @@ bool initScene()
 
 void display()
 {
-	
-	//Colocar este código en una función setCurrentValues(selectedModel)
 	models[selectedModel].rotation[0] = rotacionPrincipal[0];
 	models[selectedModel].rotation[1] = rotacionPrincipal[1];
 	models[selectedModel].rotation[2] = rotacionPrincipal[2];
@@ -363,34 +360,25 @@ void display()
 	glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	glEnable(GL_CULL_FACE);
-	glCullFace(GL_BACK);
+	/*glEnable(GL_CULL_FACE);
+	glCullFace(GL_BACK);*/
 
 	glslGBuffer.enable();
-		GLuint model_matr_loc1 = glslGBuffer.getLocation("model_matrix");
-		GLuint light_matrix_loc = glslGBuffer.getLocation("light_matrix");
-		glm::mat4 projectionLightMat, viewLightMat;
-		glm::mat4 spaceLightMatrix;
+		glm::mat4 projectionLightMat, viewLightMat, spaceLightMatrix, model_mat;
 
 		for (int i = 0; i < models.size(); i++)
 		{
-			glm::mat4 model_mat;
-			glm::vec3 norm(0.0f, 0.0f, 0.0f);
-			glm::vec3 up(0.0f, 1.0f, 0.0f);
-			view_mat = sceneCamera->getViewMatrix();
-
+			model_mat = glm::mat4(1.0f);
 			projectionLightMat = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.01f, 20.0f);
 			viewLightMat = glm::lookAt(sceneLight->translation, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-
-			gluLookAt(eye[0], eye[1], eye[2], norm[0], norm[1], norm[2], up[0], up[1], up[2]);
 			spaceLightMatrix = projectionLightMat * viewLightMat;
 
-			model_mat = m.translate_en_matriz(models[i].translation.x, models[i].translation.y, models[i].translation.z);
-			model_mat = model_mat * m.rotacion_en_matriz(models[i].rotation[0], models[i].rotation[1], models[i].rotation[2], models[i].rotation[3]);
-			model_mat = model_mat * m.scale_en_matriz(models[i].scale);
+			model_mat = glm::translate(model_mat, models[i].translation);
+			model_mat = model_mat * glm::toMat4(models[i].rotation);
+			model_mat = glm::scale(model_mat, glm::vec3(models[i].scale));
 
-			glUniformMatrix4fv(model_matr_loc1, 1, GL_FALSE, glm::value_ptr(model_mat));
-			glUniformMatrix4fv(light_matrix_loc, 1, GL_FALSE, glm::value_ptr(spaceLightMatrix));
+			glUniformMatrix4fv(glslGBuffer.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
+			glUniformMatrix4fv(glslGBuffer.getLocation("light_matrix"), 1, GL_FALSE, glm::value_ptr(spaceLightMatrix));
 
 			glBindVertexArray(models[i].vao);
 				glDrawArrays(GL_TRIANGLES, 0, models[i].vertices.size());
@@ -406,38 +394,24 @@ void display()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
 	glslProgram.enable();
-		GLuint view_matr_loc = glslProgram.getLocation("view_matrix");
-		GLuint model_matr_loc = glslProgram.getLocation("model_matrix");
-		GLuint proj_matr_loc = glslProgram.getLocation("projection_matrix");
-		GLuint light_loc = glslProgram.getLocation("lightPos");
-		GLuint view_loc = glslProgram.getLocation("view");
-		GLuint shinyBlinn_loc = glslProgram.getLocation("shinyBlinn");
-		GLuint lightDir_loc = glslProgram.getLocation("lightSpotDir");
 		view_mat = sceneCamera->getViewMatrix();
 		project_mat = glm::perspective(sceneCamera->zoom, (float)gWidth / (float)gHeight, 0.1f, 1000.0f);
 
-		for (int i = 0; i < models.size(); i++)
+		for (size_t i = 0; i < models.size(); i++)
 		{
 			glStencilFunc(GL_ALWAYS, i + 1, -1);
-			glUniform3f(view_loc, sceneCamera->position[0], sceneCamera->position[1], sceneCamera->position[2]);
-			glUniform3f(lightDir_loc, lightDirection[0], lightDirection[1], lightDirection[2]);
-			glUniform3f(light_loc, sceneLight->translation.x, sceneLight->translation.y, sceneLight->translation.z);
-			glUniform1f(shinyBlinn_loc, models[i].shininess);
+			glUniform3f(glslProgram.getLocation("view"), sceneCamera->position[0], sceneCamera->position[1], sceneCamera->position[2]);
+			glUniform3f(glslProgram.getLocation("lightPos"), sceneLight->translation.x, sceneLight->translation.y, sceneLight->translation.z);
+			glUniform1f(glslProgram.getLocation("shinyBlinn"), models[i].shininess);
 
-			//Matrices de view y projection
-			glm::mat4 model_mat;
-			glm::vec3 norm(0.0f, 0.0f, 0.0f);
-			glm::vec3 up(0.0f, 1.0f, 0.0f);
-			
-			gluLookAt(eye[0], eye[1], eye[2], norm[0], norm[1], norm[2], up[0], up[1], up[2]);
+			model_mat = glm::mat4(1.0f);
+			model_mat = glm::translate(model_mat, models[i].translation);
+			model_mat = model_mat * glm::toMat4(models[i].rotation);
+			model_mat = glm::scale(model_mat, glm::vec3(models[i].scale));
 
-			model_mat = m.translate_en_matriz(models[i].translation.x, models[i].translation.y, models[i].translation.z);
-			model_mat = model_mat * m.rotacion_en_matriz(models[i].rotation[0], models[i].rotation[1], models[i].rotation[2], models[i].rotation[3]);
-			model_mat = model_mat * m.scale_en_matriz(models[i].scale);
-
-			glUniformMatrix4fv(model_matr_loc, 1, GL_FALSE, glm::value_ptr(model_mat));
-			glUniformMatrix4fv(view_matr_loc, 1, GL_FALSE, glm::value_ptr(view_mat));
-			glUniformMatrix4fv(proj_matr_loc, 1, GL_FALSE, glm::value_ptr(project_mat));
+			glUniformMatrix4fv(glslProgram.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
+			glUniformMatrix4fv(glslProgram.getLocation("view_matrix"), 1, GL_FALSE, glm::value_ptr(view_mat));
+			glUniformMatrix4fv(glslProgram.getLocation("projection_matrix"), 1, GL_FALSE, glm::value_ptr(project_mat));
 			
 			glBindVertexArray(models[i].vao);
 				glDrawArrays(GL_TRIANGLES, 0, models[i].vertices.size());

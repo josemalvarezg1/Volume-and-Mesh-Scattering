@@ -10,22 +10,24 @@
 class light
 {
 public:
-	glm::vec3 maximus, minimous, translation, ambientComp, diffuseComp, specularComp;
 	GLuint vbo, vao, vindex;
-	std::vector<glm::vec3> vertex;
+	glm::vec3 max_vertex, min_vertex, center, translation, ambient_comp, diffuse_comp, specular_comp;
+	std::vector<glm::vec3> vertices;
 	std::vector<GLuint> index;
-	CGLSLProgram lightP;
-	bool on, viewInterface;
+	CGLSLProgram light_program;
+	bool on, visible_interface;
+	GLfloat max_value;
 
 	light();
 	~light();
-	void createVBO();
-	void display(glm::mat4 &viewProjection);
+	void init_shaders();
+	void set_max_min_value(GLfloat x, GLfloat y, GLfloat z);
+	void insert_index(std::string value);
+	void calculate_center();
 	void load(std::string path);
-	void insertIndex(std::string value);
-	void initShaders();
-	//bool clickLight(double x, double y, glm::mat4 &projection, glm::mat4 &view, glm::vec3 cameraPosition, int screenWidth, int screenHeight);
-	bool intersection(double x, double y, glm::mat4 &projection, glm::mat4 &view, glm::vec3 cameraPosition, int screenWidth, int screenHeight);
-	void onOffLight();
+	void create_vbo();
+	void display(glm::mat4 &view_projection);
+	bool clickLight(double x, double y, glm::mat4 &projection, glm::mat4 &view, glm::vec3 cameraPosition, int screenWidth, int screenHeight);
+	void on_off_light();
 	void updateInterface();
 };

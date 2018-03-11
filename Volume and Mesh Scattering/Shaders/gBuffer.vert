@@ -11,7 +11,7 @@ uniform mat4 light_matrix;
 void main()
 {
     gl_Position = light_matrix *  model_matrix * vec4(position, 1.0f);
-	FragPos = model_matrix * vec4(position, 1.0f);
+	FragPos = vec3(model_matrix * vec4(position, 1.0f));
 
     mat3 normalMatrix = transpose(inverse(mat3(model_matrix)));
     Normal = normalMatrix * normal;
