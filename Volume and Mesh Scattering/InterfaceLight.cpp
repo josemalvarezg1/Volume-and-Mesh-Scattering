@@ -14,17 +14,17 @@ interfaceLight * interfaceLight::instance()
 
 interfaceLight::interfaceLight()
 {
-	lightInterface = TwNewBar("Ilumination");
+	lightInterface = TwNewBar("Iluminación");
 
-	TwDefine("Ilumination refresh = '0.0001f'");
-	TwDefine("Ilumination resizable = false");
-	TwDefine("Ilumination fontresizable = false");
-	TwDefine("Ilumination movable = false");
-	TwDefine("Ilumination visible = false");
-	TwDefine("Ilumination position = '20 20'");
-	TwDefine("Ilumination valueswidth = 100 ");
-	TwDefine("Ilumination color = '42 46 148' alpha = 85");
-	TwDefine("Ilumination size = '300 300'");
+	TwDefine("Iluminación refresh = '0.0001f'");
+	TwDefine("Iluminación resizable = false");
+	TwDefine("Iluminación fontresizable = false");
+	TwDefine("Iluminación movable = false");
+	TwDefine("Iluminación visible = false");
+	TwDefine("Iluminación position = '20 20'");
+	TwDefine("Iluminación valueswidth = 100 ");
+	TwDefine("Iluminación color = '42 46 148' alpha = 85");
+	TwDefine("Iluminación size = '300 400'");
 
 	TwAddVarRW(lightInterface, "onOff", TW_TYPE_BOOLCPP, &on, "label = 'Encendida'");
 	TwAddSeparator(lightInterface, NULL, "");
@@ -49,10 +49,10 @@ void interfaceLight::reshape()
 
 void interfaceLight::show()
 {
-	TwDefine("Ilumination visible = true");
+	TwDefine("Iluminación visible = true");
 }
 
 void interfaceLight::hide()
 {
-	TwDefine("Ilumination visible = false");
+	TwDefine("Iluminación visible = false");
 }

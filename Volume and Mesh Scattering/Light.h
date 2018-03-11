@@ -7,7 +7,7 @@
 #include <fstream>
 
 #include "GLSLProgram.h"
-#include "interfaceLight.h"
+#include "InterfaceLight.h"
 
 
 class light

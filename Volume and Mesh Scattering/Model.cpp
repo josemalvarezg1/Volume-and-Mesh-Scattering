@@ -3,7 +3,7 @@
 mesh::mesh()
 {
 	this->translation = glm::vec3(0.0f, 0.0f, 0.0f);
-	this->rotation = glm::quat(0.0f, 0.0f, 0.0f, 1.0f);
+	this->rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
 	this->scale = 5.0f;
 	this->ambient_comp = glm::vec3(0.15f, 0.15f, 0.15f);
 	this->diffuse_comp = glm::vec3(1.0f, 1.0f, 1.0f);
@@ -172,4 +172,42 @@ void mesh::create_vbo()
 	
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
+}
+
+meshSet::meshSet()
+{
+	this->visible_interface = false;
+	this->model_interface = interfaceModel::instance();
+}
+
+meshSet::~meshSet()
+{
+	this->mesh_models.empty();
+}
+
+void meshSet::click_model(int selectedModel)
+{
+	this->model_interface->show();
+	this->model_interface->translation = this->mesh_models[selectedModel]->translation;
+	this->model_interface->rotation = this->mesh_models[selectedModel]->rotation;
+	this->model_interface->scale = this->mesh_models[selectedModel]->scale;
+	this->model_interface->shininess = this->mesh_models[selectedModel]->shininess;
+	this->visible_interface = true;
+}
+
+void meshSet::not_click_model()
+{
+	this->model_interface->hide();
+	this->visible_interface = false;
+}
+
+void meshSet::update_interface(int selectedModel)
+{
+	if (visible_interface)
+	{
+		this->mesh_models[selectedModel]->translation = this->model_interface->translation;
+		this->mesh_models[selectedModel]->rotation = this->model_interface->rotation;
+		this->mesh_models[selectedModel]->scale = this->model_interface->scale;
+		this->mesh_models[selectedModel]->shininess = this->model_interface->shininess;
+	}
 }

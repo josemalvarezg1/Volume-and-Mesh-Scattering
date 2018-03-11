@@ -12,6 +12,7 @@
 #include <vector>
 #include <sstream>
 #include <windows.h>
+#include "InterfaceModel.h"
 
 class mesh
 {
@@ -31,3 +32,18 @@ public:
 	void load(std::string path);
 	void create_vbo();
 };
+
+class meshSet {
+public:
+	bool visible_interface;
+
+	meshSet();
+	~meshSet();
+	std::vector<mesh*> mesh_models;
+	interfaceModel *model_interface;
+	void click_model(int selectedModel);
+	void not_click_model();
+	void update_interface(int selectedModel);
+};
+
+	
