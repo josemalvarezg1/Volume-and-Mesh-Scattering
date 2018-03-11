@@ -27,6 +27,9 @@
     <ClCompile Include="Model.cpp">
       <Filter>Archivos de código fuente</Filter>
     </ClCompile>
+    <ClCompile Include="Light.cpp">
+      <Filter>Archivos de código fuente</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Main.h">
@@ -39,6 +42,9 @@
       <Filter>Archivos de encabezado</Filter>
     </ClInclude>
     <ClInclude Include="Model.h">
+      <Filter>Archivos de encabezado</Filter>
+    </ClInclude>
+    <ClInclude Include="Light.h">
       <Filter>Archivos de encabezado</Filter>
     </ClInclude>
   </ItemGroup>
@@ -59,6 +65,12 @@
       <Filter>Shaders</Filter>
     </None>
     <None Include="Shaders\gBufferPosition.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\light.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\light.frag">
       <Filter>Shaders</Filter>
     </None>
   </ItemGroup>

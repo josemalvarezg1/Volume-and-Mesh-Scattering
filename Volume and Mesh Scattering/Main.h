@@ -18,6 +18,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <AntTweakBar.h>
 #include "GLSLProgram.h"
+#include "Light.h"
 using namespace std;
 
 void reshape(GLFWwindow *window, int width, int height);
@@ -29,7 +30,7 @@ void charInput(GLFWwindow* window, unsigned int scanChar);
 void dropPath(GLFWwindow* window, int count, const char** paths);
 bool initGlfw();
 bool initGlew();
-void initScene();
+bool initScene();
 void display();
 void destroy();
 int main();
