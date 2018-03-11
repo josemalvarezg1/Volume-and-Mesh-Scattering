@@ -11,11 +11,8 @@ light *scene_light;
 camera *scene_camera;
 meshSet *mSet;
 
-float shinyBlinn = 128.0, scaleT = 5.00, ejeX = 0.0f, ejeY = 0.0f, ejeZ = 0.0f;
-float rotacionPrincipal[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-
 CGLSLProgram glslProgram, glslGBuffer, glslGBufferP;
-int selectedModel = 0;
+int selectedModel = -1;
 glm::vec3 eye(0.0f, 0.0f, 2.0f); // Ojo
 
 GLuint quadVAO, quadVBO;
@@ -153,11 +150,13 @@ void click(GLFWwindow* window, int button, int action, int mods)
 					mSet->not_click_model();					
 					scene_light->click_light();
 					selectingModel = false;
+					selectedModel = -1;
 					selectingLight = true;
 				}
 			}
 			else {
 				selectingModel = false;
+				selectedModel = -1;
 				mSet->not_click_model();
 				scene_light->not_click_light();
 				selectingLight = false;
@@ -168,13 +167,8 @@ void click(GLFWwindow* window, int button, int action, int mods)
 
 void scroll(GLFWwindow* window, double xoffset, double yoffset)
 {
-	if (TwEventMouseWheelGLFW(yoffset)) return;
-	if (yoffset == 1 && selectingModel) {
-		scaleT += 0.05;
-	}
-	if (yoffset == -1 && selectingModel) {
-		scaleT -= 0.05;
-	}
+	if (TwEventMouseWheelGLFW(yoffset)) 
+		return;
 }
 
 void posCursor(GLFWwindow* window, double x, double y)

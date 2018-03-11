@@ -203,7 +203,7 @@ void meshSet::not_click_model()
 
 void meshSet::update_interface(int selectedModel)
 {
-	if (visible_interface)
+	if (visible_interface && selectedModel >= 0)
 	{
 		this->mesh_models[selectedModel]->translation = this->model_interface->translation;
 		this->mesh_models[selectedModel]->rotation = this->model_interface->rotation;
