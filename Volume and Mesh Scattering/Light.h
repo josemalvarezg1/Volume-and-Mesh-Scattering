@@ -4,8 +4,11 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include "GLSLProgram.h"
 #include <fstream>
+
+#include "GLSLProgram.h"
+#include "interfaceLight.h"
+
 
 class light
 {
@@ -15,6 +18,7 @@ public:
 	std::vector<glm::vec3> vertices;
 	std::vector<GLuint> index;
 	CGLSLProgram light_program;
+	interfaceLight *light_interface;
 	bool on, visible_interface;
 	GLfloat max_value;
 
@@ -27,7 +31,8 @@ public:
 	void load(std::string path);
 	void create_vbo();
 	void display(glm::mat4 &view_projection);
-	bool clickLight(double x, double y, glm::mat4 &projection, glm::mat4 &view, glm::vec3 cameraPosition, int screenWidth, int screenHeight);
+	void click_light();
+	void not_click_light();
 	void on_off_light();
-	void updateInterface();
+	void update_interface();
 };

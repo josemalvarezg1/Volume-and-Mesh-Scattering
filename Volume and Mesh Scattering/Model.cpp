@@ -1,6 +1,6 @@
 #include "Model.h"
 
-model::model()
+mesh::mesh()
 {
 	this->translation = glm::vec3(0.0f, 0.0f, 0.0f);
 	this->rotation = glm::quat(0.0f, 0.0f, 0.0f, 1.0f);
@@ -11,26 +11,26 @@ model::model()
 	this->shininess = 128.0f;
 }
 
-model::~model()
+mesh::~mesh()
 {
 	glDeleteVertexArrays(1, &vao);
 	glDeleteBuffers(1, &vbo);
 }
 
-void model::set_max_min_value(GLfloat x, GLfloat y, GLfloat z)
+void mesh::set_max_min_value(GLfloat x, GLfloat y, GLfloat z)
 {
 	if (x > this->max_vertex.x) this->max_vertex.x = x; if (y > this->max_vertex.y) this->max_vertex.y = y; if (z > this->max_vertex.z) this->max_vertex.z = z;
 	if (x < this->min_vertex.x) this->min_vertex.x = x; if (y < this->min_vertex.y) this->min_vertex.y = y; if (z < this->min_vertex.z) this->min_vertex.z = z;
 }
 
-std::vector<std::string> model::process_attribute(std::string value)
+std::vector<std::string> mesh::process_attribute(std::string value)
 {
 	std::string output;
 	unique_copy(value.begin(), value.end(), std::back_insert_iterator<std::string>(output), [](char a, char b) { return isspace(a) && isspace(b); });
 	return split(output.erase(0, 1), ' ');
 }
 
-std::vector<std::string> model::split(std::string s, char delim)
+std::vector<std::string> mesh::split(std::string s, char delim)
 {
 	std::stringstream ss(s);
 	std::string item;
@@ -40,7 +40,7 @@ std::vector<std::string> model::split(std::string s, char delim)
 	return tokens;
 }
 
-void model::calculate_center()
+void mesh::calculate_center()
 {
 	this->center.x = (this->max_vertex.x + this->min_vertex.x) / 2.0f;
 	this->center.y = (this->max_vertex.y + this->min_vertex.y) / 2.0f;
@@ -49,7 +49,7 @@ void model::calculate_center()
 	for (unsigned int i = 0; i < 3; i++) if (this->max_value < this->max_vertex[i]) this->max_value = this->max_vertex[i];
 }
 
-void model::load(std::string path)
+void mesh::load(std::string path)
 {
 	std::fstream file;
 	file.open(path, std::ios::in);
@@ -154,7 +154,7 @@ void model::load(std::string path)
 	}
 }
 
-void model::create_vbo()
+void mesh::create_vbo()
 {
 	glGenVertexArrays(1, &this->vao);
 	glGenBuffers(1, &this->vbo);

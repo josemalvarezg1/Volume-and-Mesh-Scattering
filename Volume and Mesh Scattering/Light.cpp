@@ -4,10 +4,11 @@ light::light()
 {
 	this->on = false;
 	this->visible_interface = false;
-	this->translation = glm::vec3(1.0f, 2.0f, 1.0f);
+	this->translation = glm::vec3(0.0f, -1.0f, 3.0f);
 	this->ambient_comp = glm::vec3(0.15f, 0.15f, 0.15f);
 	this->diffuse_comp = glm::vec3(1.0f, 1.0f, 1.0f);
 	this->specular_comp = glm::vec3(1.0f, 1.0f, 1.0f);
+	this->light_interface = interfaceLight::instance();
 	
 	this->init_shaders();
 	this->load("Models/obj/light.obj");
@@ -131,23 +132,21 @@ void light::display(glm::mat4 &view_projection)
 	this->light_program.disable();
 }
 
-bool light::clickLight(double x, double y, glm::mat4 &projection, glm::mat4 &view, glm::vec3 cameraPosition, int screenWidth, int screenHeight)
+void light::click_light()
 {
+	this->light_interface->show();
+	this->light_interface->on = this->on;
+	this->light_interface->translation = this->translation;
+	this->light_interface->ambient_comp = this->ambient_comp;
+	this->light_interface->diffuse_comp = this->diffuse_comp;
+	this->light_interface->specular_comp = this->specular_comp;
+	this->visible_interface = true;
+}
 
-	/*if (this->intersection(x, y, projection, view, cameraPosition, screenWidth, screenHeight))
-	{
-		this->lightInterface->show();
-		this->lightInterface->on = this->on;
-		this->lightInterface->translation = this->translation;
-		this->lightInterface->ambient_comp = this->ambient_comp;
-		this->lightInterface->diffuse_comp = this->diffuse_comp;
-		this->lightInterface->specular_comp = this->specular_comp;
-		this->visible_interface = true;
-		return true;
-	}
-	this->lightInterface->hide();
-	this->visible_interface = false;*/
-	return false;
+void light::not_click_light()
+{
+	this->light_interface->hide();
+	this->visible_interface = false;
 }
 
 void light::on_off_light()
@@ -158,14 +157,14 @@ void light::on_off_light()
 		this->on = true;
 }
 
-void light::updateInterface()
+void light::update_interface()
 {
 	if (visible_interface)
 	{
-		/*this->translation = this->lightInterface->translation;
-		this->ambient_comp = this->lightInterface->ambient_comp;
-		this->diffuse_comp = this->lightInterface->diffuse_comp;
-		this->specular_comp = this->lightInterface->specular_comp;
-		this->on = this->lightInterface->on;*/
+		this->translation = this->light_interface->translation;
+		this->ambient_comp = this->light_interface->ambient_comp;
+		this->diffuse_comp = this->light_interface->diffuse_comp;
+		this->specular_comp = this->light_interface->specular_comp;
+		this->on = this->light_interface->on;
 	}
 }

@@ -5,26 +5,22 @@ GLFWwindow *gWindow;
 int gWidth, gHeight;
 GLfloat deltaTime = 0.0f, lastFrame = 0.0f;
 bool keys[1024], keysPressed[1024], selecting = false;
-glm::mat4 projection, view, model_view;
-TwBar *menuTW, *modelTW;
-camera *sceneCamera;
-light *sceneLight; 
-glm::vec2 cursor;
+glm::mat4 projection, view, model;
 
-float shinyBlinn = 128.0, scaleT = 5.00, ejeX = 1.51, ejeY = 0.26, ejeZ = -1.33;
+light *scene_light;
+camera *scene_camera;
+std::vector<mesh*> mesh_models;
+
+float shinyBlinn = 128.0, scaleT = 5.00, ejeX = 0.0f, ejeY = 0.0f, ejeZ = 0.0f;
 float rotacionPrincipal[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-vector<model> models; //Todos los modelos irán en este vector
-model m;
+
 CGLSLProgram glslProgram, glslGBuffer, glslGBufferP;
 int selectedModel = 0;
-
-glm::mat4 project_mat, view_mat;
+TwBar *menuTW, *modelTW;
 glm::vec3 eye(0.0f, 0.0f, 2.0f); // Ojo
-float lightDirection[] = { -1.31, -0.12, 1.10 };
 
 GLuint quadVAO, quadVBO;
-unsigned int gBuffer;
-unsigned int gPosition, gNormal;
+unsigned int gBuffer, gPosition, gNormal;
 unsigned int attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
 
 void create_gbuffer()
@@ -51,7 +47,7 @@ void create_gbuffer()
 	glDrawBuffers(2, attachments);
 }
 
-void renderQuad() 
+void render_quad() 
 {
 	if (quadVAO == 0) {
 		GLfloat quadVertices[] = {
@@ -80,10 +76,12 @@ void reshape(GLFWwindow *window, int width, int height)
 {
 	gWidth = width;
 	gHeight = height;
-	glViewport(0, 0, gWidth, gHeight);
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+
+	scene_light->light_interface->reshape();
 	TwWindowSize(width, height);
-	glEnable(GL_DEPTH_TEST);
+	
+	glClearColor(0.75f, 0.75f, 0.75f, 1.0f);
+	glViewport(0, 0, gWidth, gHeight);
 }
 
 void keyInput(GLFWwindow *window, int key, int scancode, int action, int mods)
@@ -109,30 +107,49 @@ void click(GLFWwindow* window, int button, int action, int mods)
 {
 	if (TwEventMouseButtonGLFW(button, action))
 		return;
+	double x, y;
+	glfwGetCursorPos(gWindow, &x, &y);
+	if (action == GLFW_PRESS) 
+	{
+		if (button == GLFW_MOUSE_BUTTON_LEFT)
+		{
+			GLint index;
+			glReadPixels(x, gHeight - y, 1, 1, GL_STENCIL_INDEX, GL_UNSIGNED_INT, &index);
 
-	if (action == GLFW_PRESS) {
-		GLint index = -1;
-		glReadPixels(cursor.x, gHeight - cursor.y, 1, 1, GL_STENCIL_INDEX, GL_UNSIGNED_INT, &index);
-		// Cambiar a > 0 para no habilitar el fondo ni la caja de Cornell
-		if (index > 0) {
-			//Se absorben las propiedades y se cambia el menú de AntTweakBar
-			selectedModel = index - 1;
-			TwDefine("Menú visible=false");
-			TwDefine("Figura visible=true");
-			selecting = true;
-			rotacionPrincipal[0] = models[selectedModel].rotation[0];
-			rotacionPrincipal[1] = models[selectedModel].rotation[1];
-			rotacionPrincipal[2] = models[selectedModel].rotation[2];
-			rotacionPrincipal[3] = models[selectedModel].rotation[3];
-			scaleT = models[selectedModel].scale;
-			shinyBlinn = models[selectedModel].shininess;
-			ejeX = models[selectedModel].translation.x;
-			ejeY = models[selectedModel].translation.y;
-			ejeZ = models[selectedModel].translation.z;
-		} else {
-			selecting = false;
-			TwDefine("Menú visible=true");
-			TwDefine("Figura visible=false");
+			if (index > 0) 
+			{
+				if (index <= mesh_models.size())
+				{
+					//mesh_models[index - 1]->
+					scene_light->not_click_light();
+					selectedModel = index - 1;
+					TwDefine("Menú visible=false");
+					TwDefine("Figura visible=true");
+					selecting = true;
+					rotacionPrincipal[0] = mesh_models[selectedModel]->rotation[0];
+					rotacionPrincipal[1] = mesh_models[selectedModel]->rotation[1];
+					rotacionPrincipal[2] = mesh_models[selectedModel]->rotation[2];
+					rotacionPrincipal[3] = mesh_models[selectedModel]->rotation[3];
+					scaleT = mesh_models[selectedModel]->scale;
+					shinyBlinn = mesh_models[selectedModel]->shininess;
+					ejeX = mesh_models[selectedModel]->translation.x;
+					ejeY = mesh_models[selectedModel]->translation.y;
+					ejeZ = mesh_models[selectedModel]->translation.z;
+				}
+				else
+				{
+					TwDefine("Menú visible=false");
+					TwDefine("Figura visible=false");
+					scene_light->click_light();
+				}
+					
+			}
+			else {
+				selecting = false;
+				TwDefine("Menú visible=true");
+				TwDefine("Figura visible=false");
+				scene_light->not_click_light();
+			}
 		}
 	}
 }
@@ -150,8 +167,6 @@ void scroll(GLFWwindow* window, double xoffset, double yoffset)
 
 void posCursor(GLFWwindow* window, double x, double y)
 {
-	cursor[0] = x;
-	cursor[1] = y;
 	if (TwEventMousePosGLFW(int(x), int(y)))
 		return;
 }
@@ -172,25 +187,25 @@ void dropPath(GLFWwindow* window, int count, const char** paths)
 }
 
 void TW_CALL selectModel(void *clientData) {
-	if (models.size() > 0) {
+	if (mesh_models.size() > 0) {
 		if (!selecting) {
 			TwDefine("Menú visible=false");
 			TwDefine("Figura visible=true");
 			selecting = true;
-			rotacionPrincipal[0] = models[selectedModel].rotation[0];
-			rotacionPrincipal[1] = models[selectedModel].rotation[1];
-			rotacionPrincipal[2] = models[selectedModel].rotation[2];
-			rotacionPrincipal[3] = models[selectedModel].rotation[3];
-			scaleT = models[selectedModel].scale;
-			shinyBlinn = models[selectedModel].shininess;
-			ejeX = models[selectedModel].translation.x;
-			ejeY = models[selectedModel].translation.y;
-			ejeZ = models[selectedModel].translation.z;
+			rotacionPrincipal[0] = mesh_models[selectedModel]->rotation[0];
+			rotacionPrincipal[1] = mesh_models[selectedModel]->rotation[1];
+			rotacionPrincipal[2] = mesh_models[selectedModel]->rotation[2];
+			rotacionPrincipal[3] = mesh_models[selectedModel]->rotation[3];
+			scaleT = mesh_models[selectedModel]->scale;
+			shinyBlinn = mesh_models[selectedModel]->shininess;
+			ejeX = mesh_models[selectedModel]->translation.x;
+			ejeY = mesh_models[selectedModel]->translation.y;
+			ejeZ = mesh_models[selectedModel]->translation.z;
 		}
 		else {
 			TwDefine("Menú visible=true");
 			TwDefine("Figura visible=false");
-			models[selectedModel].shininess = shinyBlinn;
+			mesh_models[selectedModel]->shininess = shinyBlinn;
 			selecting = false;
 		}
 	}
@@ -238,7 +253,6 @@ bool initGlfw()
 
 bool initGlew()
 {
-	TwInit(TW_OPENGL, NULL);
 	glewExperimental = GL_TRUE;
 	if (glewInit() != GLEW_OK)
 		return false;
@@ -294,6 +308,9 @@ bool initGlew()
 
 bool initAntTweakBar()
 {
+	if (!TwInit(TW_OPENGL, NULL))
+		return false;
+
 	menuTW = TwNewBar("Menú");
 	TwDefine("Menú visible=true size='270 80' position='20 20' color='128 0 0' label='Volume and Mesh Scattering'");
 	TwAddButton(menuTW, "exit", exit, NULL, " label='Salir' key=Esc");
@@ -308,10 +325,7 @@ bool initAntTweakBar()
 	TwAddVarRW(modelTW, "ejeY", TW_TYPE_FLOAT, &ejeY, "step=0.01 label='Traslación y' group='Transformaciones'");
 	TwAddVarRW(modelTW, "ejeZ", TW_TYPE_FLOAT, &ejeZ, "step=0.01 label='Traslación z' group='Transformaciones'");
 	TwAddVarRW(modelTW, "rotation", TW_TYPE_QUAT4F, &rotacionPrincipal, " label='Rotación' opened=true group='Transformaciones'");
-
-	TwAddVarRW(modelTW, "ejeXL", TW_TYPE_FLOAT, &sceneLight->translation[0], "step=0.01 label='x' group='Trasladar luz' group='Luz'");
-	TwAddVarRW(modelTW, "ejeYL", TW_TYPE_FLOAT, &sceneLight->translation[1], "step=0.01 label='y' group='Trasladar luz' group='Luz'");
-	TwAddVarRW(modelTW, "ejeZL", TW_TYPE_FLOAT, &sceneLight->translation[2], "step=0.01 label='z' group='Trasladar luz' group='Luz'");
+	
 	TwAddVarRW(modelTW, "BrilloBlinn", TW_TYPE_FLOAT, &shinyBlinn, "min=1.0 max=400.0 step=1.0 label='Shininess' group='Luz'");
 
 	TwAddButton(modelTW, "exitF", exit, NULL, " label='Salir' key=Esc");
@@ -322,66 +336,72 @@ bool initAntTweakBar()
 void movement()
 {
 	if (keys[GLFW_KEY_W])
-		sceneCamera->processKeyboard(FORWARD, deltaTime);
+		scene_camera->processKeyboard(FORWARD, deltaTime);
 	if (keys[GLFW_KEY_S])
-		sceneCamera->processKeyboard(BACKWARD, deltaTime);
+		scene_camera->processKeyboard(BACKWARD, deltaTime);
 	if (keys[GLFW_KEY_D])
-		sceneCamera->processKeyboard(RIGHT, deltaTime);
+		scene_camera->processKeyboard(RIGHT, deltaTime);
 	if (keys[GLFW_KEY_A])
-		sceneCamera->processKeyboard(LEFT, deltaTime);
+		scene_camera->processKeyboard(LEFT, deltaTime);
 	if (keys[GLFW_KEY_Z])
-		sceneCamera->processKeyboard(UP, deltaTime);
+		scene_camera->processKeyboard(UP, deltaTime);
 	if (keys[GLFW_KEY_C])
-		sceneCamera->processKeyboard(DONW, deltaTime);
+		scene_camera->processKeyboard(DONW, deltaTime);
 }
 
 bool initScene()
 {
-	sceneCamera = new camera(glm::vec3(1.0f, 0.0f, 6.0f));
+	mesh *scene_model;
+
+	scene_light = new light();
+	scene_model = new mesh();
+	scene_camera = new camera(glm::vec3(0.0f, 0.0f, 8.0f));
+	scene_model->load("Models/obj/cornell-box.obj");
+	mesh_models.push_back(scene_model);
 	create_gbuffer();
-	sceneLight = new light();
+	
 	return true;
 }
 
 void display()
 {
-	models[selectedModel].rotation[0] = rotacionPrincipal[0];
-	models[selectedModel].rotation[1] = rotacionPrincipal[1];
-	models[selectedModel].rotation[2] = rotacionPrincipal[2];
-	models[selectedModel].rotation[3] = rotacionPrincipal[3];
+	mesh_models[selectedModel]->rotation[0] = rotacionPrincipal[0];
+	mesh_models[selectedModel]->rotation[1] = rotacionPrincipal[1];
+	mesh_models[selectedModel]->rotation[2] = rotacionPrincipal[2];
+	mesh_models[selectedModel]->rotation[3] = rotacionPrincipal[3];
 
-	models[selectedModel].translation.x = ejeX;
-	models[selectedModel].translation.y = ejeY;
-	models[selectedModel].translation.z = ejeZ;
+	mesh_models[selectedModel]->translation.x = ejeX;
+	mesh_models[selectedModel]->translation.y = ejeY;
+	mesh_models[selectedModel]->translation.z = ejeZ;
 
-	models[selectedModel].scale = scaleT;
-	models[selectedModel].shininess = shinyBlinn;
+	mesh_models[selectedModel]->scale = scaleT;
+	mesh_models[selectedModel]->shininess = shinyBlinn;
 
-	glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);	
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	/*glEnable(GL_CULL_FACE);
-	glCullFace(GL_BACK);*/
+	view = scene_camera->getViewMatrix();
+	projection = glm::perspective(scene_camera->zoom, (float)gWidth / (float)gHeight, 0.1f, 100.0f);
 
 	glslGBuffer.enable();
 		glm::mat4 projectionLightMat, viewLightMat, spaceLightMatrix, model_mat;
 
-		for (int i = 0; i < models.size(); i++)
+		for (int i = 0; i < mesh_models.size(); i++)
 		{
 			model_mat = glm::mat4(1.0f);
 			projectionLightMat = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.01f, 20.0f);
-			viewLightMat = glm::lookAt(sceneLight->translation, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			viewLightMat = glm::lookAt(scene_light->translation, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 			spaceLightMatrix = projectionLightMat * viewLightMat;
 
-			model_mat = glm::translate(model_mat, models[i].translation);
-			model_mat = model_mat * glm::toMat4(models[i].rotation);
-			model_mat = glm::scale(model_mat, glm::vec3(models[i].scale));
+			model_mat = glm::translate(model_mat, mesh_models[i]->translation);
+			model_mat = model_mat * glm::toMat4(mesh_models[i]->rotation);
+			model_mat = glm::scale(model_mat, glm::vec3(mesh_models[i]->scale));
 
 			glUniformMatrix4fv(glslGBuffer.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
 			glUniformMatrix4fv(glslGBuffer.getLocation("light_matrix"), 1, GL_FALSE, glm::value_ptr(spaceLightMatrix));
 
-			glBindVertexArray(models[i].vao);
-				glDrawArrays(GL_TRIANGLES, 0, models[i].vertices.size());
+			glBindVertexArray(mesh_models[i]->vao);
+				glDrawArrays(GL_TRIANGLES, 0, mesh_models[i]->vertices.size());
 			glBindVertexArray(0);
 		}
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -394,34 +414,32 @@ void display()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
 	glslProgram.enable();
-		view_mat = sceneCamera->getViewMatrix();
-		project_mat = glm::perspective(sceneCamera->zoom, (float)gWidth / (float)gHeight, 0.1f, 1000.0f);
-
-		for (size_t i = 0; i < models.size(); i++)
+		for (size_t i = 0; i < mesh_models.size(); i++)
 		{
 			glStencilFunc(GL_ALWAYS, i + 1, -1);
-			glUniform3f(glslProgram.getLocation("view"), sceneCamera->position[0], sceneCamera->position[1], sceneCamera->position[2]);
-			glUniform3f(glslProgram.getLocation("lightPos"), sceneLight->translation.x, sceneLight->translation.y, sceneLight->translation.z);
-			glUniform1f(glslProgram.getLocation("shinyBlinn"), models[i].shininess);
+			glUniform3f(glslProgram.getLocation("view"), scene_camera->position[0], scene_camera->position[1], scene_camera->position[2]);
+			glUniform3f(glslProgram.getLocation("lightPos"), scene_light->translation.x, scene_light->translation.y, scene_light->translation.z);
+			glUniform1f(glslProgram.getLocation("shinyBlinn"), mesh_models[i]->shininess);
 
 			model_mat = glm::mat4(1.0f);
-			model_mat = glm::translate(model_mat, models[i].translation);
-			model_mat = model_mat * glm::toMat4(models[i].rotation);
-			model_mat = glm::scale(model_mat, glm::vec3(models[i].scale));
+			model_mat = glm::translate(model_mat, mesh_models[i]->translation);
+			model_mat = model_mat * glm::toMat4(mesh_models[i]->rotation);
+			model_mat = glm::scale(model_mat, glm::vec3(mesh_models[i]->scale));
 
 			glUniformMatrix4fv(glslProgram.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
-			glUniformMatrix4fv(glslProgram.getLocation("view_matrix"), 1, GL_FALSE, glm::value_ptr(view_mat));
-			glUniformMatrix4fv(glslProgram.getLocation("projection_matrix"), 1, GL_FALSE, glm::value_ptr(project_mat));
+			glUniformMatrix4fv(glslProgram.getLocation("view_matrix"), 1, GL_FALSE, glm::value_ptr(view));
+			glUniformMatrix4fv(glslProgram.getLocation("projection_matrix"), 1, GL_FALSE, glm::value_ptr(projection));
 			
-			glBindVertexArray(models[i].vao);
-				glDrawArrays(GL_TRIANGLES, 0, models[i].vertices.size());
+			glBindVertexArray(mesh_models[i]->vao);
+				glDrawArrays(GL_TRIANGLES, 0, mesh_models[i]->vertices.size());
 			glBindVertexArray(0);
 		}
 	glslProgram.disable();
 
+	glStencilFunc(GL_ALWAYS, mesh_models.size() + 1, -1);
+	scene_light->display(projection * view);
+	
 	glDisable(GL_STENCIL_TEST);
-
-	sceneLight->display(project_mat * view_mat);
 
 	glslGBufferP.enable();
 		glm::mat4 model_gbuffer = glm::mat4(1.0f);
@@ -430,7 +448,7 @@ void display()
 		glUniformMatrix4fv(glslGBufferP.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_gbuffer));
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, gNormal);
-		renderQuad();
+		render_quad();
 	glslGBufferP.disable();
 }
 
@@ -442,13 +460,12 @@ void destroy()
 
 int main()
 {
-	if (!initGlfw() || !initGlew() || !initScene() || !initAntTweakBar())
+	if (!initGlfw() || !initGlew() || !initAntTweakBar() || !initScene())
 		return EXIT_FAILURE;
 
+	glEnable(GL_DEPTH_TEST);
 	reshape(gWindow, gWidth, gHeight);
-	
-	m.load("Models/obj/cornell-box.obj");
-	models.push_back(m);
+
 	while (!glfwWindowShouldClose(gWindow))
 	{
 		GLfloat currentFrame = float(glfwGetTime());
@@ -458,6 +475,7 @@ int main()
 		movement();
 		display();
 		TwDraw();
+		scene_light->update_interface();
 		glfwSwapBuffers(gWindow);
 	}
 

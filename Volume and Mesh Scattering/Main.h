@@ -20,7 +20,6 @@
 #include <AntTweakBar.h>
 #include "GLSLProgram.h"
 #include "Light.h"
-using namespace std;
 
 void reshape(GLFWwindow *window, int width, int height);
 void keyInput(GLFWwindow *window, int key, int scancode, int action, int mods);

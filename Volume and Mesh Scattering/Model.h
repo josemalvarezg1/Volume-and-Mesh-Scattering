@@ -13,18 +13,17 @@
 #include <sstream>
 #include <windows.h>
 
-class model 
+class mesh
 {
 public:
 	GLuint vbo, vao;
+	glm::quat rotation;
+	GLfloat scale, max_value, shininess;
 	std::vector<glm::vec3> vertices, normals;
 	glm::vec3 max_vertex, min_vertex, center, translation, ambient_comp, diffuse_comp, specular_comp;
-	glm::quat rotation;
-	GLfloat max_value, shininess;
-	GLdouble scale;
-
-	model();
-	~model();
+	
+	mesh();
+	~mesh();
 	void set_max_min_value(GLfloat x, GLfloat y, GLfloat z);
 	std::vector<std::string> process_attribute(std::string value);
 	std::vector<std::string> split(std::string s, char delim);
