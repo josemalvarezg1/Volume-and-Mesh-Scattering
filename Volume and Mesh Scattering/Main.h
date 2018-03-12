@@ -28,6 +28,7 @@ void posCursor(GLFWwindow* window, double x, double y);
 void scroll(GLFWwindow* window, double xoffset, double yoffset);
 void charInput(GLFWwindow* window, unsigned int scanChar);
 void dropPath(GLFWwindow* window, int count, const char** paths);
+void generateOrtographicCameras(int cameraCount);
 bool initGlfw();
 bool initGlew();
 bool initScene();

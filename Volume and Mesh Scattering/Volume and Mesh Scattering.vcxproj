@@ -128,20 +128,24 @@
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="GLSLProgram.cpp" />
+    <ClCompile Include="Halton.cpp" />
     <ClCompile Include="InterfaceLight.cpp" />
     <ClCompile Include="InterfaceModel.cpp" />
     <ClCompile Include="Light.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="Model.cpp" />
+    <ClCompile Include="ScatteredMap.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
     <ClInclude Include="GLSLProgram.h" />
+    <ClInclude Include="Halton.h" />
     <ClInclude Include="InterfaceLight.h" />
     <ClInclude Include="InterfaceModel.h" />
     <ClInclude Include="Light.h" />
     <ClInclude Include="Main.h" />
     <ClInclude Include="Model.h" />
+    <ClInclude Include="ScatteredMap.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\gBuffer.frag" />

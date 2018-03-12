@@ -1,10 +1,12 @@
 #include "Main.h"
 #include "Model.h"
+#include "Halton.h"
 
 GLFWwindow *gWindow;
 int gWidth, gHeight;
 GLfloat deltaTime = 0.0f, lastFrame = 0.0f, lastX = 600, lastY = 340;
 bool keys[1024], keysPressed[1024], selectingModel = false, selectingLight = false, firstMouse = true, activateCamera = false;
+std::vector<glm::vec3> cameraPositions;
 glm::mat4 projection, view, model;
 
 light *scene_light;
@@ -321,6 +323,17 @@ void movement()
 		scene_camera->processKeyboard(DONW, deltaTime);
 }
 
+void generateOrtographicCameras(int cameraCount) {
+	srand(13);
+	for (int i = 0; i < cameraCount; i++)
+	{
+		float xPos = ((rand() % 100) / 100.0) * 6.0 - 3.0;
+		float yPos = ((rand() % 100) / 100.0) * 6.0 - 4.0;
+		float zPos = ((rand() % 100) / 100.0) * 6.0 - 3.0;
+		cameraPositions.push_back(glm::vec3(xPos, yPos, zPos));
+	}
+}
+
 bool initScene()
 {
 	mesh *scene_model;
@@ -332,7 +345,7 @@ bool initScene()
 	scene_model->load("Models/obj/cornell-box.obj");
 	mSet->mesh_models.push_back(scene_model);
 	create_gbuffer();
-
+	generateOrtographicCameras(12);
 	return true;
 }
 
@@ -409,6 +422,7 @@ void display()
 	glUniformMatrix4fv(glslGBufferP.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_gbuffer));
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, gNormal);
+
 	render_quad();
 	glslGBufferP.disable();
 }
