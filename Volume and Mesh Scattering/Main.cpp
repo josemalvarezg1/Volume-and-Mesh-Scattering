@@ -1,12 +1,13 @@
 #include "Main.h"
 #include "Model.h"
 #include "Halton.h"
+#include "ScatteredMap.h"
 
 GLFWwindow *gWindow;
 int gWidth, gHeight;
 GLfloat deltaTime = 0.0f, lastFrame = 0.0f, lastX = 600, lastY = 340;
 bool keys[1024], keysPressed[1024], selectingModel = false, selectingLight = false, firstMouse = true, activateCamera = false;
-std::vector<glm::vec3> cameraPositions;
+std::vector<ScatteredMap*> cameraPositions;
 glm::mat4 projection, view, model;
 
 light *scene_light;
@@ -149,7 +150,7 @@ void click(GLFWwindow* window, int button, int action, int mods)
 				}
 				else
 				{
-					mSet->not_click_model();					
+					mSet->not_click_model();
 					scene_light->click_light();
 					selectingModel = false;
 					selectedModel = -1;
@@ -169,7 +170,7 @@ void click(GLFWwindow* window, int button, int action, int mods)
 
 void scroll(GLFWwindow* window, double xoffset, double yoffset)
 {
-	if (TwEventMouseWheelGLFW(yoffset)) 
+	if (TwEventMouseWheelGLFW(yoffset))
 		return;
 }
 
@@ -324,13 +325,24 @@ void movement()
 }
 
 void generateOrtographicCameras(int cameraCount) {
-	srand(13);
+	double xPos, yPos, zPos;
+	ScatteredMap *map;
 	for (int i = 0; i < cameraCount; i++)
 	{
-		float xPos = ((rand() % 100) / 100.0) * 6.0 - 3.0;
-		float yPos = ((rand() % 100) / 100.0) * 6.0 - 4.0;
-		float zPos = ((rand() % 100) / 100.0) * 6.0 - 3.0;
-		cameraPositions.push_back(glm::vec3(xPos, yPos, zPos));
+		// Revisar esto
+		srand(13);
+		int factor = -1;
+		if (((float)rand()) / RAND_MAX * 100.0 - 50.0 > 0) factor = 1;
+		else factor = -1;
+		xPos = Halton_Seq(i, 2) + 2.0 * factor;
+		if (((float)rand()) / RAND_MAX * 100.0 - 50.0 > 0) factor = 1;
+		else factor = -1;
+		yPos = Halton_Seq(i, 3) + 2.0 * factor;
+		if (((float)rand()) / RAND_MAX * 100.0 - 50.0 > 0) factor = 1;
+		else factor = -1;
+		zPos = Halton_Seq(i, 7) + 2.0 * factor;
+		map = new ScatteredMap(glm::vec3(xPos, yPos, zPos));
+		cameraPositions.push_back(map);
 	}
 }
 
@@ -342,10 +354,10 @@ bool initScene()
 	scene_model = new mesh();
 	mSet = new meshSet();
 	scene_camera = new camera(glm::vec3(0.0f, 0.0f, 8.0f));
-	scene_model->load("Models/obj/cornell-box.obj");
+	scene_model->load("Models/obj/mickey.obj");
 	mSet->mesh_models.push_back(scene_model);
 	create_gbuffer();
-	generateOrtographicCameras(12);
+	generateOrtographicCameras(16);
 	return true;
 }
 
@@ -381,7 +393,30 @@ void display()
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glslGBuffer.disable();
 
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glslGBuffer.enable();
+	for (size_t i = 0; i < cameraPositions.size(); i++)
+	{
+		glBindFramebuffer(GL_FRAMEBUFFER, cameraPositions[i]->buffer);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		model_mat = glm::mat4(1.0f);
+		projectionLightMat = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.01f, 20.0f);
+		viewLightMat = glm::lookAt(cameraPositions[i]->position, mSet->mesh_models[0]->center, glm::vec3(0.0f, 1.0f, 0.0f));
+		spaceLightMatrix = projectionLightMat * viewLightMat;
+
+		model_mat = glm::translate(model_mat, mSet->mesh_models[0]->translation);
+		model_mat = model_mat * glm::toMat4(mSet->mesh_models[0]->rotation);
+		model_mat = glm::scale(model_mat, glm::vec3(mSet->mesh_models[0]->scale));
+
+		glUniformMatrix4fv(glslGBuffer.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
+		glUniformMatrix4fv(glslGBuffer.getLocation("light_matrix"), 1, GL_FALSE, glm::value_ptr(spaceLightMatrix));
+
+		glBindVertexArray(mSet->mesh_models[0]->vao);
+		glDrawArrays(GL_TRIANGLES, 0, mSet->mesh_models[0]->vertices.size());
+		glBindVertexArray(0);
+	}
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glslGBuffer.disable();
 
 	glEnable(GL_STENCIL_TEST);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
@@ -421,7 +456,7 @@ void display()
 	model_gbuffer = glm::scale(model_gbuffer, glm::vec3(0.3f));
 	glUniformMatrix4fv(glslGBufferP.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_gbuffer));
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, gNormal);
+	glBindTexture(GL_TEXTURE_2D, cameraPositions[15]->texture);
 
 	render_quad();
 	glslGBufferP.disable();
