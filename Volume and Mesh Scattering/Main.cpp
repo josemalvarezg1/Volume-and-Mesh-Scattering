@@ -14,7 +14,7 @@ light *scene_light;
 camera *scene_camera;
 meshSet *mSet;
 
-CGLSLProgram glslProgram, glslGBuffer, glslGBufferP;
+CGLSLProgram glslProgram, glslGBuffer, glslGBufferP, glslScatteredMap;
 int selectedModel = -1;
 glm::vec3 eye(0.0f, 0.0f, 2.0f); // Ojo
 
@@ -264,10 +264,13 @@ bool initGlew()
 		glslGBuffer.loadShader("Shaders/gBuffer.frag", CGLSLProgram::FRAGMENT);
 		glslGBufferP.loadShader("Shaders/gBufferPosition.vert", CGLSLProgram::VERTEX);
 		glslGBufferP.loadShader("Shaders/gBufferPosition.frag", CGLSLProgram::FRAGMENT);
+		glslScatteredMap.loadShader("Shaders/scatteredMap.vert", CGLSLProgram::VERTEX);
+		glslScatteredMap.loadShader("Shaders/scatteredMap.frag", CGLSLProgram::FRAGMENT);
 
 		glslProgram.create_link();
 		glslGBuffer.create_link();
 		glslGBufferP.create_link();
+		glslScatteredMap.create_link();
 
 		glslProgram.enable();
 		glslProgram.addAttribute("position");
@@ -296,6 +299,19 @@ bool initGlew()
 		glslGBufferP.addUniform("model_matrix");
 		glslGBufferP.addUniform("position_tex");
 		glslGBufferP.disable();
+
+		glslScatteredMap.enable();
+		glslScatteredMap.addAttribute("position");
+		glslScatteredMap.addAttribute("normal");
+
+		glslScatteredMap.addUniform("camera_matrix");
+		glslScatteredMap.addUniform("model_matrix");
+		glslScatteredMap.addUniform("assimetry_g");
+		glslScatteredMap.addUniform("scattering_coeff");
+		glslScatteredMap.addUniform("absorption_coeff");
+		glslScatteredMap.addUniform("n_samples");
+
+		glslScatteredMap.disable();
 
 		return true;
 	}
@@ -329,18 +345,16 @@ void generateOrtographicCameras(int cameraCount) {
 	ScatteredMap *map;
 	for (int i = 0; i < cameraCount; i++)
 	{
-		// Revisar esto
-		srand(13);
 		int factor = -1;
-		if (((float)rand()) / RAND_MAX * 100.0 - 50.0 > 0) factor = 1;
+		if (rand() % 2) factor = 1;
 		else factor = -1;
-		xPos = Halton_Seq(i, 2) + 2.0 * factor;
-		if (((float)rand()) / RAND_MAX * 100.0 - 50.0 > 0) factor = 1;
+		xPos = Halton_Seq(i, 2) + 3.0 * factor;
+		if (rand() % 2) factor = 1;
 		else factor = -1;
-		yPos = Halton_Seq(i, 3) + 2.0 * factor;
-		if (((float)rand()) / RAND_MAX * 100.0 - 50.0 > 0) factor = 1;
+		yPos = Halton_Seq(i, 3) + 3.0 * factor;
+		if (rand() % 2) factor = 1;
 		else factor = -1;
-		zPos = Halton_Seq(i, 7) + 2.0 * factor;
+		zPos = Halton_Seq(i, 7) + 3.0 * factor;
 		map = new ScatteredMap(glm::vec3(xPos, yPos, zPos));
 		cameraPositions.push_back(map);
 	}
@@ -393,7 +407,7 @@ void display()
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glslGBuffer.disable();
 
-	glslGBuffer.enable();
+	glslScatteredMap.enable();
 	for (size_t i = 0; i < cameraPositions.size(); i++)
 	{
 		glBindFramebuffer(GL_FRAMEBUFFER, cameraPositions[i]->buffer);
@@ -408,15 +422,15 @@ void display()
 		model_mat = model_mat * glm::toMat4(mSet->mesh_models[0]->rotation);
 		model_mat = glm::scale(model_mat, glm::vec3(mSet->mesh_models[0]->scale));
 
-		glUniformMatrix4fv(glslGBuffer.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
-		glUniformMatrix4fv(glslGBuffer.getLocation("light_matrix"), 1, GL_FALSE, glm::value_ptr(spaceLightMatrix));
+		glUniformMatrix4fv(glslScatteredMap.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
+		glUniformMatrix4fv(glslScatteredMap.getLocation("camera_matrix"), 1, GL_FALSE, glm::value_ptr(spaceLightMatrix));
 
 		glBindVertexArray(mSet->mesh_models[0]->vao);
 		glDrawArrays(GL_TRIANGLES, 0, mSet->mesh_models[0]->vertices.size());
 		glBindVertexArray(0);
 	}
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glslGBuffer.disable();
+	glslScatteredMap.disable();
 
 	glEnable(GL_STENCIL_TEST);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
@@ -456,8 +470,7 @@ void display()
 	model_gbuffer = glm::scale(model_gbuffer, glm::vec3(0.3f));
 	glUniformMatrix4fv(glslGBufferP.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_gbuffer));
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, cameraPositions[15]->texture);
-
+	glBindTexture(GL_TEXTURE_2D, cameraPositions[0]->texture);
 	render_quad();
 	glslGBufferP.disable();
 }
