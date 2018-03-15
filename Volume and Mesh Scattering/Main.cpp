@@ -8,6 +8,7 @@ int gWidth, gHeight;
 GLfloat deltaTime = 0.0f, lastFrame = 0.0f, lastX = 600, lastY = 340;
 bool keys[1024], keysPressed[1024], selectingModel = false, selectingLight = false, firstMouse = true, activateCamera = false;
 std::vector<ScatteredMap*> cameraPositions;
+std::vector<glm::vec3> samples;
 glm::mat4 projection, view, model;
 
 light *scene_light;
@@ -306,10 +307,14 @@ bool initGlew()
 
 		glslScatteredMap.addUniform("camera_matrix");
 		glslScatteredMap.addUniform("model_matrix");
+		glslScatteredMap.addUniform("projection_matrix");
 		glslScatteredMap.addUniform("assimetry_g");
 		glslScatteredMap.addUniform("scattering_coeff");
 		glslScatteredMap.addUniform("absorption_coeff");
 		glslScatteredMap.addUniform("n_samples");
+		glslScatteredMap.addUniform("samples");
+		glslScatteredMap.addUniform("gPosition");
+		glslScatteredMap.addUniform("gNormal");
 
 		glslScatteredMap.disable();
 
@@ -360,6 +365,28 @@ void generateOrtographicCameras(int cameraCount) {
 	}
 }
 
+float lerp(float a, float b, float f)
+{
+	return a + f * (b - a);
+}
+
+void generateSamples() {
+	std::uniform_real_distribution<GLfloat> randomFloats(0.0, 1.0); // generates random floats between 0.0 and 1.0
+	std::default_random_engine generator;
+	for (unsigned int i = 0; i < 64; ++i)
+	{
+		glm::vec3 sample(randomFloats(generator) * 2.0 - 1.0, randomFloats(generator) * 2.0 - 1.0, randomFloats(generator));
+		sample = glm::normalize(sample);
+		sample *= randomFloats(generator);
+		float scale = float(i) / 64.0;
+
+		// scale samples s.t. they're more aligned to center of kernel
+		scale = lerp(0.1f, 1.0f, scale * scale);
+		sample *= scale;
+		samples.push_back(sample);
+	}
+}
+
 bool initScene()
 {
 	mesh *scene_model;
@@ -372,6 +399,7 @@ bool initScene()
 	mSet->mesh_models.push_back(scene_model);
 	create_gbuffer();
 	generateOrtographicCameras(16);
+	generateSamples();
 	return true;
 }
 
@@ -429,6 +457,14 @@ void display()
 		glDrawArrays(GL_TRIANGLES, 0, mSet->mesh_models[0]->vertices.size());
 		glBindVertexArray(0);
 	}
+	glUniform1i(glslScatteredMap.getLocation("gPosition"), 0);
+	glUniform1i(glslScatteredMap.getLocation("gNormal"), 1);
+	glUniform3fv(glslScatteredMap.getLocation("samples"), 64, glm::value_ptr(samples[0]));
+	glUniformMatrix4fv(glslScatteredMap.getLocation("projection_matrix"), 1, GL_FALSE, glm::value_ptr(projection));
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, gPosition);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, gNormal);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glslScatteredMap.disable();
 
