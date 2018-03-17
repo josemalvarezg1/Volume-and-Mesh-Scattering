@@ -15,7 +15,6 @@ CGLSLProgram::CGLSLProgram(void)
 	m_mapSubroutines.clear();
 }
 
-
 CGLSLProgram::~CGLSLProgram(void)
 {
 	m_mapVarShader.clear();
