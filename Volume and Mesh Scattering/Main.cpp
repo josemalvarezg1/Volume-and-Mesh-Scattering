@@ -307,14 +307,14 @@ bool initGlew()
 
 		glslScatteredMap.addUniform("camera_matrix");
 		glslScatteredMap.addUniform("model_matrix");
-		glslScatteredMap.addUniform("projection_matrix");
-		glslScatteredMap.addUniform("assimetry_g");
-		glslScatteredMap.addUniform("scattering_coeff");
-		glslScatteredMap.addUniform("absorption_coeff");
+
+		glslScatteredMap.addUniform("asymmetry_param_g");
+		glslScatteredMap.addUniform("light_pos");
+		glslScatteredMap.addUniform("light_diff");
 		glslScatteredMap.addUniform("n_samples");
-		glslScatteredMap.addUniform("samples");
-		glslScatteredMap.addUniform("gPosition");
-		glslScatteredMap.addUniform("gNormal");
+		glslScatteredMap.addUniform("g_position");
+		glslScatteredMap.addUniform("g_normal");
+		glslScatteredMap.addUniform("refractive_index");
 
 		glslScatteredMap.disable();
 
@@ -452,20 +452,26 @@ void display()
 
 		glUniformMatrix4fv(glslScatteredMap.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
 		glUniformMatrix4fv(glslScatteredMap.getLocation("camera_matrix"), 1, GL_FALSE, glm::value_ptr(spaceLightMatrix));
-
+		glUniform1i(glslScatteredMap.getLocation("g_position"), 0);
+		glUniform1i(glslScatteredMap.getLocation("g_normal"), 1);
+		glUniform1i(glslScatteredMap.getLocation("n_samples"), 14);
+		glUniform1f(glslScatteredMap.getLocation("asymmetry_param_g"), 0.5f);
+		glUniform1f(glslScatteredMap.getLocation("refractive_index"), 1.3f);
+		glUniform3f(glslScatteredMap.getLocation("light_pos"), scene_light->translation.x, scene_light->translation.y, scene_light->translation.z);
+		glUniform4f(glslScatteredMap.getLocation("light_diff"), 1.0f, 1.0f, 1.0f, 1.0f);
+		
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, gPosition);
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, gNormal);
+	
 		glBindVertexArray(mSet->mesh_models[0]->vao);
 		glDrawArrays(GL_TRIANGLES, 0, mSet->mesh_models[0]->vertices.size());
 		glBindVertexArray(0);
+
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
-	glUniform1i(glslScatteredMap.getLocation("gPosition"), 0);
-	glUniform1i(glslScatteredMap.getLocation("gNormal"), 1);
-	glUniform3fv(glslScatteredMap.getLocation("samples"), 64, glm::value_ptr(samples[0]));
-	glUniformMatrix4fv(glslScatteredMap.getLocation("projection_matrix"), 1, GL_FALSE, glm::value_ptr(projection));
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, gPosition);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, gNormal);
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	
 	glslScatteredMap.disable();
 
 	glEnable(GL_STENCIL_TEST);
