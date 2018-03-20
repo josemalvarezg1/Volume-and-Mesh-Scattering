@@ -9,9 +9,11 @@ uniform vec4 light_diff;
 uniform vec4 light_spec;
 uniform vec4 light_amb;
 
-
 uniform float asymmetry_param_g;
 uniform float refractive_index;
+uniform vec3 scattering_coeff;
+uniform vec3 absorption_coeff;
+uniform vec3 diffuse_reflectance;
 uniform mat4 projection_matrix;
 
 uniform int n_samples;
@@ -19,7 +21,6 @@ uniform vec3 samples[64];
 uniform mat4 model_matrix;
 uniform sampler2D g_position;
 uniform sampler2D g_normal;
-
 
 const float PI = 3.1415926535897932384626433832795;
 
@@ -58,7 +59,7 @@ float random(vec3 v) {
 
 vec3 calculate_ni_ast(vec3 xo, vec3 xi, vec3 ni)
 {
-	if(xo == xi)
+	if (xo == xi)
 		return ni;
 	else
 	{
@@ -139,7 +140,7 @@ float fresnel_t(vec3 I, vec3 N, float ior)
 void main() 
 {
 	vec3 xo, no, wo, Lo, Ll, xi, ni, wi, x, r, dr, dr_pow, w12, rj, p, de, ni_ast, zr, xv, dv, wv;
-	vec3 scattering_coeff, absorption_coeff, attenuation_coeff, albedo, scattering_coeff_prime, attenuation_coeff_prime, albedo_prime;
+	vec3 attenuation_coeff, albedo, scattering_coeff_prime, attenuation_coeff_prime, albedo_prime;
 	vec3 D, effective_transport_coeff, diffuse_part_prime_1, diffuse_part_prime_2, diffuse_part_d;
 	vec3 cos_beta, z_prime, R, T, diffuse_part;
 	float xi_1, xi_2, c_phi_1, c_phi_2, c_e, miu_0, Ti, To, A, alphaj;
@@ -157,9 +158,7 @@ void main()
 
 	//scattering_coeff_prime = vec3(0.68f, 0.70f, 0.55f);
 	//scattering_coeff = scattering_coeff_prime / (1.0f - asymmetry_param_g);
-	scattering_coeff = vec3(0.68f, 0.70f, 0.55f);
 	scattering_coeff_prime = scattering_coeff * (1.0f - asymmetry_param_g);
-	absorption_coeff = vec3(0.0024f, 0.0090f, 0.12f);
 	attenuation_coeff = scattering_coeff + absorption_coeff;
 	albedo = scattering_coeff / attenuation_coeff;
 
@@ -181,20 +180,20 @@ void main()
 	/*Estas variables las debemos traer precalculadas para no hacer esto en el shader*/
 	
 	xi_1 = random(vec3(gl_FragCoord.xyz));
-	xi_2 = random(vec3(gl_FragCoord.zxy));
+	xi_2 = random(vec3(gl_FragCoord.zxy));	
 
-	
-
-	/* Generacion de muestras */
+	/* Inicio: Generación de muestras */
 	float radius = 1.0f/32.0f;
 
-	for(int i = 0; i < n_samples; i++)
+	for (int i = 0; i < n_samples; i++)
     {
         vec3 sample_e = frag_pos + samples[i] * radius; 
         vec4 offset = vec4(sample_e, 1.0);
-        offset = projection_matrix * offset; // from view to clip-space
+        // De espacio de vista a espacio de clipping
+        offset = projection_matrix * offset;
         offset.xyz /= offset.w;
-        offset.xyz = offset.xyz * 0.5 + 0.5; // transform to range 0.0 - 1.0
+        // El offset estará en un rango [0:1]
+        offset.xyz = offset.xyz * 0.5 + 0.5;
 
 		xi = texture(g_position, offset.xy).xyz;
 		ni = texture(g_normal, offset.xy).xyz;
@@ -212,7 +211,7 @@ void main()
 
 			p = effective_transport_coeff * exp(-effective_transport_coeff * r) * (1 / (2 * PI));
 
-			/* Parte Difusa */
+			/* Inicio: Parte Difusa */
 
 			ni_ast = calculate_ni_ast(xo, xi, ni);
 
@@ -239,12 +238,11 @@ void main()
 
 			Lo += diffuse_part;
 
-			/* Fin Parte Difusa */
+			/* Fin: Parte Difusa */
 		} 
 	}
 
-	/* Generacion de muestras */
-	
+	/* Fin: Generación de muestras */	
 
-	color = vec4((Lo / n_samples) * vec3(0.77f, 0.62f, 0.21f), 1.0f);
+	color = vec4((Lo / n_samples) * diffuse_reflectance, 1.0f);
 }

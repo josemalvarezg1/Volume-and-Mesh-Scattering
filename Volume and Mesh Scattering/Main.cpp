@@ -23,6 +23,24 @@ int selectedModel = -1;
 
 GLuint quadVAO, quadVBO;
 
+glm::vec3 scattering_coefficients[] = { { glm::vec3(0.68f, 0.70f, 0.55f) },	// Patata
+										{ glm::vec3(2.19f, 2.62f, 3.00f) },	// Mármol
+										{ glm::vec3(0.74f, 0.88f, 1.01f) },	// Piel
+										{ glm::vec3(2.55f, 3.21f, 3.77f) },	// Leche
+										{ glm::vec3(0.18f, 0.07f, 0.03f) } };	// Ketchup
+
+glm::vec3 absorption_coefficients[] = { { glm::vec3(0.0024f, 0.0090f, 0.12f) },	// Patata
+										{ glm::vec3(0.0021f, 0.0041f, 0.0071f) },	// Mármol
+										{ glm::vec3(0.032f, 0.17f, 0.48f) },	// Piel
+										{ glm::vec3(0.0011f, 0.0024f, 0.014f) },	// Leche
+										{ glm::vec3(0.061f, 0.97f, 1.45f) } };	// Ketchup
+
+glm::vec3 diffuse_reflectances[] = { { glm::vec3(0.77f, 0.62f, 0.21f) },	// Patata
+									 { glm::vec3(0.83f, 0.79f, 0.75f) },	// Mármol
+									 { glm::vec3(0.44f, 0.22f, 0.13f) },	// Piel
+									 { glm::vec3(0.91f, 0.88f, 0.76f) },	// Leche
+									 { glm::vec3(0.16f, 0.01f, 0.00f) } };	// Ketchup
+
 void render_quad()
 {
 	if (quadVAO == 0) {
@@ -298,6 +316,9 @@ bool initGlew()
 		glslScatteredMap.addUniform("g_position");
 		glslScatteredMap.addUniform("g_normal");
 		glslScatteredMap.addUniform("refractive_index");
+		glslScatteredMap.addUniform("scattering_coeff");
+		glslScatteredMap.addUniform("absorption_coeff");
+		glslScatteredMap.addUniform("diffuse_reflectance");
 
 		glslScatteredMap.disable();
 
@@ -357,7 +378,8 @@ float lerp(float a, float b, float f)
 
 void generateSamples()
 {
-	std::uniform_real_distribution<GLfloat> randomFloats(0.0f, 1.0f); // generates random floats between 0.0 and 1.0
+	// Rango de números flotantes [0:1]
+	std::uniform_real_distribution<GLfloat> randomFloats(0.0f, 1.0f);
 	std::default_random_engine generator;
 	glm::vec3 sample;
 	GLfloat scale;
@@ -411,13 +433,13 @@ void display()
 	view = scene_camera->getViewMatrix();
 	projection = glm::perspective(scene_camera->zoom, (float)g_width / (float)g_height, 0.1f, 100.0f);
 
-	for (size_t i = 0; i < num_of_lights; i++)
+	for (int i = 0; i < num_of_lights; i++)
 	{
 		glBindFramebuffer(GL_FRAMEBUFFER, light_buffers->array_of_buffers[i]->g_buffer);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		glslGBuffer.enable();
-		for (size_t j = 0; j < mSet->mesh_models.size(); j++)
+		for (int j = 0; j < mSet->mesh_models.size(); j++)
 		{
 			model_mat = glm::mat4(1.0f);
 			projectionLightMat = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.01f, 20.0f);
@@ -447,42 +469,48 @@ void display()
 	glslScatteredMap.enable();
 	//for (size_t i = 0; i < 1; i++)
 	//{
-	unsigned int i = 0;
-	//glBindFramebuffer(GL_FRAMEBUFFER, cameraPositions[i]->buffer);
-	glStencilFunc(GL_ALWAYS, 1, -1);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		unsigned int i = 0;
+		//glBindFramebuffer(GL_FRAMEBUFFER, cameraPositions[i]->buffer);
+		glStencilFunc(GL_ALWAYS, 1, -1);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	model_mat = glm::mat4(1.0f);
-	projectionLightMat = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.01f, 20.0f);
-	viewLightMat = glm::lookAt(cameraPositions[i]->position, mSet->mesh_models[0]->center, glm::vec3(0.0f, 1.0f, 0.0f));
-	spaceLightMatrix2 = projectionLightMat * viewLightMat;
+		model_mat = glm::mat4(1.0f);
+		projectionLightMat = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.01f, 20.0f);
+		viewLightMat = glm::lookAt(cameraPositions[i]->position, mSet->mesh_models[0]->center, glm::vec3(0.0f, 1.0f, 0.0f));
+		spaceLightMatrix2 = projectionLightMat * viewLightMat;
 
-	model_mat = glm::translate(model_mat, mSet->mesh_models[0]->translation);
-	model_mat = model_mat * glm::toMat4(mSet->mesh_models[0]->rotation);
-	model_mat = glm::scale(model_mat, glm::vec3(mSet->mesh_models[0]->scale));
+		model_mat = glm::translate(model_mat, mSet->mesh_models[0]->translation);
+		model_mat = model_mat * glm::toMat4(mSet->mesh_models[0]->rotation);
+		model_mat = glm::scale(model_mat, glm::vec3(mSet->mesh_models[0]->scale));
 
-	glUniformMatrix4fv(glslScatteredMap.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
-	glUniformMatrix4fv(glslScatteredMap.getLocation("camera_matrix"), 1, GL_FALSE, glm::value_ptr(spaceLightMatrix1));
-	glUniformMatrix4fv(glslScatteredMap.getLocation("projection_matrix"), 1, GL_FALSE, glm::value_ptr(spaceLightMatrix1));
-	glUniform1i(glslScatteredMap.getLocation("g_position"), 0);
-	glUniform1i(glslScatteredMap.getLocation("g_normal"), 1);
-	glUniform1i(glslScatteredMap.getLocation("n_samples"), num_of_samples_per_frag);
-	glUniform3fv(glslScatteredMap.getLocation("samples"), num_of_samples_per_frag, glm::value_ptr(samples[0]));
-	glUniform1f(glslScatteredMap.getLocation("asymmetry_param_g"), 0.0f);
-	glUniform1f(glslScatteredMap.getLocation("refractive_index"), 1.3f);
-	glUniform3f(glslScatteredMap.getLocation("light_pos"), scene_light->translation.x, scene_light->translation.y, scene_light->translation.z);
-	glUniform4f(glslScatteredMap.getLocation("light_diff"), 1.0f, 1.0f, 1.0f, 1.0f);
+		glUniformMatrix4fv(glslScatteredMap.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
+		glUniformMatrix4fv(glslScatteredMap.getLocation("camera_matrix"), 1, GL_FALSE, glm::value_ptr(spaceLightMatrix1));
+		glUniformMatrix4fv(glslScatteredMap.getLocation("projection_matrix"), 1, GL_FALSE, glm::value_ptr(spaceLightMatrix1));
+		glUniform1i(glslScatteredMap.getLocation("g_position"), 0);
+		glUniform1i(glslScatteredMap.getLocation("g_normal"), 1);
+		glUniform1i(glslScatteredMap.getLocation("n_samples"), num_of_samples_per_frag);
+		glUniform3fv(glslScatteredMap.getLocation("samples"), num_of_samples_per_frag, glm::value_ptr(samples[0]));
+		glUniform1f(glslScatteredMap.getLocation("asymmetry_param_g"), mSet->mesh_models[i]->asymmetry_param_g);
+		glUniform1f(glslScatteredMap.getLocation("refractive_index"), mSet->mesh_models[i]->refractive_index);
+		
+		glUniform3f(glslScatteredMap.getLocation("scattering_coeff"), scattering_coefficients[mSet->mesh_models[i]->current_material].x, scattering_coefficients[mSet->mesh_models[i]->current_material].y, scattering_coefficients[mSet->mesh_models[i]->current_material].z);
+		glUniform3f(glslScatteredMap.getLocation("absorption_coeff"), absorption_coefficients[mSet->mesh_models[i]->current_material].x, absorption_coefficients[mSet->mesh_models[i]->current_material].y, absorption_coefficients[mSet->mesh_models[i]->current_material].z);
+		glUniform3f(glslScatteredMap.getLocation("diffuse_reflectance"), diffuse_reflectances[mSet->mesh_models[i]->current_material].x, diffuse_reflectances[mSet->mesh_models[i]->current_material].y, diffuse_reflectances[mSet->mesh_models[i]->current_material].z);
 
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, light_buffers->array_of_buffers[i]->g_position);
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, light_buffers->array_of_buffers[i]->g_normal);
 
-	glBindVertexArray(mSet->mesh_models[0]->vao);
-	glDrawArrays(GL_TRIANGLES, 0, mSet->mesh_models[0]->vertices.size());
-	glBindVertexArray(0);
+		glUniform3f(glslScatteredMap.getLocation("light_pos"), scene_light->translation.x, scene_light->translation.y, scene_light->translation.z);
+		glUniform4f(glslScatteredMap.getLocation("light_diff"), 1.0f, 1.0f, 1.0f, 1.0f);
 
-	//glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, light_buffers->array_of_buffers[i]->g_position);
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, light_buffers->array_of_buffers[i]->g_normal);
+
+		glBindVertexArray(mSet->mesh_models[0]->vao);
+		glDrawArrays(GL_TRIANGLES, 0, mSet->mesh_models[0]->vertices.size());
+		glBindVertexArray(0);
+
+		//glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	//}
 
 	glslScatteredMap.disable();
