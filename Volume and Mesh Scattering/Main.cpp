@@ -23,23 +23,10 @@ int selectedModel = -1;
 
 GLuint quadVAO, quadVBO;
 
-glm::vec3 scattering_coefficients[] = { { glm::vec3(0.68f, 0.70f, 0.55f) },	// Patata
-										{ glm::vec3(2.19f, 2.62f, 3.00f) },	// Mármol
-										{ glm::vec3(0.74f, 0.88f, 1.01f) },	// Piel
-										{ glm::vec3(2.55f, 3.21f, 3.77f) },	// Leche
-										{ glm::vec3(0.18f, 0.07f, 0.03f) } };	// Ketchup
-
-glm::vec3 absorption_coefficients[] = { { glm::vec3(0.0024f, 0.0090f, 0.12f) },	// Patata
-										{ glm::vec3(0.0021f, 0.0041f, 0.0071f) },	// Mármol
-										{ glm::vec3(0.032f, 0.17f, 0.48f) },	// Piel
-										{ glm::vec3(0.0011f, 0.0024f, 0.014f) },	// Leche
-										{ glm::vec3(0.061f, 0.97f, 1.45f) } };	// Ketchup
-
-glm::vec3 diffuse_reflectances[] = { { glm::vec3(0.77f, 0.62f, 0.21f) },	// Patata
-									 { glm::vec3(0.83f, 0.79f, 0.75f) },	// Mármol
-									 { glm::vec3(0.44f, 0.22f, 0.13f) },	// Piel
-									 { glm::vec3(0.91f, 0.88f, 0.76f) },	// Leche
-									 { glm::vec3(0.16f, 0.01f, 0.00f) } };	// Ketchup
+// Variables pre-calculadas
+glm::vec3 attenuation_coeff, albedo, scattering_coeff_prime, attenuation_coeff_prime, albedo_prime;
+glm::vec3 D, effective_transport_coeff, de, zr;
+float c_phi_1, c_phi_2, c_e, A;
 
 void render_quad()
 {
@@ -206,6 +193,110 @@ void dropPath(GLFWwindow* window, int count, const char** paths)
 	//volumes->dropPath(count, paths);
 }
 
+void movement()
+{
+	if (keys[GLFW_KEY_W])
+		scene_camera->processKeyboard(FORWARD, deltaTime);
+	if (keys[GLFW_KEY_S])
+		scene_camera->processKeyboard(BACKWARD, deltaTime);
+	if (keys[GLFW_KEY_D])
+		scene_camera->processKeyboard(RIGHT, deltaTime);
+	if (keys[GLFW_KEY_A])
+		scene_camera->processKeyboard(LEFT, deltaTime);
+	if (keys[GLFW_KEY_Z])
+		scene_camera->processKeyboard(UP, deltaTime);
+	if (keys[GLFW_KEY_C])
+		scene_camera->processKeyboard(DONW, deltaTime);
+}
+
+int negative_positive()
+{
+	if (rand() % 2)
+		return 1;
+	else
+		return -1;
+}
+
+void generate_ortographic_cameras()
+{
+	double xPos, yPos, zPos;
+	ScatteredMap *map;
+	for (size_t i = 0; i < num_of_orto_cameras; i++)
+	{
+		xPos = halton_sequence(i, 2) + (3.0f * negative_positive());
+		yPos = halton_sequence(i, 3) + (3.0f * negative_positive());
+		zPos = halton_sequence(i, 7) + (3.0f * negative_positive());
+		map = new ScatteredMap(glm::vec3(xPos, yPos, zPos));
+		cameraPositions.push_back(map);
+	}
+}
+
+float lerp(float a, float b, float f)
+{
+	return a + f * (b - a);
+}
+
+void generateSamples()
+{
+	// Rango de números flotantes [0:1]
+	std::uniform_real_distribution<GLfloat> randomFloats(0.0f, 1.0f);
+	std::default_random_engine generator;
+	glm::vec3 sample;
+	GLfloat scale;
+
+	for (size_t i = 0; i < num_of_samples_per_frag; ++i)
+	{
+		sample = glm::vec3(randomFloats(generator) * 2.0f - 1.0f, randomFloats(generator) * 2.0f - 1.0f, randomFloats(generator));
+		sample = glm::normalize(sample);
+		sample *= randomFloats(generator);
+		scale = GLfloat(i) / GLfloat(num_of_samples_per_frag);
+
+		scale = lerp(0.1f, 1.0f, scale * scale);
+		sample *= scale;
+		samples.push_back(sample);
+	}
+}
+
+float calculate_c_phi(float ni)
+{
+	float C1 = 0.0f;
+	if (ni < 1.0f)
+		C1 = 0.919317f - 3.4793f * ni + 6.75335f * pow(ni, 2) - 7.80989f * pow(ni, 3) + 4.98554f * pow(ni, 4) - 1.36881f * pow(ni, 5);
+	else
+		C1 = -9.23372f + 22.2272f * ni - 20.9292f * pow(ni, 2) + 10.2291f * pow(ni, 3) - 2.54396f * pow(ni, 4) + 0.254913f * pow(ni, 5);
+	return 1.0f / 4.0f * (1.0f - C1);
+}
+
+float calculate_c_e(float ni)
+{
+	float C2 = 0.0f;
+	if (ni < 1.0f)
+		C2 = 0.828421f - 2.62051f * ni + 3.36231f * pow(ni, 2) - 1.95284f * pow(ni, 3) + 0.236494f * pow(ni, 4) + 0.145787f * pow(ni, 5);
+	else
+		C2 = -1641.1f + 135.926f / pow(ni, 3) - 656.175f / pow(ni, 2) + 1376.53f / ni + 1213.67f * ni - 568.556f * pow(ni, 2) + 164.798f * pow(ni, 3) - 27.0181f * pow(ni, 4) + 1.91826f * pow(ni, 5);
+	return 1.0f / 2.0f * (1.0f - C2);
+}
+
+void precalculate_values(mesh *m) {
+	scattering_coeff_prime = scattering_coefficients[m->current_material] * (1.0f - m->asymmetry_param_g);
+	attenuation_coeff = scattering_coefficients[m->current_material] + absorption_coefficients[m->current_material];
+	albedo = scattering_coefficients[m->current_material] / attenuation_coeff;
+
+	attenuation_coeff_prime = scattering_coeff_prime + absorption_coefficients[m->current_material];
+	albedo_prime = scattering_coeff_prime / attenuation_coeff_prime;
+
+	D = glm::vec3(1.0f) / (glm::vec3(3.0f) * attenuation_coeff_prime);
+	effective_transport_coeff = sqrt(absorption_coefficients[m->current_material] / D);
+
+	c_phi_1 = calculate_c_phi(m->refractive_index);
+	c_phi_2 = calculate_c_phi(1 / m->refractive_index);
+	c_e = calculate_c_e(m->refractive_index);
+
+	A = (1.0f - c_e) / (2.0f * c_phi_1);
+	de = 2.131f * D * sqrt(albedo_prime);
+	zr = 3.0f * D;
+}
+
 bool initGlfw()
 {
 	g_width = 1200;
@@ -320,6 +411,21 @@ bool initGlew()
 		glslScatteredMap.addUniform("absorption_coeff");
 		glslScatteredMap.addUniform("diffuse_reflectance");
 
+		// Valores pre-calculados
+		glslScatteredMap.addUniform("scattering_coeff_prime");
+		glslScatteredMap.addUniform("attenuation_coeff");
+		glslScatteredMap.addUniform("albedo");
+		glslScatteredMap.addUniform("attenuation_coeff_prime");
+		glslScatteredMap.addUniform("albedo_prime");
+		glslScatteredMap.addUniform("D");
+		glslScatteredMap.addUniform("effective_transport_coeff");
+		glslScatteredMap.addUniform("c_phi_1");
+		glslScatteredMap.addUniform("c_phi_2");
+		glslScatteredMap.addUniform("c_e");
+		glslScatteredMap.addUniform("A");
+		glslScatteredMap.addUniform("de");
+		glslScatteredMap.addUniform("zr");
+
 		glslScatteredMap.disable();
 
 		return true;
@@ -331,70 +437,6 @@ bool initAntTweakBar()
 	if (!TwInit(TW_OPENGL, NULL))
 		return false;
 	return true;
-}
-
-void movement()
-{
-	if (keys[GLFW_KEY_W])
-		scene_camera->processKeyboard(FORWARD, deltaTime);
-	if (keys[GLFW_KEY_S])
-		scene_camera->processKeyboard(BACKWARD, deltaTime);
-	if (keys[GLFW_KEY_D])
-		scene_camera->processKeyboard(RIGHT, deltaTime);
-	if (keys[GLFW_KEY_A])
-		scene_camera->processKeyboard(LEFT, deltaTime);
-	if (keys[GLFW_KEY_Z])
-		scene_camera->processKeyboard(UP, deltaTime);
-	if (keys[GLFW_KEY_C])
-		scene_camera->processKeyboard(DONW, deltaTime);
-}
-
-int negative_positive()
-{
-	if (rand() % 2)
-		return 1;
-	else
-		return -1;
-}
-
-void generate_ortographic_cameras()
-{
-	double xPos, yPos, zPos;
-	ScatteredMap *map;
-	for (size_t i = 0; i < num_of_orto_cameras; i++)
-	{
-		xPos = halton_sequence(i, 2) + (3.0f * negative_positive());
-		yPos = halton_sequence(i, 3) + (3.0f * negative_positive());
-		zPos = halton_sequence(i, 7) + (3.0f * negative_positive());
-		map = new ScatteredMap(glm::vec3(xPos, yPos, zPos));
-		cameraPositions.push_back(map);
-	}
-}
-
-float lerp(float a, float b, float f)
-{
-	return a + f * (b - a);
-}
-
-void generateSamples()
-{
-	// Rango de números flotantes [0:1]
-	std::uniform_real_distribution<GLfloat> randomFloats(0.0f, 1.0f);
-	std::default_random_engine generator;
-	glm::vec3 sample;
-	GLfloat scale;
-
-	for (size_t i = 0; i < num_of_samples_per_frag; ++i)
-	{
-		sample = glm::vec3(randomFloats(generator) * 2.0f - 1.0f, randomFloats(generator) * 2.0f - 1.0f, randomFloats(generator));
-		sample = glm::normalize(sample);
-		sample *= randomFloats(generator);
-		scale = GLfloat(i) / GLfloat(num_of_samples_per_frag);
-
-		scale = lerp(0.1f, 1.0f, scale * scale);
-		sample *= scale;
-		samples.push_back(sample);
-	}
 }
 
 bool initScene()
@@ -462,26 +504,26 @@ void display()
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
-
 	glEnable(GL_STENCIL_TEST);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
 	glslScatteredMap.enable();
-	//for (size_t i = 0; i < 1; i++)
-	//{
-		unsigned int i = 0;
+	for (int i = 0; i < mSet->mesh_models.size(); i++)
+	{
+		unsigned int j = 0;
 		//glBindFramebuffer(GL_FRAMEBUFFER, cameraPositions[i]->buffer);
 		glStencilFunc(GL_ALWAYS, 1, -1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+		precalculate_values(mSet->mesh_models[i]);
 		model_mat = glm::mat4(1.0f);
 		projectionLightMat = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.01f, 20.0f);
-		viewLightMat = glm::lookAt(cameraPositions[i]->position, mSet->mesh_models[0]->center, glm::vec3(0.0f, 1.0f, 0.0f));
+		viewLightMat = glm::lookAt(cameraPositions[i]->position, mSet->mesh_models[i]->center, glm::vec3(0.0f, 1.0f, 0.0f));
 		spaceLightMatrix2 = projectionLightMat * viewLightMat;
 
-		model_mat = glm::translate(model_mat, mSet->mesh_models[0]->translation);
-		model_mat = model_mat * glm::toMat4(mSet->mesh_models[0]->rotation);
-		model_mat = glm::scale(model_mat, glm::vec3(mSet->mesh_models[0]->scale));
+		model_mat = glm::translate(model_mat, mSet->mesh_models[i]->translation);
+		model_mat = model_mat * glm::toMat4(mSet->mesh_models[i]->rotation);
+		model_mat = glm::scale(model_mat, glm::vec3(mSet->mesh_models[i]->scale));
 
 		glUniformMatrix4fv(glslScatteredMap.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
 		glUniformMatrix4fv(glslScatteredMap.getLocation("camera_matrix"), 1, GL_FALSE, glm::value_ptr(spaceLightMatrix1));
@@ -497,21 +539,35 @@ void display()
 		glUniform3f(glslScatteredMap.getLocation("absorption_coeff"), absorption_coefficients[mSet->mesh_models[i]->current_material].x, absorption_coefficients[mSet->mesh_models[i]->current_material].y, absorption_coefficients[mSet->mesh_models[i]->current_material].z);
 		glUniform3f(glslScatteredMap.getLocation("diffuse_reflectance"), diffuse_reflectances[mSet->mesh_models[i]->current_material].x, diffuse_reflectances[mSet->mesh_models[i]->current_material].y, diffuse_reflectances[mSet->mesh_models[i]->current_material].z);
 
-
 		glUniform3f(glslScatteredMap.getLocation("light_pos"), scene_light->translation.x, scene_light->translation.y, scene_light->translation.z);
 		glUniform4f(glslScatteredMap.getLocation("light_diff"), 1.0f, 1.0f, 1.0f, 1.0f);
 
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, light_buffers->array_of_buffers[i]->g_position);
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, light_buffers->array_of_buffers[i]->g_normal);
+		// Valores pre-calculados
+		glUniform3f(glslScatteredMap.getLocation("scattering_coeff_prime"), scattering_coeff_prime.x, scattering_coeff_prime.y, scattering_coeff_prime.z);
+		glUniform3f(glslScatteredMap.getLocation("attenuation_coeff"), attenuation_coeff.x, attenuation_coeff.y, attenuation_coeff.z);
+		glUniform3f(glslScatteredMap.getLocation("albedo"), albedo.x, albedo.y, albedo.z);
+		glUniform3f(glslScatteredMap.getLocation("attenuation_coeff_prime"), attenuation_coeff_prime.x, attenuation_coeff_prime.y, attenuation_coeff_prime.z);
+		glUniform3f(glslScatteredMap.getLocation("albedo_prime"), albedo_prime.x, albedo_prime.y, albedo_prime.z);
+		glUniform3f(glslScatteredMap.getLocation("D"), D.x, D.y, D.z);
+		glUniform3f(glslScatteredMap.getLocation("effective_transport_coeff"), effective_transport_coeff.x, effective_transport_coeff.y, effective_transport_coeff.z);
+		glUniform1f(glslScatteredMap.getLocation("c_phi_1"), c_phi_1);
+		glUniform1f(glslScatteredMap.getLocation("c_phi_2"), c_phi_2);
+		glUniform1f(glslScatteredMap.getLocation("c_e"), c_e);
+		glUniform1f(glslScatteredMap.getLocation("A"), A);
+		glUniform3f(glslScatteredMap.getLocation("de"), de.x, de.y, de.z);
+		glUniform3f(glslScatteredMap.getLocation("zr"), zr.x, zr.y, zr.z);
 
-		glBindVertexArray(mSet->mesh_models[0]->vao);
-		glDrawArrays(GL_TRIANGLES, 0, mSet->mesh_models[0]->vertices.size());
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, light_buffers->array_of_buffers[j]->g_position);
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, light_buffers->array_of_buffers[j]->g_normal);
+
+		glBindVertexArray(mSet->mesh_models[i]->vao);
+		glDrawArrays(GL_TRIANGLES, 0, mSet->mesh_models[i]->vertices.size());
 		glBindVertexArray(0);
 
 		//glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	//}
+	}
 
 	glslScatteredMap.disable();
 
@@ -553,7 +609,7 @@ void display()
 	model_gbuffer = glm::scale(model_gbuffer, glm::vec3(0.3f));
 	glUniformMatrix4fv(glslGBufferP.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_gbuffer));
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, light_buffers->array_of_buffers[i]->g_position);
+	glBindTexture(GL_TEXTURE_2D, light_buffers->array_of_buffers[0]->g_position);
 	render_quad();
 	glslGBufferP.disable();
 }
