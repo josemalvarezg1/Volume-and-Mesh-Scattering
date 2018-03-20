@@ -1,3 +1,3 @@
 #pragma once
 
-double Halton_Seq(int index, int base);
+double halton_sequence(int index, int base);

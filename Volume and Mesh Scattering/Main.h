@@ -3,7 +3,6 @@
 #define GLFW_DLL
 #define GLEW_STATIC
 #define STB_IMAGE_IMPLEMENTATION
-#define BUFFER_OFFSET(offset) ((char*)NULL + (offset))
 
 #include <iostream>
 #include <string.h>
@@ -21,6 +20,7 @@
 #include <random>
 #include "GLSLProgram.h"
 #include "Light.h"
+#include "G-Buffer.h"
 
 void reshape(GLFWwindow *window, int width, int height);
 void keyInput(GLFWwindow *window, int key, int scancode, int action, int mods);
@@ -29,7 +29,6 @@ void posCursor(GLFWwindow* window, double x, double y);
 void scroll(GLFWwindow* window, double xoffset, double yoffset);
 void charInput(GLFWwindow* window, unsigned int scanChar);
 void dropPath(GLFWwindow* window, int count, const char** paths);
-void generateOrtographicCameras(int cameraCount);
 bool initGlfw();
 bool initGlew();
 bool initScene();

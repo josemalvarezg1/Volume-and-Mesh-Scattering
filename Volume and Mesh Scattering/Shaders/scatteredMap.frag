@@ -97,14 +97,19 @@ float calculate_c_e(float ni)
 	return 1.0f / 2.0f * (1.0f - C2);
 }
 
-vec3 diffuse_part_prime(vec3 x, vec3 w12, vec3 dr, float c_phi2, vec3 effective_transport_coeff, float c_phi1, vec3 D, float c_e, vec3 no, vec3 dr_pow) 
+vec3 diffuse_part_prime(vec3 x, vec3 w12, vec3 r, float c_phi2, vec3 effective_transport_coeff, float c_phi1, vec3 D, float c_e, vec3 no) 
 {
-	vec3 one_effec_dr, factor_1, factor_2, factor_3, factor_4;
-	one_effec_dr = (vec3(1.0f) + effective_transport_coeff * dr);
-	factor_1 = (1 / (4 * c_phi2)) * 2.4674011 * (exp(-effective_transport_coeff) / pow(dr, vec3(3.0f)));
-	factor_2 = c_phi1 * (dr_pow / D + 3 * (one_effec_dr) * dot(x, w12));
-	factor_3 = 3 * D * (one_effec_dr) * dot(w12, no);
-	factor_4 = ((one_effec_dr) + 3 * D * (3 * (one_effec_dr) + (pow(effective_transport_coeff, vec3(2.0f)) * dr_pow)) / dr_pow * dot(x, w12)) * dot(x, no);
+	vec3 effec_r, one_effec_r, factor_1, factor_2, factor_3, factor_4;
+	float x_dot_w12, w12_dot_no, x_dot_no;
+	effec_r = effective_transport_coeff * r;
+	one_effec_r = vec3(1.0f) + effec_r;
+	x_dot_w12 = dot(x, w12);
+    w12_dot_no = dot(w12, no);
+    x_dot_no = dot(x, no);
+	factor_1 = (1 / (4 * c_phi2)) * 2.4674011 * (exp(-effec_r) / pow(r, vec3(3.0f)));
+	factor_2 = c_phi1 * ((r * r) / D + 3 * one_effec_r * x_dot_w12);
+	factor_3 = 3 * D * one_effec_r * w12_dot_no;
+	factor_4 = (one_effec_r + 3 * D * (3 * one_effec_r + effec_r * effec_r) / (r * r) * x_dot_w12) * x_dot_no;
 	return factor_1 * (factor_2 - c_e * (factor_3 - factor_4));
 }
 
@@ -137,7 +142,6 @@ void main()
 	vec3 scattering_coeff, absorption_coeff, attenuation_coeff, albedo, scattering_coeff_prime, attenuation_coeff_prime, albedo_prime;
 	vec3 D, effective_transport_coeff, diffuse_part_prime_1, diffuse_part_prime_2, diffuse_part_d;
 	vec3 cos_beta, z_prime, R, T, diffuse_part;
-	vec2 offset;
 	float xi_1, xi_2, c_phi_1, c_phi_2, c_e, miu_0, Ti, To, A, alphaj;
 
 	xo = frag_pos;
@@ -151,8 +155,10 @@ void main()
 
 	/*Estas variables las debemos traer precalculadas para no hacer esto en el shader*/
 
-	scattering_coeff_prime = vec3(0.68f, 0.70f, 0.55f);
-	scattering_coeff = scattering_coeff_prime / (1.0f - asymmetry_param_g);
+	//scattering_coeff_prime = vec3(0.68f, 0.70f, 0.55f);
+	//scattering_coeff = scattering_coeff_prime / (1.0f - asymmetry_param_g);
+	scattering_coeff = vec3(0.68f, 0.70f, 0.55f);
+	scattering_coeff_prime = scattering_coeff * (1.0f - asymmetry_param_g);
 	absorption_coeff = vec3(0.0024f, 0.0090f, 0.12f);
 	attenuation_coeff = scattering_coeff + absorption_coeff;
 	albedo = scattering_coeff / attenuation_coeff;
@@ -164,11 +170,6 @@ void main()
 	D = 1 / (3 * attenuation_coeff_prime);
 	effective_transport_coeff = sqrt(absorption_coeff / D);
 
-	/*Estas variables las debemos traer precalculadas para no hacer esto en el shader*/
-	
-	xi_1 = random(vec3(gl_FragCoord.xyz));
-	xi_2 = random(vec3(gl_FragCoord.zxy));
-
 	c_phi_1 = calculate_c_phi(refractive_index);
 	c_phi_2 = calculate_c_phi(1 / refractive_index);
 	c_e = calculate_c_e(refractive_index);
@@ -177,17 +178,19 @@ void main()
 	de = 2.131f * D * sqrt(albedo_prime);
 	zr = 3.0f * D;
 
-	/* Generacion de muestras */
+	/*Estas variables las debemos traer precalculadas para no hacer esto en el shader*/
+	
+	xi_1 = random(vec3(gl_FragCoord.xyz));
+	xi_2 = random(vec3(gl_FragCoord.zxy));
 
-    //vec3 randomVec = vec3(xi_1, xi_2, random(vec3(gl_FragCoord.yxz)));
-    //vec3 tangent = normalize(randomVec - frag_normal * dot(randomVec, frag_normal));
-	float radius = 0.5;
+	
+
+	/* Generacion de muestras */
+	float radius = 1.0f/32.0f;
 
 	for(int i = 0; i < n_samples; i++)
     {
         vec3 sample_e = frag_pos + samples[i] * radius; 
-        
-        // project sample position (to sample texture) (to get position on screen/texture)
         vec4 offset = vec4(sample_e, 1.0);
         offset = projection_matrix * offset; // from view to clip-space
         offset.xyz /= offset.w;
@@ -195,50 +198,53 @@ void main()
 
 		xi = texture(g_position, offset.xy).xyz;
 		ni = texture(g_normal, offset.xy).xyz;
+
+		float dot_n_w = dot(ni,wi);
 		
-		x = xo - xi;
-		r = vec3(length(x));
-		w12 = refract(wi, ni, refractive_index);
-		
-		rj = -log(xi_1) / effective_transport_coeff;
-		alphaj = 2.0 * PI * xi_2;
+		if (dot_n_w > 0.0f)
+		{
+			x = xo - xi;
+			r = vec3(length(x));
+			w12 = refract(wi, ni, 1.0f / refractive_index);
+			
+			rj = -log(xi_1) / effective_transport_coeff;
+			alphaj = 2.0 * PI * xi_2;
 
-		p = effective_transport_coeff * exp(-effective_transport_coeff * r) * (1 / (2 * PI));
+			p = effective_transport_coeff * exp(-effective_transport_coeff * r) * (1 / (2 * PI));
 
-		/* Parte Difusa */
+			/* Parte Difusa */
 
-		ni_ast = calculate_ni_ast(xo, xi, ni);
+			ni_ast = calculate_ni_ast(xo, xi, ni);
 
-		xv = xi  + (2 * A * de * ni_ast);
-		dv = vec3(length(xo - xv));
-		wv = w12 - (2 * (dot(w12, ni_ast)) * ni_ast);
-		//dr = sqrt(pow(r, vec3(2.0f)) + pow(zr, vec3(2.0f)));
+			xv = xi  + (2 * A * de * ni_ast);
+			dv = vec3(length(xo - xv));
+			wv = w12 - (2 * (dot(w12, ni_ast)) * ni_ast);
+			//dr = sqrt(pow(r, vec3(2.0f)) + pow(zr, vec3(2.0f)));
 
-		cos_beta = -sqrt((pow(r, vec3(2.0f)) - pow(dot(x, w12), 2)) / (pow(r, vec3(2.0f)) + pow(de, vec3(2.0f))));
-		miu_0 = dot(-no, w12);
-		dr_pow = calculate_dr_pow(r, D, miu_0, de, cos_beta, attenuation_coeff);
-		dr = sqrt(dr_pow);
+			cos_beta = -sqrt((pow(r, vec3(2.0f)) - pow(dot(x, w12), 2)) / (pow(r, vec3(2.0f)) + pow(de, vec3(2.0f))));
+			miu_0 = dot(-no, w12);
+			dr_pow = calculate_dr_pow(r, D, miu_0, de, cos_beta, attenuation_coeff);
+			dr = sqrt(dr_pow);
 
-		diffuse_part_prime_1 = diffuse_part_prime(x, w12, dr, c_phi_2, effective_transport_coeff, c_phi_1, D, c_e, no, dr_pow);
-		diffuse_part_prime_2 = diffuse_part_prime(xo - xv, wv, dv, c_phi_2, effective_transport_coeff, c_phi_1, D, c_e, no, pow(dv, vec3(2.0f)));
-		diffuse_part_d = diffuse_part_prime_1 - diffuse_part_prime_2;
+			diffuse_part_prime_1 = diffuse_part_prime(x, w12, dr, c_phi_2, effective_transport_coeff, c_phi_1, D, c_e, no);
+			diffuse_part_prime_2 = diffuse_part_prime(xo - xv, wv, dv, c_phi_2, effective_transport_coeff, c_phi_1, D, c_e, no);
+			diffuse_part_d = diffuse_part_prime_1 - diffuse_part_prime_2;
 
-		Ti = fresnel_t(wi, ni, refractive_index);
-		To = fresnel_t(wo, no, refractive_index);
+			Ti = fresnel_t(wi, ni, refractive_index);
+			To = fresnel_t(wo, no, refractive_index);
 
-		//diffuse_part = Ti * diffuse_part_d * To;
+			diffuse_part = Ti * diffuse_part_d;
 
-		diffuse_part = Ti * diffuse_part_d;
+			//diffuse_part = vec3(Ti);
 
-		Lo += diffuse_part * vec3(0.77f, 0.62f, 0.21f);
+			Lo += diffuse_part;
 
-		//Lo += ni;
-	
-		/* Fin Parte Difusa */
+			/* Fin Parte Difusa */
+		} 
 	}
 
 	/* Generacion de muestras */
 	
 
-	color = vec4(Lo / n_samples, 1.0f);
+	color = vec4((Lo / n_samples) * vec3(0.77f, 0.62f, 0.21f), 1.0f);
 }

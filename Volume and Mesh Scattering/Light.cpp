@@ -4,12 +4,12 @@ light::light()
 {
 	this->on = false;
 	this->visible_interface = false;
-	this->translation = glm::vec3(0.0f, -1.0f, 3.0f);
+	this->translation = glm::vec3(-3.0f, 5.0f, 5.0f);
 	this->ambient_comp = glm::vec3(0.15f, 0.15f, 0.15f);
 	this->diffuse_comp = glm::vec3(1.0f, 1.0f, 1.0f);
 	this->specular_comp = glm::vec3(1.0f, 1.0f, 1.0f);
 	this->light_interface = interfaceLight::instance();
-	
+
 	this->init_shaders();
 	this->load("Models/obj/light.obj");
 }
@@ -28,9 +28,9 @@ void light::init_shaders()
 	this->light_program.create_link();
 
 	this->light_program.enable();
-		this->light_program.addAttribute("vertexCoords");
-		this->light_program.addUniform("MVP");
-		this->light_program.addUniform("color");
+	this->light_program.addAttribute("vertexCoords");
+	this->light_program.addUniform("MVP");
+	this->light_program.addUniform("color");
 	this->light_program.disable();
 }
 
@@ -120,15 +120,15 @@ void light::display(glm::mat4 &view_projection)
 	mvp = view_projection * model;
 
 	this->light_program.enable();
-		glUniformMatrix4fv(this->light_program.getLocation("MVP"), 1, GL_FALSE, glm::value_ptr(mvp));
-		glUniform3fv(this->light_program.getLocation("color"), 1, &diffuse_comp[0]);
-		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		glBindVertexArray(this->vao);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->vindex);
-			glDrawElements(GL_TRIANGLES, this->index.size(), GL_UNSIGNED_INT, 0);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-		glBindVertexArray(0);
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	glUniformMatrix4fv(this->light_program.getLocation("MVP"), 1, GL_FALSE, glm::value_ptr(mvp));
+	glUniform3fv(this->light_program.getLocation("color"), 1, &diffuse_comp[0]);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	glBindVertexArray(this->vao);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->vindex);
+	glDrawElements(GL_TRIANGLES, this->index.size(), GL_UNSIGNED_INT, 0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	this->light_program.disable();
 }
 

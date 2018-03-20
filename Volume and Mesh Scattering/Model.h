@@ -22,7 +22,7 @@ public:
 	GLfloat scale, max_value, shininess;
 	std::vector<glm::vec3> vertices, normals;
 	glm::vec3 max_vertex, min_vertex, center, translation, ambient_comp, diffuse_comp, specular_comp;
-	
+
 	mesh();
 	~mesh();
 	void set_max_min_value(GLfloat x, GLfloat y, GLfloat z);
@@ -35,15 +35,15 @@ public:
 
 class meshSet {
 public:
+	std::vector<mesh*> mesh_models;
+	interfaceModel *model_interface;
 	bool visible_interface;
 
 	meshSet();
 	~meshSet();
-	std::vector<mesh*> mesh_models;
-	interfaceModel *model_interface;
+
 	void click_model(int selectedModel);
 	void not_click_model();
 	void update_interface(int selectedModel);
 };
 
-	

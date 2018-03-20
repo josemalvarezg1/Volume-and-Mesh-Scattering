@@ -1,7 +1,5 @@
 #include "InterfaceModel.h"
 
-extern int gWidth, gHeight;
-
 interfaceModel * interfaceModel::userInterface = NULL;
 
 interfaceModel * interfaceModel::instance()
@@ -38,9 +36,9 @@ interfaceModel::~interfaceModel()
 {
 }
 
-void interfaceModel::reshape()
+void interfaceModel::reshape(int g_width, int g_height)
 {
-	TwWindowSize(gWidth, gHeight);
+	TwWindowSize(g_width, g_height);
 }
 
 void interfaceModel::show()

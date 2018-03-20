@@ -127,6 +127,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="G-Buffer.cpp" />
     <ClCompile Include="GLSLProgram.cpp" />
     <ClCompile Include="Halton.cpp" />
     <ClCompile Include="InterfaceLight.cpp" />
@@ -138,6 +139,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="G-Buffer.h" />
     <ClInclude Include="GLSLProgram.h" />
     <ClInclude Include="Halton.h" />
     <ClInclude Include="InterfaceLight.h" />

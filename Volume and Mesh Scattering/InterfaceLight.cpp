@@ -1,7 +1,5 @@
 #include "InterfaceLight.h"
 
-extern int gWidth, gHeight;
-
 interfaceLight * interfaceLight::userInterface = NULL;
 
 interfaceLight * interfaceLight::instance()
@@ -42,9 +40,9 @@ interfaceLight::~interfaceLight()
 {
 }
 
-void interfaceLight::reshape()
+void interfaceLight::reshape(int g_width, int g_height)
 {
-	TwWindowSize(gWidth, gHeight);
+	TwWindowSize(g_width, g_height);
 }
 
 void interfaceLight::show()

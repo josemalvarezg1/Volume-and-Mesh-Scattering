@@ -19,7 +19,7 @@ public:
 	static interfaceLight * instance();
 	~interfaceLight();
 
-	void reshape();
+	void reshape(int g_width, int g_height);
 	void show();
 	void hide();
 };

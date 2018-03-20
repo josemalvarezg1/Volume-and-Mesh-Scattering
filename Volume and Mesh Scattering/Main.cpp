@@ -4,8 +4,10 @@
 #include "ScatteredMap.h"
 
 GLFWwindow *gWindow;
-int gWidth, gHeight;
-GLfloat deltaTime = 0.0f, lastFrame = 0.0f, lastX = 600, lastY = 340;
+int g_width, g_height;
+GLuint num_of_lights, num_of_orto_cameras, num_of_samples_per_frag;
+GLfloat deltaTime = 0.0f, lastFrame = 0.0f;
+GLdouble lastX = 600.0, lastY = 340.0;
 bool keys[1024], keysPressed[1024], selectingModel = false, selectingLight = false, firstMouse = true, activateCamera = false;
 std::vector<ScatteredMap*> cameraPositions;
 std::vector<glm::vec3> samples;
@@ -14,41 +16,12 @@ glm::mat4 projection, view, model;
 light *scene_light;
 camera *scene_camera;
 meshSet *mSet;
+light_buffers_set *light_buffers;
 
 CGLSLProgram glslProgram, glslGBuffer, glslGBufferP, glslScatteredMap;
 int selectedModel = -1;
-glm::vec3 eye(0.0f, 0.0f, 2.0f); // Ojo
 
 GLuint quadVAO, quadVBO;
-unsigned int gBuffer, gPosition, gNormal, depthrenderbuffer;
-unsigned int attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
-
-void create_gbuffer()
-{
-	glGenFramebuffers(1, &gBuffer);
-	glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
-
-	glGenTextures(1, &gPosition);
-	glBindTexture(GL_TEXTURE_2D, gPosition);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, gWidth, gHeight, 0, GL_RGB, GL_FLOAT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gPosition, 0);
-
-	glGenTextures(1, &gNormal);
-	glBindTexture(GL_TEXTURE_2D, gNormal);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, gWidth, gHeight, 0, GL_RGB, GL_FLOAT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, gNormal, 0);
-
-	glGenRenderbuffers(1, &depthrenderbuffer);
-	glBindRenderbuffer(GL_RENDERBUFFER, depthrenderbuffer);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, gWidth, gHeight);
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthrenderbuffer);
-
-	glDrawBuffers(2, attachments);
-}
 
 void render_quad()
 {
@@ -77,14 +50,17 @@ void render_quad()
 
 void reshape(GLFWwindow *window, int width, int height)
 {
-	gWidth = max(width, 1);
-	gHeight = max(height,1);
+	g_width = max(width, 1);
+	g_height = max(height, 1);
 
-	scene_light->light_interface->reshape();
-	TwWindowSize(width, height);
+	scene_light->light_interface->reshape(g_width, g_height);
+	mSet->model_interface->reshape(g_width, g_height);
 
-	glClearColor(0.75f, 0.75f, 0.75f, 1.0f);
-	glViewport(0, 0, gWidth, gHeight);
+	for (size_t i = 0; i < num_of_lights; i++)
+		light_buffers->array_of_buffers[0]->update_g_buffer(g_width, g_height);
+
+	glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
+	glViewport(0, 0, g_width, g_height);
 }
 
 void keyInput(GLFWwindow *window, int key, int scancode, int action, int mods)
@@ -135,12 +111,14 @@ void click(GLFWwindow* window, int button, int action, int mods)
 		return;
 	double x, y;
 	glfwGetCursorPos(gWindow, &x, &y);
+
+
 	if (action == GLFW_PRESS)
 	{
 		if (button == GLFW_MOUSE_BUTTON_LEFT)
 		{
-			GLint index;
-			glReadPixels(x, gHeight - y, 1, 1, GL_STENCIL_INDEX, GL_UNSIGNED_INT, &index);
+			GLuint index;
+			glReadPixels(int(x), g_height - int(y), 1, 1, GL_STENCIL_INDEX, GL_UNSIGNED_INT, &index);
 
 			if (index > 0)
 			{
@@ -174,7 +152,7 @@ void click(GLFWwindow* window, int button, int action, int mods)
 
 void scroll(GLFWwindow* window, double xoffset, double yoffset)
 {
-	if (TwEventMouseWheelGLFW(yoffset))
+	if (TwEventMouseWheelGLFW(int(yoffset)))
 		return;
 }
 
@@ -190,8 +168,8 @@ void posCursor(GLFWwindow* window, double x, double y)
 		lastY = y;
 		firstMouse = false;
 	}
-	GLfloat xoffset = x - lastX;
-	GLfloat yoffset = lastY - y;
+	GLfloat xoffset = GLfloat(x - lastX);
+	GLfloat yoffset = GLfloat(lastY - y);
 	lastX = x;
 	lastY = y;
 	if (activateCamera) {
@@ -212,8 +190,8 @@ void dropPath(GLFWwindow* window, int count, const char** paths)
 
 bool initGlfw()
 {
-	gWidth = 1200;
-	gHeight = 680;
+	g_width = 1200;
+	g_height = 680;
 
 	if (!glfwInit())
 		return false;
@@ -223,7 +201,7 @@ bool initGlfw()
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
 	glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
 
-	gWindow = glfwCreateWindow(gWidth, gHeight, "Volume and Mesh Scattering", nullptr, nullptr);
+	gWindow = glfwCreateWindow(g_width, g_height, "Volume and Mesh Scattering", nullptr, nullptr);
 	if (!gWindow)
 	{
 		glfwTerminate();
@@ -235,7 +213,7 @@ bool initGlfw()
 	glfwSetInputMode(gWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 
 	const GLFWvidmode * vidMode = glfwGetVideoMode(glfwGetPrimaryMonitor());
-	glfwSetWindowPos(gWindow, (vidMode->width - gWidth) >> 1, (vidMode->height - gHeight) >> 1);
+	glfwSetWindowPos(gWindow, (vidMode->width - g_width) >> 1, (vidMode->height - g_height) >> 1);
 	glfwSetFramebufferSizeCallback(gWindow, reshape);
 	glfwMakeContextCurrent(gWindow);
 	glfwSetInputMode(gWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
@@ -350,21 +328,23 @@ void movement()
 		scene_camera->processKeyboard(DONW, deltaTime);
 }
 
-void generateOrtographicCameras(int cameraCount) {
+int negative_positive()
+{
+	if (rand() % 2)
+		return 1;
+	else
+		return -1;
+}
+
+void generate_ortographic_cameras()
+{
 	double xPos, yPos, zPos;
 	ScatteredMap *map;
-	for (int i = 0; i < cameraCount; i++)
+	for (size_t i = 0; i < num_of_orto_cameras; i++)
 	{
-		int factor = -1;
-		if (rand() % 2) factor = 1;
-		else factor = -1;
-		xPos = Halton_Seq(i, 2) + 3.0 * factor;
-		if (rand() % 2) factor = 1;
-		else factor = -1;
-		yPos = Halton_Seq(i, 3) + 3.0 * factor;
-		if (rand() % 2) factor = 1;
-		else factor = -1;
-		zPos = Halton_Seq(i, 7) + 3.0 * factor;
+		xPos = halton_sequence(i, 2) + (3.0f * negative_positive());
+		yPos = halton_sequence(i, 3) + (3.0f * negative_positive());
+		zPos = halton_sequence(i, 7) + (3.0f * negative_positive());
 		map = new ScatteredMap(glm::vec3(xPos, yPos, zPos));
 		cameraPositions.push_back(map);
 	}
@@ -375,17 +355,20 @@ float lerp(float a, float b, float f)
 	return a + f * (b - a);
 }
 
-void generateSamples() {
-	std::uniform_real_distribution<GLfloat> randomFloats(0.0, 1.0); // generates random floats between 0.0 and 1.0
+void generateSamples()
+{
+	std::uniform_real_distribution<GLfloat> randomFloats(0.0f, 1.0f); // generates random floats between 0.0 and 1.0
 	std::default_random_engine generator;
-	for (unsigned int i = 0; i < 64; ++i)
+	glm::vec3 sample;
+	GLfloat scale;
+
+	for (size_t i = 0; i < num_of_samples_per_frag; ++i)
 	{
-		glm::vec3 sample(randomFloats(generator) * 2.0 - 1.0, randomFloats(generator) * 2.0 - 1.0, randomFloats(generator));
+		sample = glm::vec3(randomFloats(generator) * 2.0f - 1.0f, randomFloats(generator) * 2.0f - 1.0f, randomFloats(generator));
 		sample = glm::normalize(sample);
 		sample *= randomFloats(generator);
-		float scale = float(i) / 64.0;
+		scale = GLfloat(i) / GLfloat(num_of_samples_per_frag);
 
-		// scale samples s.t. they're more aligned to center of kernel
 		scale = lerp(0.1f, 1.0f, scale * scale);
 		sample *= scale;
 		samples.push_back(sample);
@@ -394,51 +377,69 @@ void generateSamples() {
 
 bool initScene()
 {
+	light_buffer *g_buffer;
 	mesh *scene_model;
+
+	num_of_lights = 1;
+	num_of_orto_cameras = 16;
+	num_of_samples_per_frag = 3 * num_of_orto_cameras;
 
 	scene_light = new light();
 	scene_model = new mesh();
 	mSet = new meshSet();
+
+	light_buffers = new light_buffers_set();
+
+	for (size_t i = 0; i < num_of_lights; i++)
+	{
+		g_buffer = new light_buffer(g_width, g_height);
+		light_buffers->array_of_buffers.push_back(g_buffer);
+	}
+
 	scene_camera = new camera(glm::vec3(0.0f, 0.0f, 8.0f));
 	scene_model->load("Models/obj/bunny.obj");
 	mSet->mesh_models.push_back(scene_model);
-	create_gbuffer();
-	generateOrtographicCameras(16);
+	generate_ortographic_cameras();
 	generateSamples();
 	return true;
 }
 
 void display()
 {
-	glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	view = scene_camera->getViewMatrix();
-	projection = glm::perspective(scene_camera->zoom, (float)gWidth / (float)gHeight, 0.1f, 100.0f);
-
-	glslGBuffer.enable();
 	glm::mat4 projectionLightMat, viewLightMat, spaceLightMatrix1, spaceLightMatrix2, model_mat;
 
-	for (int i = 0; i < mSet->mesh_models.size(); i++)
+	view = scene_camera->getViewMatrix();
+	projection = glm::perspective(scene_camera->zoom, (float)g_width / (float)g_height, 0.1f, 100.0f);
+
+	for (size_t i = 0; i < num_of_lights; i++)
 	{
-		model_mat = glm::mat4(1.0f);
-		projectionLightMat = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.01f, 20.0f);
-		viewLightMat = glm::lookAt(scene_light->translation, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		spaceLightMatrix1 = projectionLightMat * viewLightMat;
+		glBindFramebuffer(GL_FRAMEBUFFER, light_buffers->array_of_buffers[i]->g_buffer);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		model_mat = glm::translate(model_mat, mSet->mesh_models[i]->translation);
-		model_mat = model_mat * glm::toMat4(mSet->mesh_models[i]->rotation);
-		model_mat = glm::scale(model_mat, glm::vec3(mSet->mesh_models[i]->scale));
+		glslGBuffer.enable();
+		for (size_t j = 0; j < mSet->mesh_models.size(); j++)
+		{
+			model_mat = glm::mat4(1.0f);
+			projectionLightMat = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.01f, 20.0f);
+			viewLightMat = glm::lookAt(scene_light->translation, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			spaceLightMatrix1 = projectionLightMat * viewLightMat;
 
-		glUniformMatrix4fv(glslGBuffer.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
-		glUniformMatrix4fv(glslGBuffer.getLocation("light_matrix"), 1, GL_FALSE, glm::value_ptr(spaceLightMatrix1));
+			model_mat = glm::translate(model_mat, mSet->mesh_models[j]->translation);
+			model_mat = model_mat * glm::toMat4(mSet->mesh_models[j]->rotation);
+			model_mat = glm::scale(model_mat, glm::vec3(mSet->mesh_models[j]->scale));
 
-		glBindVertexArray(mSet->mesh_models[i]->vao);
-		glDrawArrays(GL_TRIANGLES, 0, mSet->mesh_models[i]->vertices.size());
-		glBindVertexArray(0);
+			glUniformMatrix4fv(glslGBuffer.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
+			glUniformMatrix4fv(glslGBuffer.getLocation("light_matrix"), 1, GL_FALSE, glm::value_ptr(spaceLightMatrix1));
+
+			glBindVertexArray(mSet->mesh_models[j]->vao);
+			glDrawArrays(GL_TRIANGLES, 0, mSet->mesh_models[j]->vertices.size());
+			glBindVertexArray(0);
+		}
+		glslGBuffer.disable();
+
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glslGBuffer.disable();
+
 
 	glEnable(GL_STENCIL_TEST);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
@@ -447,43 +448,43 @@ void display()
 	//for (size_t i = 0; i < 1; i++)
 	//{
 	unsigned int i = 0;
-		//glBindFramebuffer(GL_FRAMEBUFFER, cameraPositions[i]->buffer);
-		glStencilFunc(GL_ALWAYS, 1, -1);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	//glBindFramebuffer(GL_FRAMEBUFFER, cameraPositions[i]->buffer);
+	glStencilFunc(GL_ALWAYS, 1, -1);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		model_mat = glm::mat4(1.0f);
-		projectionLightMat = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.01f, 20.0f);
-		viewLightMat = glm::lookAt(cameraPositions[i]->position, mSet->mesh_models[0]->center, glm::vec3(0.0f, 1.0f, 0.0f));
-		spaceLightMatrix2 = projectionLightMat * viewLightMat;
+	model_mat = glm::mat4(1.0f);
+	projectionLightMat = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.01f, 20.0f);
+	viewLightMat = glm::lookAt(cameraPositions[i]->position, mSet->mesh_models[0]->center, glm::vec3(0.0f, 1.0f, 0.0f));
+	spaceLightMatrix2 = projectionLightMat * viewLightMat;
 
-		model_mat = glm::translate(model_mat, mSet->mesh_models[0]->translation);
-		model_mat = model_mat * glm::toMat4(mSet->mesh_models[0]->rotation);
-		model_mat = glm::scale(model_mat, glm::vec3(mSet->mesh_models[0]->scale));
+	model_mat = glm::translate(model_mat, mSet->mesh_models[0]->translation);
+	model_mat = model_mat * glm::toMat4(mSet->mesh_models[0]->rotation);
+	model_mat = glm::scale(model_mat, glm::vec3(mSet->mesh_models[0]->scale));
 
-		glUniformMatrix4fv(glslScatteredMap.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
-		glUniformMatrix4fv(glslScatteredMap.getLocation("camera_matrix"), 1, GL_FALSE, glm::value_ptr(spaceLightMatrix2));
-		glUniformMatrix4fv(glslScatteredMap.getLocation("projection_matrix"), 1, GL_FALSE, glm::value_ptr(spaceLightMatrix1));
-		glUniform1i(glslScatteredMap.getLocation("g_position"), 0);
-		glUniform1i(glslScatteredMap.getLocation("g_normal"), 1);
-		glUniform1i(glslScatteredMap.getLocation("n_samples"), 64);
-		glUniform3fv(glslScatteredMap.getLocation("samples"), 64, glm::value_ptr(samples[0]));
-		glUniform1f(glslScatteredMap.getLocation("asymmetry_param_g"), 0.75f);
-		glUniform1f(glslScatteredMap.getLocation("refractive_index"), 1.3f);
-		glUniform3f(glslScatteredMap.getLocation("light_pos"), scene_light->translation.x, scene_light->translation.y, scene_light->translation.z);
-		glUniform4f(glslScatteredMap.getLocation("light_diff"), 1.0f, 1.0f, 1.0f, 1.0f);
-		
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, gPosition);
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, gNormal);
-	
-		glBindVertexArray(mSet->mesh_models[0]->vao);
-		glDrawArrays(GL_TRIANGLES, 0, mSet->mesh_models[0]->vertices.size());
-		glBindVertexArray(0);
+	glUniformMatrix4fv(glslScatteredMap.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
+	glUniformMatrix4fv(glslScatteredMap.getLocation("camera_matrix"), 1, GL_FALSE, glm::value_ptr(spaceLightMatrix1));
+	glUniformMatrix4fv(glslScatteredMap.getLocation("projection_matrix"), 1, GL_FALSE, glm::value_ptr(spaceLightMatrix1));
+	glUniform1i(glslScatteredMap.getLocation("g_position"), 0);
+	glUniform1i(glslScatteredMap.getLocation("g_normal"), 1);
+	glUniform1i(glslScatteredMap.getLocation("n_samples"), num_of_samples_per_frag);
+	glUniform3fv(glslScatteredMap.getLocation("samples"), num_of_samples_per_frag, glm::value_ptr(samples[0]));
+	glUniform1f(glslScatteredMap.getLocation("asymmetry_param_g"), 0.0f);
+	glUniform1f(glslScatteredMap.getLocation("refractive_index"), 1.3f);
+	glUniform3f(glslScatteredMap.getLocation("light_pos"), scene_light->translation.x, scene_light->translation.y, scene_light->translation.z);
+	glUniform4f(glslScatteredMap.getLocation("light_diff"), 1.0f, 1.0f, 1.0f, 1.0f);
 
-		//glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, light_buffers->array_of_buffers[i]->g_position);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, light_buffers->array_of_buffers[i]->g_normal);
+
+	glBindVertexArray(mSet->mesh_models[0]->vao);
+	glDrawArrays(GL_TRIANGLES, 0, mSet->mesh_models[0]->vertices.size());
+	glBindVertexArray(0);
+
+	//glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	//}
-	
+
 	glslScatteredMap.disable();
 
 	//glEnable(GL_STENCIL_TEST);
@@ -524,7 +525,7 @@ void display()
 	model_gbuffer = glm::scale(model_gbuffer, glm::vec3(0.3f));
 	glUniformMatrix4fv(glslGBufferP.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_gbuffer));
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, gPosition);
+	glBindTexture(GL_TEXTURE_2D, light_buffers->array_of_buffers[i]->g_position);
 	render_quad();
 	glslGBufferP.disable();
 }
@@ -541,7 +542,7 @@ int main()
 		return EXIT_FAILURE;
 
 	glEnable(GL_DEPTH_TEST);
-	reshape(gWindow, gWidth, gHeight);
+	reshape(gWindow, g_width, g_height);
 
 	while (!glfwWindowShouldClose(gWindow))
 	{
