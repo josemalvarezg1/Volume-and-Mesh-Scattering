@@ -32,7 +32,7 @@ interfaceModel::interfaceModel()
 	TwAddVarRW(modelInterface, "Asimetría g", TW_TYPE_FLOAT, &asymmetry_param_g, "group='Parámetros de Dispersión' min=-1.0 max=1.0 step=0.01");
 	TwAddVarRW(modelInterface, "Índice de refracción", TW_TYPE_FLOAT, &refractive_index, "group = 'Parámetros de Dispersión' min=1.0 max=2.0 step = 0.01");
 	{
-		TwEnumVal material_type[5] = { { Patata, "Patata" }, { Mármol, "Mármol" }, { Piel, "Piel" }, { Leche, "Leche" }, { Ketchup, "Ketchup" } };
+		TwEnumVal material_type[5] = { { Patata, "Patata" }, { Mármol, "Mármol" }, { Piel, "Piel" }, { Leche, "Leche" }, { Ninguno, "Ninguno" } };
 		TwType light = TwDefineEnum("material_type", material_type, 5);
 		TwAddVarRW(modelInterface, "Material", light, &current_material, "group='Parámetros de Dispersión'");
 	}

@@ -4,7 +4,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 
-typedef enum { Patata, Mármol, Piel, Leche, Ketchup } material;
+typedef enum { Patata, Mármol, Piel, Leche, Ninguno } material;
 
 class interfaceModel
 {

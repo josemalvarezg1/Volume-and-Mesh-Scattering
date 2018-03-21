@@ -24,7 +24,7 @@ int selectedModel = -1;
 GLuint quadVAO, quadVBO;
 
 // Variables pre-calculadas
-glm::vec3 attenuation_coeff, albedo, scattering_coeff_prime, attenuation_coeff_prime, albedo_prime;
+glm::vec3 attenuation_coeff, albedo, scattering_coeff_prime, scattering_coeff, attenuation_coeff_prime, albedo_prime;
 glm::vec3 D, effective_transport_coeff, de, zr;
 float c_phi_1, c_phi_2, c_e, A;
 
@@ -278,22 +278,32 @@ float calculate_c_e(float ni)
 }
 
 void precalculate_values(mesh *m) {
-	scattering_coeff_prime = scattering_coefficients[m->current_material] * (1.0f - m->asymmetry_param_g);
-	attenuation_coeff = scattering_coefficients[m->current_material] + absorption_coefficients[m->current_material];
-	albedo = scattering_coefficients[m->current_material] / attenuation_coeff;
+	// Inicio: Original
 
+	scattering_coeff_prime = scattering_prime_coefficients[m->current_material] * (1.0f - m->asymmetry_param_g);
+	attenuation_coeff = scattering_prime_coefficients[m->current_material] + absorption_coefficients[m->current_material];
+	albedo = scattering_prime_coefficients[m->current_material] / attenuation_coeff;
 	attenuation_coeff_prime = scattering_coeff_prime + absorption_coefficients[m->current_material];
 	albedo_prime = scattering_coeff_prime / attenuation_coeff_prime;
+
+	// Fin: Original
+	
+	//scattering_coeff_prime = scattering_prime_coefficients[m->current_material];
+	//scattering_coeff = scattering_coeff_prime / glm::vec3(1.0f - m->asymmetry_param_g);
+	//attenuation_coeff = scattering_coeff + absorption_coefficients[m->current_material];
+	//attenuation_coeff_prime = scattering_coeff_prime + absorption_coefficients[m->current_material];
+	//albedo = attenuation_coeff / scattering_coeff;	
+	//albedo_prime = attenuation_coeff_prime / scattering_coeff_prime;
 
 	D = glm::vec3(1.0f) / (glm::vec3(3.0f) * attenuation_coeff_prime);
 	effective_transport_coeff = sqrt(absorption_coefficients[m->current_material] / D);
 
 	c_phi_1 = calculate_c_phi(m->refractive_index);
-	c_phi_2 = calculate_c_phi(1 / m->refractive_index);
+	c_phi_2 = calculate_c_phi(1.0f / m->refractive_index);
 	c_e = calculate_c_e(m->refractive_index);
 
 	A = (1.0f - c_e) / (2.0f * c_phi_1);
-	de = 2.131f * D * sqrt(albedo_prime);
+	de = 2.131f * D * sqrt(attenuation_coeff_prime / scattering_coeff_prime);
 	zr = 3.0f * D;
 }
 
@@ -412,11 +422,7 @@ bool initGlew()
 		glslScatteredMap.addUniform("diffuse_reflectance");
 
 		// Valores pre-calculados
-		glslScatteredMap.addUniform("scattering_coeff_prime");
 		glslScatteredMap.addUniform("attenuation_coeff");
-		glslScatteredMap.addUniform("albedo");
-		glslScatteredMap.addUniform("attenuation_coeff_prime");
-		glslScatteredMap.addUniform("albedo_prime");
 		glslScatteredMap.addUniform("D");
 		glslScatteredMap.addUniform("effective_transport_coeff");
 		glslScatteredMap.addUniform("c_phi_1");
@@ -534,20 +540,13 @@ void display()
 		glUniform3fv(glslScatteredMap.getLocation("samples"), num_of_samples_per_frag, glm::value_ptr(samples[0]));
 		glUniform1f(glslScatteredMap.getLocation("asymmetry_param_g"), mSet->mesh_models[i]->asymmetry_param_g);
 		glUniform1f(glslScatteredMap.getLocation("refractive_index"), mSet->mesh_models[i]->refractive_index);
-		
-		glUniform3f(glslScatteredMap.getLocation("scattering_coeff"), scattering_coefficients[mSet->mesh_models[i]->current_material].x, scattering_coefficients[mSet->mesh_models[i]->current_material].y, scattering_coefficients[mSet->mesh_models[i]->current_material].z);
-		glUniform3f(glslScatteredMap.getLocation("absorption_coeff"), absorption_coefficients[mSet->mesh_models[i]->current_material].x, absorption_coefficients[mSet->mesh_models[i]->current_material].y, absorption_coefficients[mSet->mesh_models[i]->current_material].z);
 		glUniform3f(glslScatteredMap.getLocation("diffuse_reflectance"), diffuse_reflectances[mSet->mesh_models[i]->current_material].x, diffuse_reflectances[mSet->mesh_models[i]->current_material].y, diffuse_reflectances[mSet->mesh_models[i]->current_material].z);
 
 		glUniform3f(glslScatteredMap.getLocation("light_pos"), scene_light->translation.x, scene_light->translation.y, scene_light->translation.z);
 		glUniform4f(glslScatteredMap.getLocation("light_diff"), 1.0f, 1.0f, 1.0f, 1.0f);
 
 		// Valores pre-calculados
-		glUniform3f(glslScatteredMap.getLocation("scattering_coeff_prime"), scattering_coeff_prime.x, scattering_coeff_prime.y, scattering_coeff_prime.z);
 		glUniform3f(glslScatteredMap.getLocation("attenuation_coeff"), attenuation_coeff.x, attenuation_coeff.y, attenuation_coeff.z);
-		glUniform3f(glslScatteredMap.getLocation("albedo"), albedo.x, albedo.y, albedo.z);
-		glUniform3f(glslScatteredMap.getLocation("attenuation_coeff_prime"), attenuation_coeff_prime.x, attenuation_coeff_prime.y, attenuation_coeff_prime.z);
-		glUniform3f(glslScatteredMap.getLocation("albedo_prime"), albedo_prime.x, albedo_prime.y, albedo_prime.z);
 		glUniform3f(glslScatteredMap.getLocation("D"), D.x, D.y, D.z);
 		glUniform3f(glslScatteredMap.getLocation("effective_transport_coeff"), effective_transport_coeff.x, effective_transport_coeff.y, effective_transport_coeff.z);
 		glUniform1f(glslScatteredMap.getLocation("c_phi_1"), c_phi_1);
