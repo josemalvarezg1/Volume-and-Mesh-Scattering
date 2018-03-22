@@ -19,7 +19,7 @@ class mesh
 public:
 	GLuint vbo, vao;
 	glm::quat rotation;
-	GLfloat scale, max_value, shininess, asymmetry_param_g, refractive_index;
+	GLfloat scale, max_value, shininess, asymmetry_param_g, refractive_index, radius;
 	std::vector<glm::vec3> vertices, normals;
 	glm::vec3 max_vertex, min_vertex, center, translation, ambient_comp, diffuse_comp, specular_comp;
 	material current_material;

@@ -16,7 +16,7 @@ private:
 public:
 	glm::vec3 translation;
 	glm::quat rotation;
-	GLfloat scale, shininess, asymmetry_param_g, refractive_index;
+	GLfloat scale, shininess, asymmetry_param_g, refractive_index, radius;
 	material current_material;
 
 	static interfaceModel * instance();

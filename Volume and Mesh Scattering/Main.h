@@ -18,7 +18,7 @@
 #include "Light.h"
 #include "G-Buffer.h"
 
-glm::vec3 scattering_prime_coefficients[] = { { glm::vec3(0.68f, 0.70f, 0.55f) },	// Patata
+glm::vec3 scattering_coefficients[] = { { glm::vec3(0.68f, 0.70f, 0.55f) },	// Patata
 											  { glm::vec3(2.19f, 2.62f, 3.00f) },	// Mármol
 											  { glm::vec3(0.74f, 0.88f, 1.01f) },	// Piel
 											  { glm::vec3(2.55f, 3.21f, 3.77f) },	// Leche

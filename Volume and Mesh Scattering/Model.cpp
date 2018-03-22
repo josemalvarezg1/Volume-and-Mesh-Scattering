@@ -11,6 +11,7 @@ mesh::mesh()
 	this->shininess = 128.0f;
 	this->asymmetry_param_g = 0.5f;
 	this->refractive_index = 1.3f;
+	this->radius = 64;
 	this->current_material = Patata;
 }
 
@@ -197,6 +198,7 @@ void meshSet::click_model(int selectedModel)
 	this->model_interface->shininess = this->mesh_models[selectedModel]->shininess;
 	this->model_interface->asymmetry_param_g = this->mesh_models[selectedModel]->asymmetry_param_g;
 	this->model_interface->refractive_index = this->mesh_models[selectedModel]->refractive_index;
+	this->model_interface->radius = this->mesh_models[selectedModel]->radius;
 	this->model_interface->current_material = this->mesh_models[selectedModel]->current_material;
 	this->visible_interface = true;
 }
@@ -217,6 +219,7 @@ void meshSet::update_interface(int selectedModel)
 		this->mesh_models[selectedModel]->shininess = this->model_interface->shininess;
 		this->mesh_models[selectedModel]->asymmetry_param_g = this->model_interface->asymmetry_param_g;
 		this->mesh_models[selectedModel]->refractive_index = this->model_interface->refractive_index;
+		this->mesh_models[selectedModel]->radius = this->model_interface->radius;
 		this->mesh_models[selectedModel]->current_material = this->model_interface->current_material;
 	}
 }

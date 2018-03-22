@@ -11,6 +11,7 @@ uniform vec4 light_amb;
 
 uniform float asymmetry_param_g;
 uniform float refractive_index;
+uniform float radius;
 uniform vec3 diffuse_reflectance;
 uniform mat4 projection_matrix;
 
@@ -128,10 +129,10 @@ float fresnel_t(vec3 I, vec3 N, float ior)
 
 void main() 
 {
-	vec3 xo, no, wo, Lo, Ll, xi, ni, wi, x, r, dr, dr_pow, w12, rj, p, ni_ast, xv, dv, wv;
+	vec3 xo, no, wo, Lo, Ll, xi, ni, wi, x, r, dr, dr_pow, w12, p, ni_ast, xv, dv, wv, rj, alphaj;
 	vec3 diffuse_part_prime_1, diffuse_part_prime_2, diffuse_part_d;
 	vec3 cos_beta, z_prime, R, T, diffuse_part;
-	float xi_1, xi_2, miu_0, Ti, To, alphaj;
+	float xi_1, xi_2, miu_0, Ti, To;
 
 	xo = frag_pos;
 	no = normalize(frag_normal);
@@ -146,21 +147,19 @@ void main()
 	xi_2 = random(vec3(gl_FragCoord.zxy));	
 
 	/* Inicio: Generación de muestras */
-	float radius = 1.0f / 64.0f;
 
 	for (int i = 0; i < n_samples; i++)
     {
 		rj = -log(samples[i]) / effective_transport_coeff;
-		//alphaj = 2.0 * PI * samples[i].zyx;
+		alphaj = 2.0 * PI * samples[i].zyx;
 		//p = effective_transport_coeff * exp(-effective_transport_coeff * rj) * (1.0 / (2.0 * PI)); // Revisar este p como sample
-        vec3 sample_e = frag_pos + rj * radius; 
+        vec3 sample_e = frag_pos + rj * radius;
         vec4 offset = vec4(sample_e, 1.0);
         // De espacio de vista a espacio de clipping
         offset = projection_matrix * offset;
         offset.xyz /= offset.w;
         // El offset estará en un rango [0:1]
         offset.xyz = offset.xyz * 0.5 + 0.5;
-
 		xi = texture(g_position, offset.xy).xyz;
 		ni = texture(g_normal, offset.xy).xyz;
 
@@ -170,9 +169,7 @@ void main()
 		{
 			x = xo - xi;
 			r = vec3(length(x));
-			w12 = refract(wi, ni, 1.0f / refractive_index);			
-			
-			
+			w12 = refract(wi, ni, 1.0f / refractive_index);	
 
 			/* Inicio: Parte Difusa */
 
@@ -197,7 +194,7 @@ void main()
 
 			//diffuse_part = (Ti * diffuse_part_d * dot_n_w * rj) / p;
 
-			diffuse_part = Ti * diffuse_part_d * dot_n_w;
+			diffuse_part = (Ti * diffuse_part_d * dot_n_w);
 
 			Lo += diffuse_part;
 
@@ -205,7 +202,7 @@ void main()
 		} 
 	}
 
-	Lo = ((PI * Ll) / n_samples) * Lo;
+	Lo *= ((PI * Ll) / n_samples);
 
 	/* Fin: Generación de muestras */	
 
