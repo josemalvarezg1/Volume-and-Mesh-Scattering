@@ -11,7 +11,6 @@ uniform vec4 light_amb;
 
 uniform float asymmetry_param_g;
 uniform float refractive_index;
-uniform float radius;
 uniform vec3 diffuse_reflectance;
 uniform mat4 projection_matrix;
 

@@ -31,10 +31,9 @@ interfaceModel::interfaceModel()
 	TwAddSeparator(modelInterface, NULL, "");
 	TwAddVarRW(modelInterface, "Asimetría g", TW_TYPE_FLOAT, &asymmetry_param_g, "group='Parámetros de Dispersión' min=-1.0 max=0.99 step=0.01");
 	TwAddVarRW(modelInterface, "Índice de refracción", TW_TYPE_FLOAT, &refractive_index, "group = 'Parámetros de Dispersión' min=1.0 max=2.0 step = 0.01");
-	TwAddVarRW(modelInterface, "Radio", TW_TYPE_FLOAT, &radius, "group = 'Parámetros de Dispersión' min=1.0 max=4096.0 step = 1.00");
 	{
-		TwEnumVal material_type[5] = { { Patata, "Patata" }, { Mármol, "Mármol" }, { Piel, "Piel" }, { Leche, "Leche" }, { Ninguno, "Ninguno" } };
-		TwType light = TwDefineEnum("material_type", material_type, 5);
+		TwEnumVal material_type[6] = { { Patata, "Patata" }, { Mármol, "Mármol" }, { Piel, "Piel" }, { Leche, "Leche" }, { Crema, "Crema" }, { Ninguno, "Ninguno" } };
+		TwType light = TwDefineEnum("material_type", material_type, 6);
 		TwAddVarRW(modelInterface, "Material", light, &current_material, "group='Parámetros de Dispersión'");
 	}
 	TwAddSeparator(modelInterface, NULL, "");

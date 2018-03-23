@@ -407,7 +407,6 @@ bool initGlew()
 		glslScatteredMap.addUniform("g_position");
 		glslScatteredMap.addUniform("g_normal");
 		glslScatteredMap.addUniform("refractive_index");
-		glslScatteredMap.addUniform("radius");
 		glslScatteredMap.addUniform("diffuse_reflectance");
 
 		// Valores pre-calculados
@@ -530,7 +529,6 @@ void display()
 			glUniform3fv(glslScatteredMap.getLocation("samples"), num_of_samples_per_frag, glm::value_ptr(samples[0]));
 			glUniform1f(glslScatteredMap.getLocation("asymmetry_param_g"), mSet->mesh_models[i]->asymmetry_param_g);
 			glUniform1f(glslScatteredMap.getLocation("refractive_index"), mSet->mesh_models[i]->refractive_index);
-			glUniform1f(glslScatteredMap.getLocation("radius"), 1.0f / mSet->mesh_models[i]->radius);
 			glUniform3f(glslScatteredMap.getLocation("diffuse_reflectance"), diffuse_reflectances[mSet->mesh_models[i]->current_material].x, diffuse_reflectances[mSet->mesh_models[i]->current_material].y, diffuse_reflectances[mSet->mesh_models[i]->current_material].z);
 
 			glUniform3f(glslScatteredMap.getLocation("light_pos"), scene_light->translation.x, scene_light->translation.y, scene_light->translation.z);
