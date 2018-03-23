@@ -104,27 +104,29 @@ vec3 diffuse_part_prime(vec3 x, vec3 w12, vec3 r, vec3 no)
 	return factor_1 * (factor_2 - c_e * (factor_3 - factor_4));
 }
 
-float fresnel_t(vec3 I, vec3 N, float ior) 
+float fresnel_t(vec3 inv, vec3 n, float n_1) 
 { 
-	float cosi, etai, etat, aux, sint;
-	cosi = clamp(-1.0f, 1.0f, dot(I, N));
-    etai = 1.0f;
-    etat = ior;
-    if (cosi > 0.0f)
-	{
-		aux = etai;
-		etai = etat;
-		etat = aux;
-	}
-    sint = etai / etat * sqrt(max(0.0f, 1.0f - cosi * cosi)); 
-    if (sint >= 1.0f)
+	float cos_i, n_2, eta, sin_t;
+	cos_i = clamp(-1.0f, 1.0f, dot(inv, n));
+    n_2 = 1.0f;
+    eta = n_1 / n_2;
+   
+    sin_t = eta * sqrt(max(0.0f, 1.0f - cos_i * cos_i)); 
+    if (sin_t >= 1.0f)
         return 1.0f;
-	float cost, Rs, Rp;
-    cost = sqrt(max(0.0f, 1.0f - sint * sint)); 
-    cosi = abs(cosi); 
-    Rs = ((etat * cosi) - (etai * cost)) / ((etat * cosi) + (etai * cost)); 
-    Rp = ((etai * cosi) - (etat * cost)) / ((etai * cosi) + (etat * cost)); 
-    return (Rs * Rs + Rp * Rp) / 2.0f;
+	
+	float cos_t, const_t, cos_i_2, factor_1, factor_2, Ts, Tp;
+    cos_t = sqrt(max(0.0f, 1.0f - sin_t * sin_t));
+
+    const_t = eta * (cos_t / cos_i);
+	cos_i_2 = (2 * cos_i);
+	factor_1 = cos_i_2 / ((eta * cos_i) + cos_t);
+	factor_2 = cos_i_2 / ((eta * cos_t) + cos_i);
+
+    Ts = const_t * (factor_1 * factor_1);
+    Tp = const_t * (factor_2 * factor_2);
+
+    return (Ts + Tp) / 2.0f;
 } 
 
 void main() 
@@ -153,7 +155,7 @@ void main()
 		rj = -log(samples[i]) / effective_transport_coeff;
 		alphaj = 2.0 * PI * samples[i].zyx;
 		//p = effective_transport_coeff * exp(-effective_transport_coeff * rj) * (1.0 / (2.0 * PI)); // Revisar este p como sample
-        vec3 sample_e = frag_pos + rj * radius;
+        vec3 sample_e = frag_pos + rj;
         vec4 offset = vec4(sample_e, 1.0);
         // De espacio de vista a espacio de clipping
         offset = projection_matrix * offset;
@@ -169,7 +171,7 @@ void main()
 		{
 			x = xo - xi;
 			r = vec3(length(x));
-			w12 = refract(wi, ni, 1.0f / refractive_index);	
+			w12 = refract(wi, ni, refractive_index);	
 
 			/* Inicio: Parte Difusa */
 
@@ -189,7 +191,7 @@ void main()
 			diffuse_part_prime_2 = diffuse_part_prime(xo - xv, wv, dv, no);
 			diffuse_part_d = diffuse_part_prime_1 - diffuse_part_prime_2;
 
-			Ti = fresnel_t(-wi, ni, refractive_index);
+			Ti = fresnel_t(wi, ni, refractive_index);
 			To = fresnel_t(wo, no, refractive_index);
 
 			//diffuse_part = (Ti * diffuse_part_d * dot_n_w * rj) / p;
