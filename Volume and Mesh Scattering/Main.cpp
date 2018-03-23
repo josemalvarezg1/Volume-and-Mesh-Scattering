@@ -17,16 +17,13 @@ light *scene_light;
 camera *scene_camera;
 meshSet *mSet;
 light_buffers_set *light_buffers;
+materials_set *materials;
 
 CGLSLProgram glslProgram, glslGBuffer, glslGBufferP, glslScatteredMap;
 int selectedModel = -1;
 
 GLuint quadVAO, quadVBO;
 
-// Variables pre-calculadas
-glm::vec3 attenuation_coeff, albedo, scattering_coeff_prime, scattering_coeff, attenuation_coeff_prime, albedo_prime;
-glm::vec3 D, effective_transport_coeff, de, zr;
-float c_phi_1, c_phi_2, c_e, A;
 
 void render_quad()
 {
@@ -257,46 +254,6 @@ void generateSamples()
 	}
 }
 
-float calculate_c_phi(float ni)
-{
-	float C1 = 0.0f;
-	if (ni < 1.0f)
-		C1 = 0.919317f - 3.4793f * ni + 6.75335f * pow(ni, 2) - 7.80989f * pow(ni, 3) + 4.98554f * pow(ni, 4) - 1.36881f * pow(ni, 5);
-	else
-		C1 = -9.23372f + 22.2272f * ni - 20.9292f * pow(ni, 2) + 10.2291f * pow(ni, 3) - 2.54396f * pow(ni, 4) + 0.254913f * pow(ni, 5);
-	return 1.0f / 4.0f * (1.0f - C1);
-}
-
-float calculate_c_e(float ni)
-{
-	float C2 = 0.0f;
-	if (ni < 1.0f)
-		C2 = 0.828421f - 2.62051f * ni + 3.36231f * pow(ni, 2) - 1.95284f * pow(ni, 3) + 0.236494f * pow(ni, 4) + 0.145787f * pow(ni, 5);
-	else
-		C2 = -1641.1f + 135.926f / pow(ni, 3) - 656.175f / pow(ni, 2) + 1376.53f / ni + 1213.67f * ni - 568.556f * pow(ni, 2) + 164.798f * pow(ni, 3) - 27.0181f * pow(ni, 4) + 1.91826f * pow(ni, 5);
-	return 1.0f / 2.0f * (1.0f - C2);
-}
-
-void precalculate_values(mesh *m) {
-	scattering_coeff = scattering_coefficients[m->current_material];
-	scattering_coeff_prime = (1.0f - m->asymmetry_param_g) * scattering_coeff;
-	attenuation_coeff = scattering_coefficients[m->current_material] + absorption_coefficients[m->current_material];
-	albedo = scattering_coefficients[m->current_material] / attenuation_coeff;
-	attenuation_coeff_prime = scattering_coeff_prime + absorption_coefficients[m->current_material];
-	albedo_prime = scattering_coeff_prime / attenuation_coeff_prime;
-
-	D = glm::vec3(1.0f) / (glm::vec3(3.0f) * attenuation_coeff_prime);
-	effective_transport_coeff = sqrt(absorption_coefficients[m->current_material] / D);
-
-	c_phi_1 = calculate_c_phi(m->refractive_index);
-	c_phi_2 = calculate_c_phi(1.0f / m->refractive_index);
-	c_e = calculate_c_e(m->refractive_index);
-
-	A = (1.0f - c_e) / (2.0f * c_phi_1);
-	de = 2.131f * D * sqrt(attenuation_coeff_prime / scattering_coeff_prime);
-	zr = 3.0f * D;
-}
-
 bool initGlfw()
 {
 	g_width = 1200;
@@ -436,6 +393,7 @@ bool initAntTweakBar()
 bool initScene()
 {
 	light_buffer *g_buffer;
+	material *potato, *marble, *skin, *milk, *cream, *none;
 	mesh *scene_model;
 
 	num_of_lights = 1;
@@ -445,7 +403,7 @@ bool initScene()
 	scene_light = new light();
 	scene_model = new mesh();
 	mSet = new meshSet();
-
+	materials = new materials_set();
 	light_buffers = new light_buffers_set();
 
 	for (size_t i = 0; i < num_of_lights; i++)
@@ -453,6 +411,20 @@ bool initScene()
 		g_buffer = new light_buffer(g_width, g_height);
 		light_buffers->array_of_buffers.push_back(g_buffer);
 	}
+
+	potato = new material(glm::vec3(0.68f, 0.70f, 0.55f), glm::vec3(0.0024f, 0.0090f, 0.12f), glm::vec3(0.77f, 0.62f, 0.21f), 1.3f);
+	marble = new material(glm::vec3(2.19f, 2.62f, 3.00f), glm::vec3(0.0021f, 0.0041f, 0.0071f), glm::vec3(0.83f, 0.79f, 0.75f), 1.5f);
+	skin = new material(glm::vec3(0.74f, 0.88f, 1.01f), glm::vec3(0.032f, 0.17f, 0.48f), glm::vec3(0.44f, 0.22f, 0.13f), 1.3f);
+	milk = new material(glm::vec3(2.55f, 3.21f, 3.77f), glm::vec3(0.0011f, 0.0024f, 0.014f), glm::vec3(0.91f, 0.88f, 0.76f), 1.3f);
+	cream = new material(glm::vec3(7.38f, 5.47f, 3.1f), glm::vec3(0.0002f, 0.0028f, 0.016f), glm::vec3(0.98f, 0.90f, 0.7f), 1.3f);
+	none = new material(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 1.3f);
+
+	materials->materials.push_back(potato);
+	materials->materials.push_back(marble);
+	materials->materials.push_back(skin);
+	materials->materials.push_back(milk);
+	materials->materials.push_back(cream);
+	materials->materials.push_back(none);
 
 	scene_camera = new camera(glm::vec3(0.0f, 0.0f, 16.0f));
 	scene_model->load("Models/obj/bunny.obj");
@@ -504,64 +476,68 @@ void display()
 	glslScatteredMap.enable();
 	for (int i = 0; i < mSet->mesh_models.size(); i++)
 	{
-		for (size_t j = 0; j < cameraPositions.size(); j++)
+		if (mSet->mesh_models[i]->change_values)
 		{
-			//glBindFramebuffer(GL_FRAMEBUFFER, cameraPositions[j]->buffer);
-			glStencilFunc(GL_ALWAYS, 1, -1);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			for (size_t j = 0; j < cameraPositions.size(); j++)
+			{
+				glBindFramebuffer(GL_FRAMEBUFFER, cameraPositions[j]->buffer);
+				glStencilFunc(GL_ALWAYS, 1, -1);
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-			precalculate_values(mSet->mesh_models[i]);
-			model_mat = glm::mat4(1.0f);
-			projectionLightMat = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.01f, 20.0f);
-			viewLightMat = glm::lookAt(cameraPositions[j]->position, mSet->mesh_models[i]->center, glm::vec3(0.0f, 1.0f, 0.0f));
-			spaceLightMatrix2 = projectionLightMat * viewLightMat;
+				materials->materials[mSet->mesh_models[i]->current_material]->precalculate_values(mSet->mesh_models[i]->asymmetry_param_g);
+				model_mat = glm::mat4(1.0f);
+				projectionLightMat = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.01f, 20.0f);
+				viewLightMat = glm::lookAt(cameraPositions[j]->position, mSet->mesh_models[i]->center, glm::vec3(0.0f, 1.0f, 0.0f));
+				spaceLightMatrix2 = projectionLightMat * viewLightMat;
 
-			model_mat = glm::translate(model_mat, mSet->mesh_models[i]->translation);
-			model_mat = model_mat * glm::toMat4(mSet->mesh_models[i]->rotation);
-			model_mat = glm::scale(model_mat, glm::vec3(mSet->mesh_models[i]->scale));
+				model_mat = glm::translate(model_mat, mSet->mesh_models[i]->translation);
+				model_mat = model_mat * glm::toMat4(mSet->mesh_models[i]->rotation);
+				model_mat = glm::scale(model_mat, glm::vec3(mSet->mesh_models[i]->scale));
 
-			glUniformMatrix4fv(glslScatteredMap.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
-			glUniformMatrix4fv(glslScatteredMap.getLocation("camera_matrix"), 1, GL_FALSE, glm::value_ptr(spaceLightMatrix2));
-			glUniformMatrix4fv(glslScatteredMap.getLocation("projection_matrix"), 1, GL_FALSE, glm::value_ptr(spaceLightMatrix1));
-			glUniform1i(glslScatteredMap.getLocation("g_position"), 0);
-			glUniform1i(glslScatteredMap.getLocation("g_normal"), 1);
-			glUniform1i(glslScatteredMap.getLocation("n_samples"), num_of_samples_per_frag);
-			glUniform3fv(glslScatteredMap.getLocation("samples"), num_of_samples_per_frag, glm::value_ptr(samples[0]));
-			glUniform1f(glslScatteredMap.getLocation("asymmetry_param_g"), mSet->mesh_models[i]->asymmetry_param_g);
-			glUniform1f(glslScatteredMap.getLocation("refractive_index"), mSet->mesh_models[i]->refractive_index);
-			glUniform3f(glslScatteredMap.getLocation("diffuse_reflectance"), diffuse_reflectances[mSet->mesh_models[i]->current_material].x, diffuse_reflectances[mSet->mesh_models[i]->current_material].y, diffuse_reflectances[mSet->mesh_models[i]->current_material].z);
+				glUniformMatrix4fv(glslScatteredMap.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
+				glUniformMatrix4fv(glslScatteredMap.getLocation("camera_matrix"), 1, GL_FALSE, glm::value_ptr(spaceLightMatrix2));
+				glUniformMatrix4fv(glslScatteredMap.getLocation("projection_matrix"), 1, GL_FALSE, glm::value_ptr(spaceLightMatrix1));
+				glUniform1i(glslScatteredMap.getLocation("g_position"), 0);
+				glUniform1i(glslScatteredMap.getLocation("g_normal"), 1);
+				glUniform1i(glslScatteredMap.getLocation("n_samples"), num_of_samples_per_frag);
+				glUniform3fv(glslScatteredMap.getLocation("samples"), num_of_samples_per_frag, glm::value_ptr(samples[0]));
+				glUniform1f(glslScatteredMap.getLocation("asymmetry_param_g"), mSet->mesh_models[i]->asymmetry_param_g);
+				glUniform1f(glslScatteredMap.getLocation("refractive_index"), mSet->mesh_models[i]->refractive_index);
+				glUniform3fv(glslScatteredMap.getLocation("diffuse_reflectance"), 1, glm::value_ptr(materials->materials[mSet->mesh_models[i]->current_material]->diffuse_reflectance));
 
-			glUniform3f(glslScatteredMap.getLocation("light_pos"), scene_light->translation.x, scene_light->translation.y, scene_light->translation.z);
-			glUniform4f(glslScatteredMap.getLocation("light_diff"), 1.0f, 1.0f, 1.0f, 1.0f);
+				glUniform3f(glslScatteredMap.getLocation("light_pos"), scene_light->translation.x, scene_light->translation.y, scene_light->translation.z);
+				glUniform4f(glslScatteredMap.getLocation("light_diff"), 1.0f, 1.0f, 1.0f, 1.0f);
 
-			// Valores pre-calculados
-			glUniform3f(glslScatteredMap.getLocation("attenuation_coeff"), attenuation_coeff.x, attenuation_coeff.y, attenuation_coeff.z);
-			glUniform3f(glslScatteredMap.getLocation("D"), D.x, D.y, D.z);
-			glUniform3f(glslScatteredMap.getLocation("effective_transport_coeff"), effective_transport_coeff.x, effective_transport_coeff.y, effective_transport_coeff.z);
-			glUniform1f(glslScatteredMap.getLocation("c_phi_1"), c_phi_1);
-			glUniform1f(glslScatteredMap.getLocation("c_phi_2"), c_phi_2);
-			glUniform1f(glslScatteredMap.getLocation("c_e"), c_e);
-			glUniform1f(glslScatteredMap.getLocation("A"), A);
-			glUniform3f(glslScatteredMap.getLocation("de"), de.x, de.y, de.z);
-			glUniform3f(glslScatteredMap.getLocation("zr"), zr.x, zr.y, zr.z);
+				// Valores pre-calculados
+				glUniform3fv(glslScatteredMap.getLocation("attenuation_coeff"), 1, glm::value_ptr(materials->materials[mSet->mesh_models[i]->current_material]->attenuation_coeff));
+				glUniform3fv(glslScatteredMap.getLocation("D"), 1, glm::value_ptr(materials->materials[mSet->mesh_models[i]->current_material]->D));
+				glUniform3fv(glslScatteredMap.getLocation("effective_transport_coeff"), 1, glm::value_ptr(materials->materials[mSet->mesh_models[i]->current_material]->effective_transport_coeff));
+				glUniform1f(glslScatteredMap.getLocation("c_phi_1"), materials->materials[mSet->mesh_models[i]->current_material]->c_phi_1);
+				glUniform1f(glslScatteredMap.getLocation("c_phi_2"), materials->materials[mSet->mesh_models[i]->current_material]->c_phi_2);
+				glUniform1f(glslScatteredMap.getLocation("c_e"), materials->materials[mSet->mesh_models[i]->current_material]->c_e);
+				glUniform1f(glslScatteredMap.getLocation("A"), materials->materials[mSet->mesh_models[i]->current_material]->A);
+				glUniform3fv(glslScatteredMap.getLocation("de"), 1, glm::value_ptr(materials->materials[mSet->mesh_models[i]->current_material]->de));
+				glUniform3fv(glslScatteredMap.getLocation("zr"), 1, glm::value_ptr(materials->materials[mSet->mesh_models[i]->current_material]->zr));
 
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, light_buffers->array_of_buffers[0]->g_position);
-			glActiveTexture(GL_TEXTURE1);
-			glBindTexture(GL_TEXTURE_2D, light_buffers->array_of_buffers[0]->g_normal);
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, light_buffers->array_of_buffers[0]->g_position);
+				glActiveTexture(GL_TEXTURE1);
+				glBindTexture(GL_TEXTURE_2D, light_buffers->array_of_buffers[0]->g_normal);
 
-			glBindVertexArray(mSet->mesh_models[i]->vao);
-			glDrawArrays(GL_TRIANGLES, 0, mSet->mesh_models[i]->vertices.size());
-			glBindVertexArray(0);
+				glBindVertexArray(mSet->mesh_models[i]->vao);
+				glDrawArrays(GL_TRIANGLES, 0, mSet->mesh_models[i]->vertices.size());
+				glBindVertexArray(0);
 
-			//glBindFramebuffer(GL_FRAMEBUFFER, 0);
+				glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			}
+			mSet->mesh_models[i]->change_values = false;
 		}
 	}
 
 	glslScatteredMap.disable();
 
 	glEnable(GL_STENCIL_TEST);
-	/*glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
 	glslProgram.enable();
@@ -585,7 +561,7 @@ void display()
 		glDrawArrays(GL_TRIANGLES, 0, mSet->mesh_models[i]->vertices.size());
 		glBindVertexArray(0);
 	}
-	glslProgram.disable();*/
+	glslProgram.disable();
 
 	glStencilFunc(GL_ALWAYS, mSet->mesh_models.size() + 1, -1);
 	scene_light->display(projection * view);
@@ -598,7 +574,7 @@ void display()
 	model_gbuffer = glm::scale(model_gbuffer, glm::vec3(0.3f));
 	glUniformMatrix4fv(glslGBufferP.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_gbuffer));
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, light_buffers->array_of_buffers[0]->g_normal);
+	glBindTexture(GL_TEXTURE_2D, cameraPositions[0]->texture);
 	render_quad();
 	glslGBufferP.disable();
 }

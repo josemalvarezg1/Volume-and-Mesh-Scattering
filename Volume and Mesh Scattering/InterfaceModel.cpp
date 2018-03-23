@@ -30,7 +30,6 @@ interfaceModel::interfaceModel()
 	TwAddVarRW(modelInterface, "Rotación", TW_TYPE_QUAT4F, &rotation, "group='Transformaciones' opened=true");
 	TwAddSeparator(modelInterface, NULL, "");
 	TwAddVarRW(modelInterface, "Asimetría g", TW_TYPE_FLOAT, &asymmetry_param_g, "group='Parámetros de Dispersión' min=-1.0 max=0.99 step=0.01");
-	TwAddVarRW(modelInterface, "Índice de refracción", TW_TYPE_FLOAT, &refractive_index, "group = 'Parámetros de Dispersión' min=1.0 max=2.0 step = 0.01");
 	{
 		TwEnumVal material_type[6] = { { Patata, "Patata" }, { Mármol, "Mármol" }, { Piel, "Piel" }, { Leche, "Leche" }, { Crema, "Crema" }, { Ninguno, "Ninguno" } };
 		TwType light = TwDefineEnum("material_type", material_type, 6);

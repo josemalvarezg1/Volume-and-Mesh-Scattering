@@ -12,6 +12,7 @@ mesh::mesh()
 	this->asymmetry_param_g = 0.75f;
 	this->refractive_index = 1.3f;
 	this->current_material = Crema;
+	this->change_values = true;
 }
 
 mesh::~mesh()
@@ -196,7 +197,6 @@ void meshSet::click_model(int selectedModel)
 	this->model_interface->scale = this->mesh_models[selectedModel]->scale;
 	this->model_interface->shininess = this->mesh_models[selectedModel]->shininess;
 	this->model_interface->asymmetry_param_g = this->mesh_models[selectedModel]->asymmetry_param_g;
-	this->model_interface->refractive_index = this->mesh_models[selectedModel]->refractive_index;
 	this->model_interface->current_material = this->mesh_models[selectedModel]->current_material;
 	this->visible_interface = true;
 }
@@ -215,8 +215,12 @@ void meshSet::update_interface(int selectedModel)
 		this->mesh_models[selectedModel]->rotation = this->model_interface->rotation;
 		this->mesh_models[selectedModel]->scale = this->model_interface->scale;
 		this->mesh_models[selectedModel]->shininess = this->model_interface->shininess;
-		this->mesh_models[selectedModel]->asymmetry_param_g = this->model_interface->asymmetry_param_g;
-		this->mesh_models[selectedModel]->refractive_index = this->model_interface->refractive_index;
+		if (this->mesh_models[selectedModel]->asymmetry_param_g != this->model_interface->asymmetry_param_g)
+		{
+			this->mesh_models[selectedModel]->asymmetry_param_g = this->model_interface->asymmetry_param_g;
+			this->mesh_models[selectedModel]->change_values = true;
+		}
+		
 		this->mesh_models[selectedModel]->current_material = this->model_interface->current_material;
 	}
 }
