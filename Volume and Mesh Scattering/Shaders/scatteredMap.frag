@@ -15,7 +15,7 @@ uniform vec3 diffuse_reflectance;
 uniform mat4 projection_matrix;
 
 uniform int n_samples;
-uniform vec3 samples[64];
+uniform vec2 samples[64];
 uniform mat4 model_matrix;
 uniform sampler2D g_position;
 uniform sampler2D g_normal;
@@ -34,37 +34,6 @@ uniform vec3 zr;
 const float PI = 3.1415926535897932384626433832795;
 
 out vec4 color;
-
-uint hash(uint x) 
-{
-	x += (x << 10u);
-	x ^= (x >> 6u);
-	x += (x << 3u);
-	x ^= (x >> 11u);
-	x += (x << 15u);
-	return x;
-}
-
-uint hash(uvec3 v) 
-{
-	return hash(v.x ^ hash(v.y) ^ hash(v.z));
-}
-
- //Retorna en un rango [0:1]
-float floatConstruct(uint m) {
-	const uint ieeeMantissa = 0x007FFFFFu;
-	const uint ieeeOne = 0x3F800000u;
-
-	m &= ieeeMantissa;
-	m |= ieeeOne;
-
-	float  f = uintBitsToFloat(m);
-	return f - 1.0;
-}
-
-float random(vec3 v) {
-	return floatConstruct(hash(floatBitsToUint(v)));
-}
 
 vec3 calculate_ni_ast(vec3 xo, vec3 xi, vec3 ni)
 {
@@ -130,10 +99,10 @@ float fresnel_t(vec3 inv, vec3 n, float n_1)
 
 void main() 
 {
-	vec3 xo, no, wo, Lo, Ll, xi, ni, wi, x, r, dr, dr_pow, w12, p, ni_ast, xv, dv, wv, rj, alphaj;
+	vec3 xo, no, wo, Lo, Ll, xi, ni, wi, x, r, dr, dr_pow, w12, p, ni_ast, xv, dv, wv;
 	vec3 diffuse_part_prime_1, diffuse_part_prime_2, diffuse_part_d;
 	vec3 cos_beta, z_prime, R, T, diffuse_part;
-	float xi_1, xi_2, miu_0, Ti, To;
+	float miu_0, Ti, To;
 
 	xo = frag_pos;
 	no = normalize(frag_normal);
@@ -143,24 +112,19 @@ void main()
 	Ll = light_diff.xyz; 		/*Hasta ahora una sola luz por la parte que vamos en el paper*/
 
 	wi = normalize(light_pos);
-	
-	xi_1 = random(vec3(gl_FragCoord.xyz));
-	xi_2 = random(vec3(gl_FragCoord.zxy));	
 
 	/* Inicio: Generación de muestras */
 
 	for (int i = 0; i < n_samples; i++)
     {
-		rj = -log(samples[i]) / effective_transport_coeff;
-		alphaj = 2.0 * PI * samples[i].zyx;
-		//p = effective_transport_coeff * exp(-effective_transport_coeff * rj) * (1.0 / (2.0 * PI)); // Revisar este p como sample
-        vec3 sample_e = frag_pos + rj;
+		vec3 sample_e = frag_pos;
         vec4 offset = vec4(sample_e, 1.0);
         // De espacio de vista a espacio de clipping
         offset = projection_matrix * offset;
         offset.xyz /= offset.w;
         // El offset estará en un rango [0:1]
         offset.xyz = offset.xyz * 0.5 + 0.5;
+		offset.xy += samples[i].xy;
 		xi = texture(g_position, offset.xy).xyz;
 		ni = texture(g_normal, offset.xy).xyz;
 

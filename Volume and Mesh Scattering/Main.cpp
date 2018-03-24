@@ -10,7 +10,7 @@ GLfloat deltaTime = 0.0f, lastFrame = 0.0f;
 GLdouble lastX = 600.0, lastY = 340.0;
 bool keys[1024], keysPressed[1024], selectingModel = false, selectingLight = false, firstMouse = true, activateCamera = false, change_light = false;
 std::vector<ScatteredMap*> cameraPositions;
-std::vector<glm::vec3> samples;
+std::vector<glm::vec2> samples;
 glm::mat4 projection, view, model;
 
 light *scene_light;
@@ -236,27 +236,36 @@ float lerp(float a, float b, float f)
 	return a + f * (b - a);
 }
 
-void generateSamples()
+glm::vec2 haltonPointCircle(glm::vec2 halton_point) 
 {
-	// Rango de números flotantes [0:1]
-	std::uniform_real_distribution<GLfloat> randomFloats(0.0f, 1.0f);
-	std::default_random_engine generator;
-	glm::vec3 sample;
-	GLfloat scale;
+	float x, y;
+	x = sqrt(1 - pow(2 * halton_point.x - 1, 2)) * cos(2 * PI * halton_point.y);
+	y = sqrt(1 - pow(2 * halton_point.x - 1, 2)) * sin(2 * PI * halton_point.y);
 
-	for (int i = 0; i < num_of_samples_per_frag; ++i)
-	{
-		sample = glm::vec3(randomFloats(generator) * 2.0f - 1.0f, randomFloats(generator) * 2.0f - 1.0f, randomFloats(generator));
-		sample = glm::normalize(sample);
-		sample *= randomFloats(generator);
-		scale = GLfloat(i) / GLfloat(num_of_samples_per_frag);
-
-		scale = lerp(0.1f, 1.0f, scale * scale);
-		sample *= scale;
-		samples.push_back(sample);
-	}
+	return glm::vec2(x, y);
 }
 
+void generateSamples(float sigma_tr, float radius)
+{
+	samples.clear();
+	int accepted = 0;
+	srand(0);
+	int i = 1;
+	while (accepted < num_of_samples_per_frag)
+	{
+		glm::vec2 halton_point = glm::vec2(halton_sequence(i, 2), halton_sequence(i, 3));
+		glm::vec2 point = haltonPointCircle(halton_point);
+		float rad = glm::length(point) * radius;
+		float expon = exp(-sigma_tr * rad);
+		float zeta = rand() / ((float)(RAND_MAX));
+		if (zeta < expon)
+		{
+			samples.push_back(radius * point);
+			accepted++;
+		}
+		i++;
+	}
+}
 bool initGlfw()
 {
 	g_width = 1200;
@@ -399,7 +408,7 @@ bool initScene()
 	mesh *scene_model;
 
 	num_of_lights = 1;
-	num_of_orto_cameras = 16;
+	num_of_orto_cameras = 1;
 	num_of_samples_per_frag = 3 * num_of_orto_cameras;
 
 	scene_light = new light();
@@ -432,7 +441,6 @@ bool initScene()
 	scene_model->load("Models/obj/bunny.obj");
 	mSet->mesh_models.push_back(scene_model);
 	generate_ortographic_cameras();
-	generateSamples();
 	return true;
 }
 
@@ -487,6 +495,9 @@ void display()
 				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 				materials->materials[mSet->mesh_models[i]->current_material]->precalculate_values(mSet->mesh_models[i]->asymmetry_param_g);
+				glm::vec3 sigma_tr = materials->materials[mSet->mesh_models[i]->current_material]->effective_transport_coeff;	
+				generateSamples(min(sigma_tr.x, sigma_tr.y, sigma_tr.z) / mSet->mesh_models[i]->q, mSet->mesh_models[i]->radius);
+
 				model_mat = glm::mat4(1.0f);
 				projectionLightMat = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.01f, 20.0f);
 				viewLightMat = glm::lookAt(cameraPositions[j]->position, mSet->mesh_models[i]->center, glm::vec3(0.0f, 1.0f, 0.0f));
@@ -502,7 +513,7 @@ void display()
 				glUniform1i(glslScatteredMap.getLocation("g_position"), 0);
 				glUniform1i(glslScatteredMap.getLocation("g_normal"), 1);
 				glUniform1i(glslScatteredMap.getLocation("n_samples"), num_of_samples_per_frag);
-				glUniform3fv(glslScatteredMap.getLocation("samples"), num_of_samples_per_frag, glm::value_ptr(samples[0]));
+				glUniform2fv(glslScatteredMap.getLocation("samples"), num_of_samples_per_frag, glm::value_ptr(samples[0]));
 				glUniform1f(glslScatteredMap.getLocation("asymmetry_param_g"), mSet->mesh_models[i]->asymmetry_param_g);
 				glUniform1f(glslScatteredMap.getLocation("refractive_index"), mSet->mesh_models[i]->refractive_index);
 				glUniform3fv(glslScatteredMap.getLocation("diffuse_reflectance"), 1, glm::value_ptr(materials->materials[mSet->mesh_models[i]->current_material]->diffuse_reflectance));
@@ -575,7 +586,7 @@ void display()
 	model_gbuffer = glm::scale(model_gbuffer, glm::vec3(0.3f));
 	glUniformMatrix4fv(glslGBufferP.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_gbuffer));
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, cameraPositions[3]->texture);
+	glBindTexture(GL_TEXTURE_2D, cameraPositions[0]->texture);
 	render_quad();
 	glslGBufferP.disable();
 }

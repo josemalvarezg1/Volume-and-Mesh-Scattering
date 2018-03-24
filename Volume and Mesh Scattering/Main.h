@@ -19,6 +19,8 @@
 #include "G-Buffer.h"
 #include "Material.h"
 
+const float PI = 3.1415926535897932384626433832795;
+
 void reshape(GLFWwindow *window, int width, int height);
 void keyInput(GLFWwindow *window, int key, int scancode, int action, int mods);
 void click(GLFWwindow* window, int button, int action, int mods);
@@ -30,7 +32,7 @@ void movement();
 int negative_positive();
 void generate_ortographic_cameras();
 float lerp(float a, float b, float f);
-void generateSamples();
+void generateSamples(float sigma_tr, float radius);
 bool initGlfw();
 bool initGlew();
 bool initAntTweakBar();

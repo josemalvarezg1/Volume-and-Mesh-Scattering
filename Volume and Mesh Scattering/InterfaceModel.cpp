@@ -35,6 +35,7 @@ interfaceModel::interfaceModel()
 		TwType light = TwDefineEnum("material_type", material_type, 6);
 		TwAddVarRW(modelInterface, "Material", light, &current_material, "group='Parámetros de Dispersión'");
 	}
+	TwAddVarRW(modelInterface, "Radio", TW_TYPE_FLOAT, &radius, "group='Parámetros de Dispersión' min=0.001 max=1.0 step=0.001");
 }
 
 interfaceModel::~interfaceModel()
