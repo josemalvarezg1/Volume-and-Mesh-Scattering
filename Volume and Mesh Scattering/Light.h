@@ -34,5 +34,5 @@ public:
 	void click_light();
 	void not_click_light();
 	void on_off_light();
-	void update_interface();
+	bool update_interface();
 };

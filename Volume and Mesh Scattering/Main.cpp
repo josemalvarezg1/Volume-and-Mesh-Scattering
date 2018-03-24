@@ -8,7 +8,7 @@ int g_width, g_height;
 GLuint num_of_lights, num_of_orto_cameras, num_of_samples_per_frag;
 GLfloat deltaTime = 0.0f, lastFrame = 0.0f;
 GLdouble lastX = 600.0, lastY = 340.0;
-bool keys[1024], keysPressed[1024], selectingModel = false, selectingLight = false, firstMouse = true, activateCamera = false;
+bool keys[1024], keysPressed[1024], selectingModel = false, selectingLight = false, firstMouse = true, activateCamera = false, change_light = false;
 std::vector<ScatteredMap*> cameraPositions;
 std::vector<glm::vec3> samples;
 glm::mat4 projection, view, model;
@@ -58,8 +58,11 @@ void reshape(GLFWwindow *window, int width, int height)
 	scene_light->light_interface->reshape(g_width, g_height);
 	mSet->model_interface->reshape(g_width, g_height);
 
-	for (size_t i = 0; i < num_of_lights; i++)
+	for (int i = 0; i < num_of_lights; i++)
 		light_buffers->array_of_buffers[0]->update_g_buffer(g_width, g_height);
+
+	for (int i = 0; i < mSet->mesh_models.size(); i++)
+		mSet->mesh_models[i]->change_values = true;
 
 	glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
 	glViewport(0, 0, g_width, g_height);
@@ -218,7 +221,7 @@ void generate_ortographic_cameras()
 {
 	double xPos, yPos, zPos;
 	ScatteredMap *map;
-	for (size_t i = 0; i < num_of_orto_cameras; i++)
+	for (int i = 0; i < num_of_orto_cameras; i++)
 	{
 		xPos = halton_sequence(i, 2) + (3.0f * negative_positive());
 		yPos = halton_sequence(i, 3) + (3.0f * negative_positive());
@@ -241,7 +244,7 @@ void generateSamples()
 	glm::vec3 sample;
 	GLfloat scale;
 
-	for (size_t i = 0; i < num_of_samples_per_frag; ++i)
+	for (int i = 0; i < num_of_samples_per_frag; ++i)
 	{
 		sample = glm::vec3(randomFloats(generator) * 2.0f - 1.0f, randomFloats(generator) * 2.0f - 1.0f, randomFloats(generator));
 		sample = glm::normalize(sample);
@@ -329,7 +332,6 @@ bool initGlew()
 		glslProgram.addUniform("model_matrix");
 		glslProgram.addUniform("lightPos");
 		glslProgram.addUniform("view");
-		glslProgram.addUniform("shinyBlinn");
 		glslProgram.disable();
 
 		glslGBuffer.enable();
@@ -397,7 +399,7 @@ bool initScene()
 	mesh *scene_model;
 
 	num_of_lights = 1;
-	num_of_orto_cameras = 1;
+	num_of_orto_cameras = 16;
 	num_of_samples_per_frag = 3 * num_of_orto_cameras;
 
 	scene_light = new light();
@@ -406,7 +408,7 @@ bool initScene()
 	materials = new materials_set();
 	light_buffers = new light_buffers_set();
 
-	for (size_t i = 0; i < num_of_lights; i++)
+	for (int i = 0; i < num_of_lights; i++)
 	{
 		g_buffer = new light_buffer(g_width, g_height);
 		light_buffers->array_of_buffers.push_back(g_buffer);
@@ -476,9 +478,9 @@ void display()
 	glslScatteredMap.enable();
 	for (int i = 0; i < mSet->mesh_models.size(); i++)
 	{
-		if (mSet->mesh_models[i]->change_values)
+		if (mSet->mesh_models[i]->change_values || change_light)
 		{
-			for (size_t j = 0; j < cameraPositions.size(); j++)
+			for (int j = 0; j < cameraPositions.size(); j++)
 			{
 				glBindFramebuffer(GL_FRAMEBUFFER, cameraPositions[j]->buffer);
 				glStencilFunc(GL_ALWAYS, 1, -1);
@@ -541,12 +543,11 @@ void display()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
 	glslProgram.enable();
-	for (size_t i = 0; i < mSet->mesh_models.size(); i++)
+	for (int i = 0; i < mSet->mesh_models.size(); i++)
 	{
 		glStencilFunc(GL_ALWAYS, i + 1, -1);
 		glUniform3f(glslProgram.getLocation("view"), scene_camera->position[0], scene_camera->position[1], scene_camera->position[2]);
 		glUniform3f(glslProgram.getLocation("lightPos"), scene_light->translation.x, scene_light->translation.y, scene_light->translation.z);
-		glUniform1f(glslProgram.getLocation("shinyBlinn"), mSet->mesh_models[i]->shininess);
 
 		model_mat = glm::mat4(1.0f);
 		model_mat = glm::translate(model_mat, mSet->mesh_models[i]->translation);
@@ -574,7 +575,7 @@ void display()
 	model_gbuffer = glm::scale(model_gbuffer, glm::vec3(0.3f));
 	glUniformMatrix4fv(glslGBufferP.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_gbuffer));
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, cameraPositions[0]->texture);
+	glBindTexture(GL_TEXTURE_2D, cameraPositions[3]->texture);
 	render_quad();
 	glslGBufferP.disable();
 }
@@ -602,7 +603,7 @@ int main()
 		movement();
 		display();
 		TwDraw();
-		scene_light->update_interface();
+		change_light = scene_light->update_interface();
 		mSet->update_interface(selectedModel);
 		glfwSwapBuffers(gWindow);
 	}

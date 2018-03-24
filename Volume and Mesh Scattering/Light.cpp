@@ -89,7 +89,7 @@ void light::load(std::string path)
 		}
 		file.close();
 		calculate_center();
-		for (size_t i = 0; i < this->vertices.size(); i++) this->vertices[i] = (this->vertices[i] - this->center) / this->max_value;
+		for (int i = 0; i < this->vertices.size(); i++) this->vertices[i] = (this->vertices[i] - this->center) / this->max_value;
 		max_vertex = (max_vertex - center) / max_value;
 		min_vertex = (min_vertex - center) / max_value;
 		this->create_vbo();
@@ -157,14 +157,18 @@ void light::on_off_light()
 		this->on = true;
 }
 
-void light::update_interface()
+bool light::update_interface()
 {
 	if (visible_interface)
-	{
-		this->translation = this->light_interface->translation;
+	{				
 		this->ambient_comp = this->light_interface->ambient_comp;
 		this->diffuse_comp = this->light_interface->diffuse_comp;
 		this->specular_comp = this->light_interface->specular_comp;
 		this->on = this->light_interface->on;
+		if (this->translation != this->light_interface->translation) {			
+			this->translation = this->light_interface->translation;
+			return true;
+		}
 	}
+	return false;
 }

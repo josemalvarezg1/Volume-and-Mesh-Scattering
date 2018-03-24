@@ -8,8 +8,7 @@ mesh::mesh()
 	this->ambient_comp = glm::vec3(0.15f, 0.15f, 0.15f);
 	this->diffuse_comp = glm::vec3(1.0f, 1.0f, 1.0f);
 	this->specular_comp = glm::vec3(1.0f, 1.0f, 1.0f);
-	this->shininess = 128.0f;
-	this->asymmetry_param_g = 0.75f;
+	this->asymmetry_param_g = 0.77f;
 	this->refractive_index = 1.3f;
 	this->current_material = Crema;
 	this->change_values = true;
@@ -116,7 +115,7 @@ void mesh::load(std::string path)
 							aux_index_normals.push_back((atoi(aux_tokens[2].c_str()) - 1));
 					}
 
-					for (size_t i = 1; (i + 1) < aux_index_vertices.size(); i++)
+					for (int i = 1; (i + 1) < aux_index_vertices.size(); i++)
 					{
 						index_vertices.push_back(glm::uvec3(aux_index_vertices[0], aux_index_vertices[i], aux_index_vertices[i + 1]));
 						index_normals.push_back(glm::uvec3(aux_index_normals[0], aux_index_normals[i], aux_index_normals[i + 1]));
@@ -131,7 +130,7 @@ void mesh::load(std::string path)
 		normals = std::vector<glm::vec3>(index_vertices.size() * 3);
 		calculate_center();
 
-		for (size_t i = 0; i < index_vertices.size(); i++)
+		for (int i = 0; i < index_vertices.size(); i++)
 		{
 			vertex_aux_index = index_vertices[i];
 			this->vertices[(i * 3)] = (aux_vertices[vertex_aux_index.x] - this->center) / this->max_value;
@@ -195,7 +194,6 @@ void meshSet::click_model(int selectedModel)
 	this->model_interface->translation = this->mesh_models[selectedModel]->translation;
 	this->model_interface->rotation = this->mesh_models[selectedModel]->rotation;
 	this->model_interface->scale = this->mesh_models[selectedModel]->scale;
-	this->model_interface->shininess = this->mesh_models[selectedModel]->shininess;
 	this->model_interface->asymmetry_param_g = this->mesh_models[selectedModel]->asymmetry_param_g;
 	this->model_interface->current_material = this->mesh_models[selectedModel]->current_material;
 	this->visible_interface = true;
@@ -211,16 +209,30 @@ void meshSet::update_interface(int selectedModel)
 {
 	if (visible_interface && selectedModel >= 0)
 	{
-		this->mesh_models[selectedModel]->translation = this->model_interface->translation;
-		this->mesh_models[selectedModel]->rotation = this->model_interface->rotation;
-		this->mesh_models[selectedModel]->scale = this->model_interface->scale;
-		this->mesh_models[selectedModel]->shininess = this->model_interface->shininess;
+		if (this->mesh_models[selectedModel]->translation != this->model_interface->translation)
+		{
+			this->mesh_models[selectedModel]->translation = this->model_interface->translation;
+			this->mesh_models[selectedModel]->change_values = true;
+		}
+		if (this->mesh_models[selectedModel]->rotation != this->model_interface->rotation)
+		{
+			this->mesh_models[selectedModel]->rotation = this->model_interface->rotation;
+			this->mesh_models[selectedModel]->change_values = true;
+		}
+		if (this->mesh_models[selectedModel]->scale != this->model_interface->scale)
+		{
+			this->mesh_models[selectedModel]->scale = this->model_interface->scale;
+			this->mesh_models[selectedModel]->change_values = true;
+		}
 		if (this->mesh_models[selectedModel]->asymmetry_param_g != this->model_interface->asymmetry_param_g)
 		{
 			this->mesh_models[selectedModel]->asymmetry_param_g = this->model_interface->asymmetry_param_g;
 			this->mesh_models[selectedModel]->change_values = true;
 		}
-		
-		this->mesh_models[selectedModel]->current_material = this->model_interface->current_material;
+		if (this->mesh_models[selectedModel]->current_material != this->model_interface->current_material)
+		{
+			this->mesh_models[selectedModel]->current_material = this->model_interface->current_material;
+			this->mesh_models[selectedModel]->change_values = true;
+		}
 	}
 }

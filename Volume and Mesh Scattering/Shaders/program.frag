@@ -1,7 +1,6 @@
 #version 330
 
 uniform vec3 view; //Vector de EYE
-uniform float shinyBlinn;
 
 in vec3 normales; //Normales
 in vec3 lightPosfrag; //Posicion de la luz
@@ -27,7 +26,7 @@ void main() {
 	vec4 specular = vec4(0.0, 0.0, 0.0, 0.0);
 	vec3 viewDir = normalize(viewPos - FragPos);
 	vec3 halfwayDir = normalize(lightDir + viewDir);
-	float spec = pow(max(dot(norm, halfwayDir), 0.0), shinyBlinn);
+	float spec = pow(max(dot(norm, halfwayDir), 0.0), 64.0);
 	specular = vec4(spec,spec,spec,1.0);
     
 	//Resultado final

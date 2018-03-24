@@ -35,8 +35,6 @@ interfaceModel::interfaceModel()
 		TwType light = TwDefineEnum("material_type", material_type, 6);
 		TwAddVarRW(modelInterface, "Material", light, &current_material, "group='Parámetros de Dispersión'");
 	}
-	TwAddSeparator(modelInterface, NULL, "");
-	TwAddVarRW(modelInterface, "Shininess", TW_TYPE_FLOAT, &shininess, "group='Iluminación' min=1.0 max=400.0 step=1.0");
 }
 
 interfaceModel::~interfaceModel()
