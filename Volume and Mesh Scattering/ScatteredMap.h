@@ -7,8 +7,8 @@ class ScatteredMap
 {
 public:
 	glm::vec3 position;
-	unsigned int texture, buffer, g_depth;
-	unsigned int attachments[1] = { GL_COLOR_ATTACHMENT0 };
+	unsigned int texture, buffer, g_depth, depth_map;
+	unsigned int attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
 	ScatteredMap(glm::vec3 position, int g_width, int g_height);
 	~ScatteredMap();
 };

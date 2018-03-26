@@ -374,6 +374,8 @@ bool initGlew()
 		glslScatteredMap.addUniform("samples");
 		glslScatteredMap.addUniform("g_position");
 		glslScatteredMap.addUniform("g_normal");
+		glslScatteredMap.addUniform("depth_map");
+		glslScatteredMap.addUniform("bias");
 		glslScatteredMap.addUniform("refractive_index");
 		glslScatteredMap.addUniform("diffuse_reflectance");
 
@@ -512,6 +514,8 @@ void display()
 				glUniformMatrix4fv(glslScatteredMap.getLocation("projection_matrix"), 1, GL_FALSE, glm::value_ptr(spaceLightMatrix1));
 				glUniform1i(glslScatteredMap.getLocation("g_position"), 0);
 				glUniform1i(glslScatteredMap.getLocation("g_normal"), 1);
+				glUniform1i(glslScatteredMap.getLocation("depth_map"), 2);
+				glUniform1f(glslScatteredMap.getLocation("bias"), mSet->mesh_models[i]->bias);
 				glUniform1i(glslScatteredMap.getLocation("n_samples"), num_of_samples_per_frag);
 				glUniform2fv(glslScatteredMap.getLocation("samples"), num_of_samples_per_frag, glm::value_ptr(samples[0]));
 				glUniform1f(glslScatteredMap.getLocation("asymmetry_param_g"), mSet->mesh_models[i]->asymmetry_param_g);
@@ -536,6 +540,8 @@ void display()
 				glBindTexture(GL_TEXTURE_2D, light_buffers->array_of_buffers[0]->g_position);
 				glActiveTexture(GL_TEXTURE1);
 				glBindTexture(GL_TEXTURE_2D, light_buffers->array_of_buffers[0]->g_normal);
+				glActiveTexture(GL_TEXTURE2);
+				glBindTexture(GL_TEXTURE_2D, light_buffers->array_of_buffers[0]->depth_map);
 
 				glBindVertexArray(mSet->mesh_models[i]->vao);
 				glDrawArrays(GL_TRIANGLES, 0, mSet->mesh_models[i]->vertices.size());

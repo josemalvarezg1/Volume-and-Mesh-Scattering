@@ -24,6 +24,7 @@ ScatteredMap::ScatteredMap(glm::vec3 position, int g_width, int g_height)
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, this->g_depth);
 
 	glDrawBuffers(1, attachments);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 ScatteredMap::~ScatteredMap() { }

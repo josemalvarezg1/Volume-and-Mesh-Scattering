@@ -17,8 +17,11 @@ uniform mat4 projection_matrix;
 uniform int n_samples;
 uniform vec2 samples[64];
 uniform mat4 model_matrix;
+uniform mat4 camera_matrix;
 uniform sampler2D g_position;
 uniform sampler2D g_normal;
+uniform sampler2D depth_map;
+uniform float bias;
 
 // Valores pre-calculados
 uniform vec3 attenuation_coeff;
@@ -97,6 +100,17 @@ float fresnel_t(vec3 inv, vec3 n, float n_1)
     return (Ts + Tp) / 2.0f;
 } 
 
+float shadow_mapping(vec3 position)
+{
+	vec4 light_pos = camera_matrix * model_matrix * vec4(position, 1.0f);
+	light_pos.z -= bias;
+	if (light_pos.x < 0.0f || light_pos.x > 1.0f) 
+		return 1.0f;
+	if (light_pos.y < 0.0f || light_pos.y > 1.0f) 
+		return 1.0f;
+	return texture(depth_map, vec3(light_pos.x, light_pos.y, light_pos.z)).r;
+}
+
 void main() 
 {
 	vec3 xo, no, wo, Lo, Ll, xi, ni, wi, x, r, dr, dr_pow, w12, p, ni_ast, xv, dv, wv;
@@ -128,9 +142,7 @@ void main()
 		xi = texture(g_position, offset.xy).xyz;
 		ni = texture(g_normal, offset.xy).xyz;
 
-		float dot_n_w = dot(ni,wi);
-		
-		if (dot_n_w > 0.0f)
+		if (shadow_mapping(xi) > 0.0f)
 		{
 			x = xo - xi;
 			r = vec3(length(x));
@@ -159,17 +171,17 @@ void main()
 
 			//diffuse_part = (Ti * diffuse_part_d * dot_n_w * rj) / p;
 
-			diffuse_part = (Ti * diffuse_part_d * dot_n_w);
+			diffuse_part = (Ti * diffuse_part_d * dot(ni, wi));
 
 			Lo += diffuse_part;
 
 			/* Fin: Parte Difusa */
-		} 
+		}
 	}
 
 	Lo *= ((PI * Ll) / n_samples);
 
 	/* Fin: Generación de muestras */	
 
-	color = vec4(Lo * diffuse_reflectance, 1.0f);
+	color = vec4(Lo, 1.0f);
 }

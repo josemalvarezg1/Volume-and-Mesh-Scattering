@@ -13,6 +13,7 @@ mesh::mesh()
 	this->current_material = Crema;
 	this->q = 1.0f;
 	this->radius = 0.5f;
+	this->bias = 0.0f;
 	this->change_values = true;
 }
 
@@ -200,6 +201,7 @@ void meshSet::click_model(int selectedModel)
 	this->model_interface->current_material = this->mesh_models[selectedModel]->current_material;
 	this->model_interface->q = this->mesh_models[selectedModel]->q;
 	this->model_interface->radius = this->mesh_models[selectedModel]->radius;
+	this->model_interface->bias = this->mesh_models[selectedModel]->bias;
 	this->visible_interface = true;
 }
 
@@ -236,6 +238,11 @@ void meshSet::update_interface(int selectedModel)
 		if (this->mesh_models[selectedModel]->radius != this->model_interface->radius)
 		{
 			this->mesh_models[selectedModel]->radius = this->model_interface->radius;
+			this->mesh_models[selectedModel]->change_values = true;
+		}
+		if (this->mesh_models[selectedModel]->bias != this->model_interface->bias)
+		{
+			this->mesh_models[selectedModel]->bias = this->model_interface->bias;
 			this->mesh_models[selectedModel]->change_values = true;
 		}
 		if (this->mesh_models[selectedModel]->current_material != this->model_interface->current_material)
