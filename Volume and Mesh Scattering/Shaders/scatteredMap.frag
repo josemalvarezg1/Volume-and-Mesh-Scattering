@@ -102,13 +102,14 @@ float fresnel_t(vec3 inv, vec3 n, float n_1)
 
 float shadow_mapping(vec3 position)
 {
-	vec4 light_pos = camera_matrix * model_matrix * vec4(position, 1.0f);
-	light_pos.z -= bias;
-	if (light_pos.x < 0.0f || light_pos.x > 1.0f) 
-		return 1.0f;
-	if (light_pos.y < 0.0f || light_pos.y > 1.0f) 
-		return 1.0f;
-	return texture(depth_map, vec3(light_pos.x, light_pos.y, light_pos.z)).r;
+	//vec4 light_pos = camera_matrix * model_matrix * vec4(position, 1.0f);
+	//light_pos.z -= bias;
+	//if (light_pos.x < 0.0f || light_pos.x > 1.0f) 
+	//	return 1.0f;
+	//if (light_pos.y < 0.0f || light_pos.y > 1.0f) 
+	//	return 1.0f;
+	//return texture(depth_map, vec3(light_pos.x, light_pos.y)).r;
+	return 1.0f;
 }
 
 void main() 

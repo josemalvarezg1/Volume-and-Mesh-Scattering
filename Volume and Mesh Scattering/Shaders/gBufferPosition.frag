@@ -2,9 +2,9 @@
 out vec4 color;
 in vec2 TexCoords;
 
-uniform sampler2D position_tex;
+uniform sampler2DArray position_tex;
 
 void main() 
 {
-    color = texture(position_tex, TexCoords);
+    color = texture(position_tex, vec3(TexCoords, 0));
 }

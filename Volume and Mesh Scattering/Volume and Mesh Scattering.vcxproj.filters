@@ -115,5 +115,8 @@
     <None Include="Shaders\scatteredMap.vert">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="Shaders\scatteredMap.geom">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>
