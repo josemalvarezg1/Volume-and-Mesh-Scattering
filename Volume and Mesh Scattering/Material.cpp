@@ -14,7 +14,7 @@ material::~material()
 
 void material::precalculate_values(float asymmetry_param_g)
 {
-	this->scattering_coeff_prime = (1.0f - asymmetry_param_g) * scattering_coeff;
+	this->scattering_coeff_prime = (1.0f - asymmetry_param_g) * this->scattering_coeff;
 	this->attenuation_coeff = this->scattering_coeff + this->absorption_coeff;
 	this->attenuation_coeff_prime = this->scattering_coeff_prime + this->absorption_coeff;
 
@@ -56,5 +56,5 @@ materials_set::materials_set()
 
 materials_set::~materials_set()
 {
-	this->materials.empty();
+	this->materials.clear();
 }

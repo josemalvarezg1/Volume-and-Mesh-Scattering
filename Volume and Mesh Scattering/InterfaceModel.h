@@ -6,12 +6,12 @@
 
 typedef enum { Patata, Mármol, Piel, Leche, Crema, Ninguno } material_m;
 
-class interfaceModel
+class interface_model
 {
 private:
-	static interfaceModel *userInterface;
-	TwBar *modelInterface;
-	interfaceModel();
+	static interface_model *user_interface;
+	TwBar *model_interface;
+	interface_model();
 
 public:
 	glm::vec3 translation;
@@ -19,8 +19,8 @@ public:
 	GLfloat scale, asymmetry_param_g, q, radius, bias;
 	material_m current_material;
 
-	static interfaceModel * instance();
-	~interfaceModel();
+	static interface_model * instance();
+	~interface_model();
 
 	void reshape(int g_width, int g_height);
 	void show();

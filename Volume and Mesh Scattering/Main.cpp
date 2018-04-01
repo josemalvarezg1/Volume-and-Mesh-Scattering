@@ -3,50 +3,50 @@
 #include "Halton.h"
 #include "ScatteredMap.h"
 
-GLFWwindow *gWindow;
+GLFWwindow *g_window;
 int g_width, g_height;
 GLuint num_of_lights, num_of_orto_cameras, num_of_samples_per_frag;
-GLfloat deltaTime = 0.0f, lastFrame = 0.0f;
-GLdouble lastX = 600.0, lastY = 340.0;
-bool keys[1024], keysPressed[1024], selectingModel = false, selectingLight = false, firstMouse = true, activateCamera = false, change_light = false;
-ScatteredMap *scattered_map;
-std::vector<glm::vec2> samples;
+GLfloat delta_time = 0.0f, last_frame = 0.0f, current_frame;
+GLdouble last_x = 600.0, last_y = 340.0;
+bool keys[1024], keys_pressed[1024], selecting_model = false, selecting_light = false, first_mouse = true, activate_camera = false, change_light = false;
+scattered_map *scattered_maps;
+halton *halton_generator;
 glm::mat4 projection, view, model;
 
 light *scene_light;
 camera *scene_camera;
-meshSet *mSet;
+mesh_set *m_set;
 light_buffers_set *light_buffers;
 materials_set *materials;
 
-CGLSLProgram glslProgram, glslGBuffer, glslGBufferP, glslScatteredMap;
-int selectedModel = -1;
-
-GLuint quadVAO, quadVBO;
-
+CGLSLProgram glsl_blinn, glsl_g_buffer, glsl_g_buffer_plane, glsl_scattered_map;
+int selected_model = -1;
+GLuint quad_vao, quad_vbo;
 
 void render_quad()
 {
-	if (quadVAO == 0) {
-		GLfloat quadVertices[] = {
+	if (quad_vao == 0) 
+	{
+		GLfloat quad_vertices[] = 
+		{
 			-1.0f,  1.0f, 0.0f,  0.0f, 1.0f,
 			-1.0f, -1.0f, 0.0f,  0.0f, 0.0f,
 			1.0f,  1.0f, 0.0f,  1.0f, 1.0f,
 			1.0f, -1.0f, 0.0f,  1.0f, 0.0f,
 		};
-		glGenVertexArrays(1, &quadVAO);
-		glGenBuffers(1, &quadVBO);
-		glBindVertexArray(quadVAO);
-		glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+		glGenVertexArrays(1, &quad_vao);
+		glGenBuffers(1, &quad_vbo);
+		glBindVertexArray(quad_vao);
+		glBindBuffer(GL_ARRAY_BUFFER, quad_vbo);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(quad_vertices), &quad_vertices, GL_STATIC_DRAW);
 		glEnableVertexAttribArray(0);
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)0);
 		glEnableVertexAttribArray(1);
 		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
 	}
 
-	glBindVertexArray(quadVAO);
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	glBindVertexArray(quad_vao);
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	glBindVertexArray(0);
 }
 
@@ -56,19 +56,19 @@ void reshape(GLFWwindow *window, int width, int height)
 	g_height = max(height, 1);
 
 	scene_light->light_interface->reshape(g_width, g_height);
-	mSet->model_interface->reshape(g_width, g_height);
+	m_set->model_interface->reshape(g_width, g_height);
 
-	for (int i = 0; i < num_of_lights; i++)
+	for (size_t i = 0; i < num_of_lights; i++)
 		light_buffers->array_of_buffers[0]->update_g_buffer(g_width, g_height);
 
-	for (int i = 0; i < mSet->mesh_models.size(); i++)
-		mSet->mesh_models[i]->change_values = true;
+	for (size_t i = 0; i < m_set->mesh_models.size(); i++)
+		m_set->mesh_models[i]->change_values = true;
 
 	glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
 	glViewport(0, 0, g_width, g_height);
 }
 
-void keyInput(GLFWwindow *window, int key, int scancode, int action, int mods)
+void key_input(GLFWwindow *window, int key, int scan_code, int action, int mods)
 {
 	if (TwEventKeyGLFW(key, action))
 		return;
@@ -82,29 +82,26 @@ void keyInput(GLFWwindow *window, int key, int scancode, int action, int mods)
 		else if (action == GLFW_RELEASE)
 		{
 			keys[key] = false;
-			keysPressed[key] = false;
+			keys_pressed[key] = false;
 		}
 
-		if (key == GLFW_KEY_T && (action == GLFW_PRESS)) {
-			activateCamera = !activateCamera;
-
-			if (activateCamera) {
+		if (key == GLFW_KEY_T && (action == GLFW_PRESS)) 
+		{
+			activate_camera = !activate_camera;
+			if (activate_camera) 
+			{
 				glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-				if (selectingModel) {
-					mSet->not_click_model();
-				}
-				if (selectingLight) {
+				if (selecting_model)
+					m_set->not_click_model();
+				if (selecting_light)
 					scene_light->not_click_light();
-				}
 			}
 			else {
 				glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-				if (selectingModel) {
-					mSet->click_model(selectedModel);
-				}
-				if (selectingLight) {
+				if (selecting_model)
+					m_set->click_model(selected_model);
+				if (selecting_light)
 					scene_light->click_light();
-				}
 			}
 		}
 	}
@@ -115,9 +112,7 @@ void click(GLFWwindow* window, int button, int action, int mods)
 	if (TwEventMouseButtonGLFW(button, action))
 		return;
 	double x, y;
-	glfwGetCursorPos(gWindow, &x, &y);
-
-
+	glfwGetCursorPos(g_window, &x, &y);
 	if (action == GLFW_PRESS)
 	{
 		if (button == GLFW_MOUSE_BUTTON_LEFT)
@@ -127,68 +122,70 @@ void click(GLFWwindow* window, int button, int action, int mods)
 
 			if (index > 0)
 			{
-				if (index <= mSet->mesh_models.size())
+				if (index <= m_set->mesh_models.size())
 				{
 					scene_light->not_click_light();
-					selectedModel = index - 1;
-					mSet->click_model(selectedModel);
-					selectingModel = true;
-					selectingLight = false;
+					selected_model = index - 1;
+					m_set->click_model(selected_model);
+					selecting_model = true;
+					selecting_light = false;
 				}
 				else
 				{
-					mSet->not_click_model();
+					m_set->not_click_model();
 					scene_light->click_light();
-					selectingModel = false;
-					selectedModel = -1;
-					selectingLight = true;
+					selecting_model = false;
+					selected_model = -1;
+					selecting_light = true;
 				}
 			}
 			else {
-				selectingModel = false;
-				selectedModel = -1;
-				mSet->not_click_model();
+				selecting_model = false;
+				selected_model = -1;
+				m_set->not_click_model();
 				scene_light->not_click_light();
-				selectingLight = false;
+				selecting_light = false;
 			}
 		}
 	}
 }
 
-void scroll(GLFWwindow* window, double xoffset, double yoffset)
+void scroll(GLFWwindow* window, double x_offset, double y_offset)
 {
-	if (TwEventMouseWheelGLFW(int(yoffset)))
+	if (TwEventMouseWheelGLFW(int(y_offset)))
 		return;
 }
 
-void posCursor(GLFWwindow* window, double x, double y)
+void pos_cursor(GLFWwindow* window, double x, double y)
 {
-	if (TwEventMousePosGLFW(x, y)) {
-		lastX = x;
-		lastY = y;
+	if (TwEventMousePosGLFW(x, y)) 
+	{
+		last_x = x;
+		last_y = y;
 		return;
 	}
-	if (firstMouse) {
-		lastX = x;
-		lastY = y;
-		firstMouse = false;
+	if (first_mouse) 
+	{
+		last_x = x;
+		last_y = y;
+		first_mouse = false;
 	}
-	GLfloat xoffset = GLfloat(x - lastX);
-	GLfloat yoffset = GLfloat(lastY - y);
-	lastX = x;
-	lastY = y;
-	if (activateCamera) {
-		scene_camera->processMouseMovement(xoffset, yoffset);
-	}
+	GLfloat x_offset, y_offset;
+	x_offset = GLfloat(x - last_x);
+	y_offset = GLfloat(last_y - y);
+	last_x = x;
+	last_y = y;
+	if (activate_camera)
+		scene_camera->process_mouse_movement(x_offset, y_offset);
 }
 
-void charInput(GLFWwindow* window, unsigned int scanChar)
+void char_input(GLFWwindow* window, unsigned int scan_char)
 {
-	if (TwEventCharGLFW(scanChar, GLFW_PRESS))
+	if (TwEventCharGLFW(scan_char, GLFW_PRESS))
 		return;
 }
 
-void dropPath(GLFWwindow* window, int count, const char** paths)
+void drop_path(GLFWwindow* window, int count, const char** paths)
 {
 	//volumes->dropPath(count, paths);
 }
@@ -196,76 +193,20 @@ void dropPath(GLFWwindow* window, int count, const char** paths)
 void movement()
 {
 	if (keys[GLFW_KEY_W])
-		scene_camera->processKeyboard(FORWARD, deltaTime);
+		scene_camera->process_keyboard(FORWARD, delta_time);
 	if (keys[GLFW_KEY_S])
-		scene_camera->processKeyboard(BACKWARD, deltaTime);
+		scene_camera->process_keyboard(BACKWARD, delta_time);
 	if (keys[GLFW_KEY_D])
-		scene_camera->processKeyboard(RIGHT, deltaTime);
+		scene_camera->process_keyboard(RIGHT, delta_time);
 	if (keys[GLFW_KEY_A])
-		scene_camera->processKeyboard(LEFT, deltaTime);
+		scene_camera->process_keyboard(LEFT, delta_time);
 	if (keys[GLFW_KEY_Z])
-		scene_camera->processKeyboard(UP, deltaTime);
+		scene_camera->process_keyboard(UP, delta_time);
 	if (keys[GLFW_KEY_C])
-		scene_camera->processKeyboard(DONW, deltaTime);
+		scene_camera->process_keyboard(DONW, delta_time);
 }
 
-int negative_positive()
-{
-	if (rand() % 2)
-		return 1;
-	else
-		return -1;
-}
-
-void generate_ortographic_cameras()
-{
-	double xPos, yPos, zPos;
-	for (int i = 0; i < num_of_orto_cameras; i++)
-	{
-		xPos = halton_sequence(i, 2) + (3.0f * negative_positive());
-		yPos = halton_sequence(i, 3) + (3.0f * negative_positive());
-		zPos = halton_sequence(i, 7) + (3.0f * negative_positive());
-		scattered_map->cameraPositions.push_back(glm::vec3(xPos, yPos, zPos));
-	}
-}
-
-float lerp(float a, float b, float f)
-{
-	return a + f * (b - a);
-}
-
-glm::vec2 haltonPointCircle(glm::vec2 halton_point)
-{
-	float x, y;
-	x = sqrt(1 - pow(2 * halton_point.x - 1, 2)) * cos(2 * PI * halton_point.y);
-	y = sqrt(1 - pow(2 * halton_point.x - 1, 2)) * sin(2 * PI * halton_point.y);
-
-	return glm::vec2(x, y);
-}
-
-void generateSamples(float sigma_tr, float radius)
-{
-	samples.clear();
-	int accepted = 0;
-	srand(0);
-	int i = 1;
-	while (accepted < num_of_samples_per_frag)
-	{
-		glm::vec2 halton_point = glm::vec2(halton_sequence(i, 2), halton_sequence(i, 3));
-		glm::vec2 point = haltonPointCircle(halton_point);
-		float rad = glm::length(point) * radius;
-		float expon = exp(-sigma_tr * rad);
-		float zeta = rand() / ((float)(RAND_MAX));
-		if (zeta < expon)
-		{
-			samples.push_back(radius * point);
-			accepted++;
-		}
-		i++;
-	}
-}
-
-bool initGlfw()
+bool init_glfw()
 {
 	g_width = 1200;
 	g_height = 680;
@@ -278,34 +219,34 @@ bool initGlfw()
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
 	glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
 
-	gWindow = glfwCreateWindow(g_width, g_height, "Volume and Mesh Scattering", nullptr, nullptr);
-	if (!gWindow)
+	g_window = glfwCreateWindow(g_width, g_height, "Volume and Mesh Scattering", nullptr, nullptr);
+	if (!g_window)
 	{
 		glfwTerminate();
 		return false;
 	}
 
-	glfwSetFramebufferSizeCallback(gWindow, reshape);
-	glfwMakeContextCurrent(gWindow);
-	glfwSetInputMode(gWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+	glfwSetFramebufferSizeCallback(g_window, reshape);
+	glfwMakeContextCurrent(g_window);
+	glfwSetInputMode(g_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 
 	const GLFWvidmode * vidMode = glfwGetVideoMode(glfwGetPrimaryMonitor());
-	glfwSetWindowPos(gWindow, (vidMode->width - g_width) >> 1, (vidMode->height - g_height) >> 1);
-	glfwSetFramebufferSizeCallback(gWindow, reshape);
-	glfwMakeContextCurrent(gWindow);
-	glfwSetInputMode(gWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-	glfwSetWindowSizeCallback(gWindow, reshape);
-	glfwSetKeyCallback(gWindow, keyInput);
-	glfwSetMouseButtonCallback(gWindow, click);
-	glfwSetScrollCallback(gWindow, scroll);
-	glfwSetCursorPosCallback(gWindow, posCursor);
-	glfwSetCharCallback(gWindow, charInput);
-	glfwSetDropCallback(gWindow, dropPath);
+	glfwSetWindowPos(g_window, (vidMode->width - g_width) >> 1, (vidMode->height - g_height) >> 1);
+	glfwSetFramebufferSizeCallback(g_window, reshape);
+	glfwMakeContextCurrent(g_window);
+	glfwSetInputMode(g_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+	glfwSetWindowSizeCallback(g_window, reshape);
+	glfwSetKeyCallback(g_window, key_input);
+	glfwSetMouseButtonCallback(g_window, click);
+	glfwSetScrollCallback(g_window, scroll);
+	glfwSetCursorPosCallback(g_window, pos_cursor);
+	glfwSetCharCallback(g_window, char_input);
+	glfwSetDropCallback(g_window, drop_path);
 
 	return true;
 }
 
-bool initGlew()
+bool init_glew()
 {
 	glewExperimental = GL_TRUE;
 	if (glewInit() != GLEW_OK)
@@ -317,109 +258,112 @@ bool initGlew()
 		std::cout << "Vendor: " << glGetString(GL_VENDOR) << std::endl;
 		std::cout << "Renderer: " << glGetString(GL_RENDERER) << std::endl;
 
-		glslProgram.loadShader("Shaders/program.vert", CGLSLProgram::VERTEX);
-		glslProgram.loadShader("Shaders/program.frag", CGLSLProgram::FRAGMENT);
-		glslGBuffer.loadShader("Shaders/gBuffer.vert", CGLSLProgram::VERTEX);
-		glslGBuffer.loadShader("Shaders/gBuffer.frag", CGLSLProgram::FRAGMENT);
-		glslGBufferP.loadShader("Shaders/gBufferPosition.vert", CGLSLProgram::VERTEX);
-		glslGBufferP.loadShader("Shaders/gBufferPosition.frag", CGLSLProgram::FRAGMENT);
-		glslScatteredMap.loadShader("Shaders/scatteredMap.vert", CGLSLProgram::VERTEX);
-		glslScatteredMap.loadShader("Shaders/scatteredMap.frag", CGLSLProgram::FRAGMENT);
-		glslScatteredMap.loadShader("Shaders/scatteredMap.geom", CGLSLProgram::GEOMETRY);
+		glsl_blinn.loadShader("Shaders/program.vert", CGLSLProgram::VERTEX);
+		glsl_blinn.loadShader("Shaders/program.frag", CGLSLProgram::FRAGMENT);
+		glsl_g_buffer.loadShader("Shaders/gBuffer.vert", CGLSLProgram::VERTEX);
+		glsl_g_buffer.loadShader("Shaders/gBuffer.frag", CGLSLProgram::FRAGMENT);
+		glsl_g_buffer_plane.loadShader("Shaders/gBufferPosition.vert", CGLSLProgram::VERTEX);
+		glsl_g_buffer_plane.loadShader("Shaders/gBufferPosition.frag", CGLSLProgram::FRAGMENT);
+		glsl_scattered_map.loadShader("Shaders/scatteredMap.vert", CGLSLProgram::VERTEX);
+		glsl_scattered_map.loadShader("Shaders/scatteredMap.frag", CGLSLProgram::FRAGMENT);
+		glsl_scattered_map.loadShader("Shaders/scatteredMap.geom", CGLSLProgram::GEOMETRY);
 
-		glslProgram.create_link();
-		glslGBuffer.create_link();
-		glslGBufferP.create_link();
-		glslScatteredMap.create_link();
+		glsl_blinn.create_link();
+		glsl_g_buffer.create_link();
+		glsl_g_buffer_plane.create_link();
+		glsl_scattered_map.create_link();
 
-		glslProgram.enable();
-		glslProgram.addAttribute("position");
-		glslProgram.addAttribute("normal");
+		glsl_blinn.enable();
+			glsl_blinn.addAttribute("position");
+			glsl_blinn.addAttribute("normal");
 
-		glslProgram.addUniform("view_matrix");
-		glslProgram.addUniform("projection_matrix");
-		glslProgram.addUniform("model_matrix");
-		glslProgram.addUniform("lightPos");
-		glslProgram.addUniform("view");
-		glslProgram.disable();
+			glsl_blinn.addUniform("view_matrix");
+			glsl_blinn.addUniform("projection_matrix");
+			glsl_blinn.addUniform("model_matrix");
+			glsl_blinn.addUniform("light_pos");
+			glsl_blinn.addUniform("eye");
+		glsl_blinn.disable();
 
-		glslGBuffer.enable();
-		glslGBuffer.addAttribute("position");
-		glslGBuffer.addAttribute("normal");
+		glsl_g_buffer.enable();
+			glsl_g_buffer.addAttribute("position");
+			glsl_g_buffer.addAttribute("normal");
 
-		glslGBuffer.addUniform("light_matrix");
-		glslGBuffer.addUniform("model_matrix");
-		glslGBuffer.disable();
+			glsl_g_buffer.addUniform("light_matrix");
+			glsl_g_buffer.addUniform("model_matrix");
+		glsl_g_buffer.disable();
 
-		glslGBufferP.enable();
-		glslGBufferP.addAttribute("position");
-		glslGBufferP.addAttribute("texCoords");
+		glsl_g_buffer_plane.enable();
+			glsl_g_buffer_plane.addAttribute("position");
+			glsl_g_buffer_plane.addAttribute("tex_coords");
 
-		glslGBufferP.addUniform("model_matrix");
-		glslGBufferP.addUniform("position_tex");
-		glslGBufferP.disable();
+			glsl_g_buffer_plane.addUniform("model_matrix");
+			glsl_g_buffer_plane.addUniform("position_tex");
+		glsl_g_buffer_plane.disable();
 
-		glslScatteredMap.enable();
-		glslScatteredMap.addAttribute("position");
-		glslScatteredMap.addAttribute("normal");
+		glsl_scattered_map.enable();
+			glsl_scattered_map.addAttribute("position");
+			glsl_scattered_map.addAttribute("normal");
 
-		glslScatteredMap.addUniform("camera_matrix");
-		glslScatteredMap.addUniform("projection_matrix");
-		glslScatteredMap.addUniform("model_matrix");
+			glsl_scattered_map.addUniform("n_cameras");
+			glsl_scattered_map.addUniform("cameras_matrix");
+			glsl_scattered_map.addUniform("vp_light");
+			glsl_scattered_map.addUniform("model_matrix");
 
-		glslScatteredMap.addUniform("asymmetry_param_g");
-		glslScatteredMap.addUniform("light_pos");
-		glslScatteredMap.addUniform("light_diff");
-		glslScatteredMap.addUniform("n_samples");
-		glslScatteredMap.addUniform("samples");
-		glslScatteredMap.addUniform("g_position");
-		glslScatteredMap.addUniform("g_normal");
-		glslScatteredMap.addUniform("depth_map");
-		glslScatteredMap.addUniform("bias");
-		glslScatteredMap.addUniform("refractive_index");
-		glslScatteredMap.addUniform("diffuse_reflectance");
+			glsl_scattered_map.addUniform("asymmetry_param_g");
+			glsl_scattered_map.addUniform("light_pos");
+			glsl_scattered_map.addUniform("light_diff");
+			glsl_scattered_map.addUniform("n_samples");
+			glsl_scattered_map.addUniform("samples");
+			glsl_scattered_map.addUniform("g_position");
+			glsl_scattered_map.addUniform("g_normal");
+			glsl_scattered_map.addUniform("g_depth");
+			glsl_scattered_map.addUniform("bias");
+			glsl_scattered_map.addUniform("radius");
+			glsl_scattered_map.addUniform("refractive_index");
+			glsl_scattered_map.addUniform("diffuse_reflectance");
 
-		// Valores pre-calculados
-		glslScatteredMap.addUniform("attenuation_coeff");
-		glslScatteredMap.addUniform("D");
-		glslScatteredMap.addUniform("effective_transport_coeff");
-		glslScatteredMap.addUniform("c_phi_1");
-		glslScatteredMap.addUniform("c_phi_2");
-		glslScatteredMap.addUniform("c_e");
-		glslScatteredMap.addUniform("A");
-		glslScatteredMap.addUniform("de");
-		glslScatteredMap.addUniform("zr");
+			// Valores pre-calculados
+			glsl_scattered_map.addUniform("attenuation_coeff");
+			glsl_scattered_map.addUniform("D");
+			glsl_scattered_map.addUniform("effective_transport_coeff");
+			glsl_scattered_map.addUniform("c_phi_1");
+			glsl_scattered_map.addUniform("c_phi_2");
+			glsl_scattered_map.addUniform("c_e");
+			glsl_scattered_map.addUniform("A");
+			glsl_scattered_map.addUniform("de");
+			glsl_scattered_map.addUniform("zr");
 
-		glslScatteredMap.disable();
+		glsl_scattered_map.disable();
 
 		return true;
 	}
 }
 
-bool initAntTweakBar()
+bool init_ant_tweak_bar()
 {
 	if (!TwInit(TW_OPENGL, NULL))
 		return false;
 	return true;
 }
 
-bool initScene()
+bool init_scene()
 {
 	light_buffer *g_buffer;
 	material *potato, *marble, *skin, *milk, *cream, *none;
 	mesh *scene_model;
 
 	num_of_lights = 1;
-	num_of_orto_cameras = 2;
+	num_of_orto_cameras = 4;
 	num_of_samples_per_frag = 3 * num_of_orto_cameras;
 
 	scene_light = new light();
 	scene_model = new mesh();
-	mSet = new meshSet();
+	m_set = new mesh_set();
+	halton_generator = new halton();
 	materials = new materials_set();
 	light_buffers = new light_buffers_set();
 
-	for (int i = 0; i < num_of_lights; i++)
+	for (size_t i = 0; i < num_of_lights; i++)
 	{
 		g_buffer = new light_buffer(g_width, g_height);
 		light_buffers->array_of_buffers.push_back(g_buffer);
@@ -439,46 +383,48 @@ bool initScene()
 	materials->materials.push_back(cream);
 	materials->materials.push_back(none);
 
-	scattered_map = new ScatteredMap(g_width, g_height, num_of_orto_cameras);
+	scattered_maps = new scattered_map(g_width, g_height, num_of_orto_cameras);
 	scene_camera = new camera(glm::vec3(0.0f, 0.0f, 16.0f));
 	scene_model->load("Models/obj/bunny.obj");
-	mSet->mesh_models.push_back(scene_model);
-	generate_ortographic_cameras();
+	m_set->mesh_models.push_back(scene_model);
+	halton_generator->generate_orthographic_cameras(num_of_orto_cameras);
+
 	return true;
 }
 
 void display()
 {
-	glm::mat4 projectionLightMat, viewLightMat, spaceLightMatrix1, spaceLightMatrix2, model_mat;
+	glm::mat4 projection_ortho, view_ortho, view_proj_ortho_light, view_proj_ortho_random, model_mat;
+	glm::vec3 sigma_tr;
 
-	view = scene_camera->getViewMatrix();
+	view = scene_camera->get_view_matrix();
 	projection = glm::perspective(scene_camera->zoom, (float)g_width / (float)g_height, 0.1f, 100.0f);
+	projection_ortho = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.01f, 20.0f);
 
-	for (int i = 0; i < num_of_lights; i++)
+	for (size_t i = 0; i < num_of_lights; i++)
 	{
 		glBindFramebuffer(GL_FRAMEBUFFER, light_buffers->array_of_buffers[i]->g_buffer);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		glslGBuffer.enable();
-		for (int j = 0; j < mSet->mesh_models.size(); j++)
+		glsl_g_buffer.enable();
+		for (size_t j = 0; j < m_set->mesh_models.size(); j++)
 		{
+			view_ortho = glm::lookAt(scene_light->translation, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			view_proj_ortho_light = projection_ortho * view_ortho;
+
 			model_mat = glm::mat4(1.0f);
-			projectionLightMat = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.01f, 20.0f);
-			viewLightMat = glm::lookAt(scene_light->translation, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			spaceLightMatrix1 = projectionLightMat * viewLightMat;
+			model_mat = glm::translate(model_mat, m_set->mesh_models[j]->translation);
+			model_mat = model_mat * glm::toMat4(m_set->mesh_models[j]->rotation);
+			model_mat = glm::scale(model_mat, glm::vec3(m_set->mesh_models[j]->scale));
 
-			model_mat = glm::translate(model_mat, mSet->mesh_models[j]->translation);
-			model_mat = model_mat * glm::toMat4(mSet->mesh_models[j]->rotation);
-			model_mat = glm::scale(model_mat, glm::vec3(mSet->mesh_models[j]->scale));
+			glUniformMatrix4fv(glsl_g_buffer.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
+			glUniformMatrix4fv(glsl_g_buffer.getLocation("vp_matrix"), 1, GL_FALSE, glm::value_ptr(view_proj_ortho_light));
 
-			glUniformMatrix4fv(glslGBuffer.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
-			glUniformMatrix4fv(glslGBuffer.getLocation("light_matrix"), 1, GL_FALSE, glm::value_ptr(spaceLightMatrix1));
-
-			glBindVertexArray(mSet->mesh_models[j]->vao);
-			glDrawArrays(GL_TRIANGLES, 0, mSet->mesh_models[j]->vertices.size());
+			glBindVertexArray(m_set->mesh_models[j]->vao);
+			glDrawArrays(GL_TRIANGLES, 0, m_set->mesh_models[j]->vertices.size());
 			glBindVertexArray(0);
 		}
-		glslGBuffer.disable();
+		glsl_g_buffer.disable();
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
@@ -486,148 +432,149 @@ void display()
 	glEnable(GL_STENCIL_TEST);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
-	glslScatteredMap.enable();
-	for (int i = 0; i < mSet->mesh_models.size(); i++)
+	glsl_scattered_map.enable();
+	for (size_t i = 0; i < m_set->mesh_models.size(); i++)
 	{
-		if (mSet->mesh_models[i]->change_values || change_light)
+		if (m_set->mesh_models[i]->change_values || change_light)
 		{
-			glBindFramebuffer(GL_FRAMEBUFFER, scattered_map->buffer);
+			glBindFramebuffer(GL_FRAMEBUFFER, scattered_maps->buffer);
 			glStencilFunc(GL_ALWAYS, 1, -1);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-			materials->materials[mSet->mesh_models[i]->current_material]->precalculate_values(mSet->mesh_models[i]->asymmetry_param_g);
-			glm::vec3 sigma_tr = materials->materials[mSet->mesh_models[i]->current_material]->effective_transport_coeff;
-			generateSamples(min(sigma_tr.x, sigma_tr.y, sigma_tr.z) / mSet->mesh_models[i]->q, mSet->mesh_models[i]->radius);
+			materials->materials[m_set->mesh_models[i]->current_material]->precalculate_values(m_set->mesh_models[i]->asymmetry_param_g);
+			sigma_tr = materials->materials[m_set->mesh_models[i]->current_material]->effective_transport_coeff;
+			halton_generator->generate_samples(min(sigma_tr.x, sigma_tr.y, sigma_tr.z) / m_set->mesh_models[i]->q, m_set->mesh_models[i]->radius, num_of_samples_per_frag);
 
-			std::vector<glm::mat4> space_light_matrices;
+			std::vector<glm::mat4> view_proj_ortho_randoms;
 
 			model_mat = glm::mat4(1.0f);
-			model_mat = glm::translate(model_mat, mSet->mesh_models[i]->translation);
-			model_mat = model_mat * glm::toMat4(mSet->mesh_models[i]->rotation);
-			model_mat = glm::scale(model_mat, glm::vec3(mSet->mesh_models[i]->scale));
+			model_mat = glm::translate(model_mat, m_set->mesh_models[i]->translation);
+			model_mat = model_mat * glm::toMat4(m_set->mesh_models[i]->rotation);
+			model_mat = glm::scale(model_mat, glm::vec3(m_set->mesh_models[i]->scale));
 
 			for (size_t j = 0; j < num_of_orto_cameras; j++)
 			{
-				projectionLightMat = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.01f, 20.0f);
-				viewLightMat = glm::lookAt(scattered_map->cameraPositions[j], mSet->mesh_models[i]->center, glm::vec3(0.0f, 1.0f, 0.0f));
-				spaceLightMatrix2 = projectionLightMat * viewLightMat;
-				space_light_matrices.push_back(spaceLightMatrix2);
+				view_ortho = glm::lookAt(halton_generator->camera_positions[j], m_set->mesh_models[i]->center, glm::vec3(0.0f, 1.0f, 0.0f));
+				view_proj_ortho_random = projection_ortho * view_ortho;
+				view_proj_ortho_randoms.push_back(view_proj_ortho_random);
 			}
 
-			glUniformMatrix4fv(glslScatteredMap.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
-			glUniformMatrix4fv(glslScatteredMap.getLocation("camera_matrix"), num_of_orto_cameras, GL_FALSE, glm::value_ptr(space_light_matrices[0]));
-			glUniformMatrix4fv(glslScatteredMap.getLocation("projection_matrix"), 1, GL_FALSE, glm::value_ptr(spaceLightMatrix1));
-			glUniform1i(glslScatteredMap.getLocation("g_position"), 0);
-			glUniform1i(glslScatteredMap.getLocation("g_normal"), 1);
-			glUniform1i(glslScatteredMap.getLocation("depth_map"), 2);
-			glUniform1f(glslScatteredMap.getLocation("bias"), mSet->mesh_models[i]->bias);
-			glUniform1i(glslScatteredMap.getLocation("n_samples"), num_of_samples_per_frag);
-			glUniform2fv(glslScatteredMap.getLocation("samples"), num_of_samples_per_frag, glm::value_ptr(samples[0]));
-			glUniform1f(glslScatteredMap.getLocation("asymmetry_param_g"), mSet->mesh_models[i]->asymmetry_param_g);
-			glUniform1f(glslScatteredMap.getLocation("refractive_index"), mSet->mesh_models[i]->refractive_index);
-			glUniform3fv(glslScatteredMap.getLocation("diffuse_reflectance"), 1, glm::value_ptr(materials->materials[mSet->mesh_models[i]->current_material]->diffuse_reflectance));
+			glUniformMatrix4fv(glsl_scattered_map.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
+			glUniform1i(glsl_scattered_map.getLocation("n_cameras"), num_of_orto_cameras);
+			glUniformMatrix4fv(glsl_scattered_map.getLocation("cameras_matrix"), num_of_orto_cameras, GL_FALSE, glm::value_ptr(view_proj_ortho_randoms[0]));
+			glUniformMatrix4fv(glsl_scattered_map.getLocation("vp_light"), 1, GL_FALSE, glm::value_ptr(view_proj_ortho_light));
+			glUniform1i(glsl_scattered_map.getLocation("g_position"), 0);
+			glUniform1i(glsl_scattered_map.getLocation("g_normal"), 1);
+			glUniform1i(glsl_scattered_map.getLocation("g_depth"), 2);
+			glUniform1f(glsl_scattered_map.getLocation("bias"), m_set->mesh_models[i]->bias);
+			glUniform1f(glsl_scattered_map.getLocation("radius"), m_set->mesh_models[i]->radius);
+			glUniform1i(glsl_scattered_map.getLocation("n_samples"), num_of_samples_per_frag);
+			glUniform2fv(glsl_scattered_map.getLocation("samples"), num_of_samples_per_frag, glm::value_ptr(halton_generator->samples[0]));
+			glUniform1f(glsl_scattered_map.getLocation("asymmetry_param_g"), m_set->mesh_models[i]->asymmetry_param_g);
+			glUniform1f(glsl_scattered_map.getLocation("refractive_index"), m_set->mesh_models[i]->refractive_index);
+			glUniform3fv(glsl_scattered_map.getLocation("diffuse_reflectance"), 1, glm::value_ptr(materials->materials[m_set->mesh_models[i]->current_material]->diffuse_reflectance));
 
-			glUniform3f(glslScatteredMap.getLocation("light_pos"), scene_light->translation.x, scene_light->translation.y, scene_light->translation.z);
-			glUniform4f(glslScatteredMap.getLocation("light_diff"), 1.0f, 1.0f, 1.0f, 1.0f);
+			glUniform3f(glsl_scattered_map.getLocation("light_pos"), scene_light->translation.x, scene_light->translation.y, scene_light->translation.z);
+			glUniform4f(glsl_scattered_map.getLocation("light_diff"), 1.0f, 1.0f, 1.0f, 1.0f);
 
 			// Valores pre-calculados
-			glUniform3fv(glslScatteredMap.getLocation("attenuation_coeff"), 1, glm::value_ptr(materials->materials[mSet->mesh_models[i]->current_material]->attenuation_coeff));
-			glUniform3fv(glslScatteredMap.getLocation("D"), 1, glm::value_ptr(materials->materials[mSet->mesh_models[i]->current_material]->D));
-			glUniform3fv(glslScatteredMap.getLocation("effective_transport_coeff"), 1, glm::value_ptr(materials->materials[mSet->mesh_models[i]->current_material]->effective_transport_coeff));
-			glUniform1f(glslScatteredMap.getLocation("c_phi_1"), materials->materials[mSet->mesh_models[i]->current_material]->c_phi_1);
-			glUniform1f(glslScatteredMap.getLocation("c_phi_2"), materials->materials[mSet->mesh_models[i]->current_material]->c_phi_2);
-			glUniform1f(glslScatteredMap.getLocation("c_e"), materials->materials[mSet->mesh_models[i]->current_material]->c_e);
-			glUniform1f(glslScatteredMap.getLocation("A"), materials->materials[mSet->mesh_models[i]->current_material]->A);
-			glUniform3fv(glslScatteredMap.getLocation("de"), 1, glm::value_ptr(materials->materials[mSet->mesh_models[i]->current_material]->de));
-			glUniform3fv(glslScatteredMap.getLocation("zr"), 1, glm::value_ptr(materials->materials[mSet->mesh_models[i]->current_material]->zr));
+			glUniform3fv(glsl_scattered_map.getLocation("attenuation_coeff"), 1, glm::value_ptr(materials->materials[m_set->mesh_models[i]->current_material]->attenuation_coeff));
+			glUniform3fv(glsl_scattered_map.getLocation("D"), 1, glm::value_ptr(materials->materials[m_set->mesh_models[i]->current_material]->D));
+			glUniform3fv(glsl_scattered_map.getLocation("effective_transport_coeff"), 1, glm::value_ptr(materials->materials[m_set->mesh_models[i]->current_material]->effective_transport_coeff));
+			glUniform1f(glsl_scattered_map.getLocation("c_phi_1"), materials->materials[m_set->mesh_models[i]->current_material]->c_phi_1);
+			glUniform1f(glsl_scattered_map.getLocation("c_phi_2"), materials->materials[m_set->mesh_models[i]->current_material]->c_phi_2);
+			glUniform1f(glsl_scattered_map.getLocation("c_e"), materials->materials[m_set->mesh_models[i]->current_material]->c_e);
+			glUniform1f(glsl_scattered_map.getLocation("A"), materials->materials[m_set->mesh_models[i]->current_material]->A);
+			glUniform3fv(glsl_scattered_map.getLocation("de"), 1, glm::value_ptr(materials->materials[m_set->mesh_models[i]->current_material]->de));
+			glUniform3fv(glsl_scattered_map.getLocation("zr"), 1, glm::value_ptr(materials->materials[m_set->mesh_models[i]->current_material]->zr));
 
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, light_buffers->array_of_buffers[0]->g_position);
 			glActiveTexture(GL_TEXTURE1);
 			glBindTexture(GL_TEXTURE_2D, light_buffers->array_of_buffers[0]->g_normal);
 			glActiveTexture(GL_TEXTURE2);
-			glBindTexture(GL_TEXTURE_2D, light_buffers->array_of_buffers[0]->depth_map);
+			glBindTexture(GL_TEXTURE_2D, light_buffers->array_of_buffers[0]->g_depth);
 
-			glBindVertexArray(mSet->mesh_models[i]->vao);
-			glDrawArrays(GL_TRIANGLES, 0, mSet->mesh_models[i]->vertices.size());
+			glBindVertexArray(m_set->mesh_models[i]->vao);
+			glDrawArrays(GL_TRIANGLES, 0, m_set->mesh_models[i]->vertices.size());
 			glBindVertexArray(0);
 
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-			mSet->mesh_models[i]->change_values = false;
+			m_set->mesh_models[i]->change_values = false;
 		}
 	}
 
-	glslScatteredMap.disable();
+	glsl_scattered_map.disable();
 
 	glEnable(GL_STENCIL_TEST);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-	glslProgram.enable();
-	for (int i = 0; i < mSet->mesh_models.size(); i++)
+	glsl_blinn.enable();
+	for (size_t i = 0; i < m_set->mesh_models.size(); i++)
 	{
 		glStencilFunc(GL_ALWAYS, i + 1, -1);
-		glUniform3f(glslProgram.getLocation("view"), scene_camera->position[0], scene_camera->position[1], scene_camera->position[2]);
-		glUniform3f(glslProgram.getLocation("lightPos"), scene_light->translation.x, scene_light->translation.y, scene_light->translation.z);
+		glUniform3f(glsl_blinn.getLocation("eye"), scene_camera->position[0], scene_camera->position[1], scene_camera->position[2]);
+		glUniform3f(glsl_blinn.getLocation("light_pos"), scene_light->translation.x, scene_light->translation.y, scene_light->translation.z);
 
 		model_mat = glm::mat4(1.0f);
-		model_mat = glm::translate(model_mat, mSet->mesh_models[i]->translation);
-		model_mat = model_mat * glm::toMat4(mSet->mesh_models[i]->rotation);
-		model_mat = glm::scale(model_mat, glm::vec3(mSet->mesh_models[i]->scale));
+		model_mat = glm::translate(model_mat, m_set->mesh_models[i]->translation);
+		model_mat = model_mat * glm::toMat4(m_set->mesh_models[i]->rotation);
+		model_mat = glm::scale(model_mat, glm::vec3(m_set->mesh_models[i]->scale));
 
-		glUniformMatrix4fv(glslProgram.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
-		glUniformMatrix4fv(glslProgram.getLocation("view_matrix"), 1, GL_FALSE, glm::value_ptr(view));
-		glUniformMatrix4fv(glslProgram.getLocation("projection_matrix"), 1, GL_FALSE, glm::value_ptr(projection));
+		glUniformMatrix4fv(glsl_blinn.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
+		glUniformMatrix4fv(glsl_blinn.getLocation("view_matrix"), 1, GL_FALSE, glm::value_ptr(view));
+		glUniformMatrix4fv(glsl_blinn.getLocation("projection_matrix"), 1, GL_FALSE, glm::value_ptr(projection));
 
-		glBindVertexArray(mSet->mesh_models[i]->vao);
-		glDrawArrays(GL_TRIANGLES, 0, mSet->mesh_models[i]->vertices.size());
+		glBindVertexArray(m_set->mesh_models[i]->vao);
+		glDrawArrays(GL_TRIANGLES, 0, m_set->mesh_models[i]->vertices.size());
 		glBindVertexArray(0);
 	}
-	glslProgram.disable();
+	glsl_blinn.disable();
 
-	glStencilFunc(GL_ALWAYS, mSet->mesh_models.size() + 1, -1);
+	glStencilFunc(GL_ALWAYS, m_set->mesh_models.size() + 1, -1);
 	scene_light->display(projection * view);
 
 	glDisable(GL_STENCIL_TEST);
 
-	glslGBufferP.enable();
-	glm::mat4 model_gbuffer = glm::mat4(1.0f);
-	model_gbuffer = glm::translate(model_gbuffer, glm::vec3(0.7, -0.7, -1.0));
-	model_gbuffer = glm::scale(model_gbuffer, glm::vec3(0.3f));
-	glUniformMatrix4fv(glslGBufferP.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_gbuffer));
+	glsl_g_buffer_plane.enable();
+	model_mat = glm::mat4(1.0f);
+	model_mat = glm::translate(model_mat, glm::vec3(0.7, -0.7, -1.0));
+	model_mat = glm::scale(model_mat, glm::vec3(0.3f));
+	glUniformMatrix4fv(glsl_g_buffer_plane.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D_ARRAY, scattered_map->array_texture);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, scattered_maps->array_texture);
 	render_quad();
-	glslGBufferP.disable();
+	glsl_g_buffer_plane.disable();
 }
 
 void destroy()
 {
-	glfwDestroyWindow(gWindow);
+	glfwDestroyWindow(g_window);
 	glfwTerminate();
 }
 
 int main()
 {
-	if (!initGlfw() || !initGlew() || !initAntTweakBar() || !initScene())
+	if (!init_glfw() || !init_glew() || !init_ant_tweak_bar() || !init_scene())
 		return EXIT_FAILURE;
 
 	glEnable(GL_DEPTH_TEST);
-	reshape(gWindow, g_width, g_height);
+	reshape(g_window, g_width, g_height);
 
-	while (!glfwWindowShouldClose(gWindow))
+	while (!glfwWindowShouldClose(g_window))
 	{
-		GLfloat currentFrame = float(glfwGetTime());
-		deltaTime = currentFrame - lastFrame;
-		lastFrame = currentFrame;
+		current_frame = float(glfwGetTime());
+		delta_time = current_frame - last_frame;
+		last_frame = current_frame;
 		glfwPollEvents();
 		movement();
 		display();
 		TwDraw();
 		change_light = scene_light->update_interface();
-		mSet->update_interface(selectedModel);
-		glfwSwapBuffers(gWindow);
+		m_set->update_interface(selected_model);
+		glfwSwapBuffers(g_window);
 	}
 
 	destroy();

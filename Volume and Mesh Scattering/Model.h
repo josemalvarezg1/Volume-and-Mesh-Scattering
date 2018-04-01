@@ -35,17 +35,17 @@ public:
 	void create_vbo();
 };
 
-class meshSet {
+class mesh_set {
 public:
 	std::vector<mesh*> mesh_models;
-	interfaceModel *model_interface;
+	interface_model *model_interface;
 	bool visible_interface;
 
-	meshSet();
-	~meshSet();
+	mesh_set();
+	~mesh_set();
 
-	void click_model(int selectedModel);
+	void click_model(int selected_model);
 	void not_click_model();
-	void update_interface(int selectedModel);
+	void update_interface(int selected_model);
 };
 

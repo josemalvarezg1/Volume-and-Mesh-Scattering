@@ -10,7 +10,6 @@ CGLSLProgram::CGLSLProgram(void)
 	m_vIdShader[VERTEX] = 0;
 	m_vIdShader[FRAGMENT] = 0;
 	m_vIdShader[GEOMETRY] = 0;
-	m_vIdShader[TESSELATION] = 0;
 	m_mapVarShader.clear();
 	m_mapSubroutines.clear();
 }
@@ -53,7 +52,6 @@ void CGLSLProgram::recompileShader(std::string strFileName, SHADERTYPE typeShade
 	glLinkProgram(m_uIdProgram);
 	checkLinkingErrors();
 	glDeleteShader(m_vIdShader[typeShader]);
-	std::cout << "de pinga" << std::endl;
 }
 
 void CGLSLProgram::loadShader(std::string strFileName, SHADERTYPE typeShader)
@@ -70,7 +68,6 @@ void CGLSLProgram::loadShader(std::string strFileName, SHADERTYPE typeShader)
 	case VERTEX: { hShader = glCreateShader(GL_VERTEX_SHADER); break; }
 	case FRAGMENT: { hShader = glCreateShader(GL_FRAGMENT_SHADER); break; }
 	case GEOMETRY: { hShader = glCreateShader(GL_GEOMETRY_SHADER); break; }
-	case TESSELATION: { hShader = 0; std::cerr << "not implemented.... yet :-)" << std::endl; }
 	}
 
 	if (loadShaderFile(strFileName, hShader))
@@ -86,7 +83,7 @@ void CGLSLProgram::loadShader(std::string strFileName, SHADERTYPE typeShader)
 				<< infoLog << endl;
 			glDeleteShader(hShader);
 		}
-		else	//here, everything is OK
+		else
 		{
 			cout << "The shader at " << strFileName.c_str() << " was compiled without errors." << endl;
 			m_vIdShader[typeShader] = hShader;
@@ -103,7 +100,6 @@ void CGLSLProgram::checkLinkingErrors()
 {
 	GLint infologLength = 0;
 	glGetProgramiv(m_uIdProgram, GL_INFO_LOG_LENGTH, &infologLength);
-	//std::cerr<<"Link Log Length "<<infologLength<<"\n";
 
 	if (infologLength > 1)
 	{
@@ -117,9 +113,7 @@ void CGLSLProgram::checkLinkingErrors()
 		glGetProgramiv(m_uIdProgram, GL_LINK_STATUS, &infologLength);
 		if (infologLength == GL_FALSE)
 		{
-
 			std::cerr << "Program link failed exiting \n";
-			//system("Pause");
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -207,13 +201,11 @@ void CGLSLProgram::addUniform(std::string strParName)
 
 void CGLSLProgram::addUniformSubroutine(std::string strParName, int iShaderType)
 {
-	//m_vRoutinesIds.front()
 	m_mapVarShader[strParName] = glGetSubroutineUniformLocation(m_uIdProgram, iShaderType, strParName.c_str());
 }
 
 void CGLSLProgram::addSubroutine(std::string strFunctionName, unsigned int iShaderType)
 {
-	//m_vRoutinesIds.push_back(glGetSubroutineIndex(m_uIdProgram, iShaderType, strFunctionName.c_str()));
 	m_mapSubroutines[strFunctionName] = glGetSubroutineUniformLocation(m_uIdProgram, iShaderType, strFunctionName.c_str());
 }
 

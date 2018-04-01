@@ -9,11 +9,9 @@
 class light_buffer
 {
 public:
-	GLuint g_buffer, g_position, g_normal, g_depth, depth_map, attachments[2];
-
+	GLuint g_buffer, g_position, g_normal, g_depth, attachments[2];
 	light_buffer(int g_width, int g_height);
 	~light_buffer();
-
 	void update_g_buffer(int g_width, int g_height);
 };
 

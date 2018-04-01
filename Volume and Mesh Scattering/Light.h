@@ -18,7 +18,7 @@ public:
 	std::vector<glm::vec3> vertices;
 	std::vector<GLuint> index;
 	CGLSLProgram light_program;
-	interfaceLight *light_interface;
+	interface_light *light_interface;
 	bool on, visible_interface;
 	GLfloat max_value;
 

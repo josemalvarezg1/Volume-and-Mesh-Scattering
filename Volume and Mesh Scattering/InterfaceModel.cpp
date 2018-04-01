@@ -1,18 +1,18 @@
 #include "InterfaceModel.h"
 
-interfaceModel * interfaceModel::userInterface = NULL;
+interface_model * interface_model::user_interface = NULL;
 
-interfaceModel * interfaceModel::instance()
+interface_model * interface_model::instance()
 {
-	if (!userInterface)
-		userInterface = new interfaceModel();
+	if (!user_interface)
+		user_interface = new interface_model();
 
-	return userInterface;
+	return user_interface;
 }
 
-interfaceModel::interfaceModel()
+interface_model::interface_model()
 {
-	modelInterface = TwNewBar("Modelo");
+	this->model_interface = TwNewBar("Modelo");
 	TwDefine("Modelo refresh = '0.0001f'");
 	TwDefine("Modelo resizable = false");
 	TwDefine("Modelo fontresizable = false");
@@ -23,37 +23,37 @@ interfaceModel::interfaceModel()
 	TwDefine("Modelo color = '42 46 148' alpha = 85");
 	TwDefine("Modelo size = '300 400'");
 
-	TwAddVarRW(modelInterface, "Escalar", TW_TYPE_FLOAT, &scale, "group='Transformaciones' min=0.01 step=0.01");
-	TwAddVarRW(modelInterface, "Posición X", TW_TYPE_FLOAT, &translation[0], "group = 'Transformaciones' step = 0.01");
-	TwAddVarRW(modelInterface, "Posición Y", TW_TYPE_FLOAT, &translation[1], "group = 'Transformaciones' step = 0.01");
-	TwAddVarRW(modelInterface, "Posición Z", TW_TYPE_FLOAT, &translation[2], "group = 'Transformaciones' step = 0.01");
-	TwAddVarRW(modelInterface, "Rotación", TW_TYPE_QUAT4F, &rotation, "group='Transformaciones' opened=true");
-	TwAddSeparator(modelInterface, NULL, "");
-	TwAddVarRW(modelInterface, "Asimetría g", TW_TYPE_FLOAT, &asymmetry_param_g, "group='Parámetros de Dispersión' min=-1.0 max=0.99 step=0.01");
+	TwAddVarRW(this->model_interface, "Escalar", TW_TYPE_FLOAT, &this->scale, "group='Transformaciones' min=0.01 step=0.01");
+	TwAddVarRW(this->model_interface, "Posición X", TW_TYPE_FLOAT, &this->translation[0], "group = 'Transformaciones' step = 0.01");
+	TwAddVarRW(this->model_interface, "Posición Y", TW_TYPE_FLOAT, &this->translation[1], "group = 'Transformaciones' step = 0.01");
+	TwAddVarRW(this->model_interface, "Posición Z", TW_TYPE_FLOAT, &this->translation[2], "group = 'Transformaciones' step = 0.01");
+	TwAddVarRW(this->model_interface, "Rotación", TW_TYPE_QUAT4F, &this->rotation, "group='Transformaciones' opened=true");
+	TwAddSeparator(this->model_interface, NULL, "");
+	TwAddVarRW(this->model_interface, "Asimetría g", TW_TYPE_FLOAT, &this->asymmetry_param_g, "group='Parámetros de Dispersión' min=-1.0 max=0.99 step=0.01");
 	{
 		TwEnumVal material_type[6] = { { Patata, "Patata" }, { Mármol, "Mármol" }, { Piel, "Piel" }, { Leche, "Leche" }, { Crema, "Crema" }, { Ninguno, "Ninguno" } };
 		TwType light = TwDefineEnum("material_type", material_type, 6);
-		TwAddVarRW(modelInterface, "Material", light, &current_material, "group='Parámetros de Dispersión'");
+		TwAddVarRW(this->model_interface, "Material", light, &this->current_material, "group='Parámetros de Dispersión'");
 	}
-	TwAddVarRW(modelInterface, "Radio", TW_TYPE_FLOAT, &radius, "group='Parámetros de Dispersión' min=0.5 max=1.0 step=0.001");
-	TwAddVarRW(modelInterface, "Bias", TW_TYPE_FLOAT, &bias, "group='Parámetros de Dispersión' min=0.001 max=1.0 step=0.001");
+	TwAddVarRW(this->model_interface, "Radio", TW_TYPE_FLOAT, &this->radius, "group='Parámetros de Dispersión' min=0.5 max=1.0 step=0.001");
+	TwAddVarRW(this->model_interface, "Bias", TW_TYPE_FLOAT, &this->bias, "group='Parámetros de Dispersión' min=0.001 max=1.0 step=0.001");
 }
 
-interfaceModel::~interfaceModel()
+interface_model::~interface_model()
 {
 }
 
-void interfaceModel::reshape(int g_width, int g_height)
+void interface_model::reshape(int g_width, int g_height)
 {
 	TwWindowSize(g_width, g_height);
 }
 
-void interfaceModel::show()
+void interface_model::show()
 {
 	TwDefine("Modelo visible = true");
 }
 
-void interfaceModel::hide()
+void interface_model::hide()
 {
 	TwDefine("Modelo visible = false");
 }
