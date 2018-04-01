@@ -504,7 +504,6 @@ void interfaceFunction::display()
 		renderColorPicker();
 		renderSelectorAndPoint();
 
-
 		glDisable(GL_BLEND);
 	}
 }

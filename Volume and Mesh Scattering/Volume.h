@@ -14,7 +14,6 @@ class cube
 {
 public:
 	GLuint vboCube, vaoCube, eboCube;
-
 	cube();
 	~cube();
 	void display();
@@ -28,7 +27,6 @@ public:
 	glm::quat rotation;
 	glm::vec3 translation;
 	GLfloat escalation, step;
-
 	volume(std::string path, GLuint width, GLuint height, GLuint depth, GLuint numOfBits);
 	~volume();
 };
@@ -44,7 +42,6 @@ public:
 	std::vector<volume*> volumes;
 	bool pressVolumeRight, pressVolumeLeft;
 	double xReference, yReference;
-
 	volumeRender(int screenWidth, int screenHeight);
 	~volumeRender();
 	void dropPath(int count, const char** paths);

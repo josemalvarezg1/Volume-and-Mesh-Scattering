@@ -4,7 +4,6 @@
 texture::texture(char const *path)
 {
 	glGenTextures(1, &this->texture_ID);
-
 	int width, height, components;
 	unsigned char *data = stbi_load(path, &width, &height, &components, 0);
 	if (data)

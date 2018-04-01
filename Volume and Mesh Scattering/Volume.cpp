@@ -282,7 +282,6 @@ bool volumeRender::poscursorVolume(double x, double y)
 		GLfloat offsetX, offsetY, angle, square;
 		glm::quat quaternion;
 		glm::vec3 axis;
-
 		if (pressVolumeRight)
 		{
 			offsetX = (GLfloat)(x - this->xReference);

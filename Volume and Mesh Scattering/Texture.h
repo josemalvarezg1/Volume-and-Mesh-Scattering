@@ -1,7 +1,7 @@
 #pragma once
 #include <iostream>
 #include <GL/glew.h>
-#include <stb/stb_image.h>
+#include <stb_image.h>
 
 class texture
 {
@@ -11,6 +11,5 @@ private:
 public:
 	texture(char const * path);
 	~texture();
-
 	unsigned int get_texture_ID();
 };

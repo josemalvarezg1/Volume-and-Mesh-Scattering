@@ -54,7 +54,6 @@ public:
 	std::vector<glm::vec2> coordsVertex;
 	std::vector<glm::vec4> colors;
 	GLuint vbo, vao;
-
 	quadColor(std::vector<glm::vec2> coordsVertex, std::vector<glm::vec4> colors);
 	~quadColor();
 	void mobilize(double displX, double displY);
@@ -67,7 +66,6 @@ class quadTexture
 public:
 	std::vector<glm::vec2> coordsVertex, coordsTexture;
 	GLuint vbo, vao;
-
 	quadTexture(double sizeX, double sizeY);
 	~quadTexture();
 	void createVBO();
