@@ -1,10 +1,10 @@
 #version 330
 out vec4 color;
-in vec2 TexCoords;
+in vec2 frag_tex_coords;
 
-uniform sampler2D position_tex;
+uniform sampler2DArray position_tex;
 
 void main() 
 {
-    color = texture(position_tex, TexCoords);
+    color = texture(position_tex, vec3(frag_tex_coords, 3));
 }

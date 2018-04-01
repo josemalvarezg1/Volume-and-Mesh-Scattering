@@ -1,18 +1,18 @@
 #include "InterfaceLight.h"
 
-interfaceLight * interfaceLight::userInterface = NULL;
+interface_light * interface_light::user_interface = NULL;
 
-interfaceLight * interfaceLight::instance()
+interface_light * interface_light::instance()
 {
-	if (!userInterface)
-		userInterface = new interfaceLight();
+	if (!user_interface)
+		user_interface = new interface_light();
 
-	return userInterface;
+	return user_interface;
 }
 
-interfaceLight::interfaceLight()
+interface_light::interface_light()
 {
-	lightInterface = TwNewBar("Iluminación");
+	this->light_interface = TwNewBar("Iluminación");
 
 	TwDefine("Iluminación refresh = '0.0001f'");
 	TwDefine("Iluminación resizable = false");
@@ -24,33 +24,33 @@ interfaceLight::interfaceLight()
 	TwDefine("Iluminación color = '42 46 148' alpha = 85");
 	TwDefine("Iluminación size = '300 400'");
 
-	TwAddVarRW(lightInterface, "onOff", TW_TYPE_BOOLCPP, &on, "label = 'Encendida'");
-	TwAddSeparator(lightInterface, NULL, "");
-	TwAddVarRW(lightInterface, "Posición X", TW_TYPE_FLOAT, &translation[0], "group = 'Transformaciones' step = 0.01");
-	TwAddVarRW(lightInterface, "Posición Y", TW_TYPE_FLOAT, &translation[1], "group = 'Transformaciones' step = 0.01");
-	TwAddVarRW(lightInterface, "Posición Z", TW_TYPE_FLOAT, &translation[2], "group = 'Transformaciones' step = 0.01");
+	TwAddVarRW(this->light_interface, "onOff", TW_TYPE_BOOLCPP, &this->on, "label = 'Encendida'");
+	TwAddSeparator(this->light_interface, NULL, "");
+	TwAddVarRW(this->light_interface, "Posición X", TW_TYPE_FLOAT, &this->translation[0], "group = 'Transformaciones' step = 0.01");
+	TwAddVarRW(this->light_interface, "Posición Y", TW_TYPE_FLOAT, &this->translation[1], "group = 'Transformaciones' step = 0.01");
+	TwAddVarRW(this->light_interface, "Posición Z", TW_TYPE_FLOAT, &this->translation[2], "group = 'Transformaciones' step = 0.01");
 
-	TwAddSeparator(lightInterface, NULL, "");
-	TwAddVarRW(lightInterface, "c1M", TW_TYPE_COLOR3F, &ambient_comp, "group='Componentes' label = 'Ambiental'");
-	TwAddVarRW(lightInterface, "c2M", TW_TYPE_COLOR3F, &diffuse_comp, "group='Componentes' label = 'Difuso'");
-	TwAddVarRW(lightInterface, "c3M", TW_TYPE_COLOR3F, &specular_comp, "group='Componentes' label = 'Especular'");
+	TwAddSeparator(this->light_interface, NULL, "");
+	TwAddVarRW(this->light_interface, "c1M", TW_TYPE_COLOR3F, &this->ambient_comp, "group='Componentes' label = 'Ambiental'");
+	TwAddVarRW(this->light_interface, "c2M", TW_TYPE_COLOR3F, &this->diffuse_comp, "group='Componentes' label = 'Difuso'");
+	TwAddVarRW(this->light_interface, "c3M", TW_TYPE_COLOR3F, &this->specular_comp, "group='Componentes' label = 'Especular'");
 }
 
-interfaceLight::~interfaceLight()
+interface_light::~interface_light()
 {
 }
 
-void interfaceLight::reshape(int g_width, int g_height)
+void interface_light::reshape(int g_width, int g_height)
 {
 	TwWindowSize(g_width, g_height);
 }
 
-void interfaceLight::show()
+void interface_light::show()
 {
 	TwDefine("Iluminación visible = true");
 }
 
-void interfaceLight::hide()
+void interface_light::hide()
 {
 	TwDefine("Iluminación visible = false");
 }

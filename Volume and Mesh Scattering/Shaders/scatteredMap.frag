@@ -12,16 +12,16 @@ uniform vec4 light_amb;
 uniform float asymmetry_param_g;
 uniform float refractive_index;
 uniform vec3 diffuse_reflectance;
-uniform mat4 projection_matrix;
+uniform mat4 vp_light;
 
 uniform int n_samples;
 uniform vec2 samples[64];
 uniform mat4 model_matrix;
-uniform mat4 camera_matrix;
 uniform sampler2D g_position;
 uniform sampler2D g_normal;
-uniform sampler2D depth_map;
+uniform sampler2D g_depth;
 uniform float bias;
+uniform float radius;
 
 // Valores pre-calculados
 uniform vec3 attenuation_coeff;
@@ -98,17 +98,6 @@ float fresnel_t(vec3 inv, vec3 n, float n_1)
     Tp = const_t * (factor_2 * factor_2);
 
     return (Ts + Tp) / 2.0f;
-} 
-
-float shadow_mapping(vec3 position)
-{
-	vec4 light_pos = camera_matrix * model_matrix * vec4(position, 1.0f);
-	light_pos.z -= bias;
-	if (light_pos.x < 0.0f || light_pos.x > 1.0f) 
-		return 1.0f;
-	if (light_pos.y < 0.0f || light_pos.y > 1.0f) 
-		return 1.0f;
-	return texture(depth_map, vec3(light_pos.x, light_pos.y, light_pos.z)).r;
 }
 
 void main() 
@@ -116,7 +105,8 @@ void main()
 	vec3 xo, no, wo, Lo, Ll, xi, ni, wi, x, r, dr, dr_pow, w12, p, ni_ast, xv, dv, wv;
 	vec3 diffuse_part_prime_1, diffuse_part_prime_2, diffuse_part_d;
 	vec3 cos_beta, z_prime, R, T, diffuse_part;
-	float miu_0, Ti, To;
+	float miu_0, Ti, To, theta;
+	mat2 rotation_samples_matrix;
 
 	xo = frag_pos;
 	no = normalize(frag_normal);
@@ -134,15 +124,20 @@ void main()
 		vec3 sample_e = frag_pos;
         vec4 offset = vec4(sample_e, 1.0);
         // De espacio de vista a espacio de clipping
-        offset = projection_matrix * offset;
+        offset = vp_light * offset;
         offset.xyz /= offset.w;
         // El offset estará en un rango [0:1]
         offset.xyz = offset.xyz * 0.5 + 0.5;
 		offset.xy += samples[i].xy;
+
+		//theta = 2 * PI * radius;
+		//rotation_samples_matrix = mat2(vec2(cos(theta), sin(theta)), vec2(-sin(theta), cos(theta)));
+		//offset.xy = rotation_samples_matrix * offset.xy;
+
 		xi = texture(g_position, offset.xy).xyz;
 		ni = texture(g_normal, offset.xy).xyz;
 
-		if (shadow_mapping(xi) > 0.0f)
+		if (dot(ni, wi) > 0.0f)
 		{
 			x = xo - xi;
 			r = vec3(length(x));

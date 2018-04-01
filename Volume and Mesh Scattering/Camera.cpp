@@ -3,18 +3,18 @@
 camera::camera(glm::vec3 position)
 {
 	this->position = position;
-	this->worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
+	this->world_up = glm::vec3(0.0f, 1.0f, 0.0f);
 	this->yaw = YAW;
 	this->pitch = PITCH;
-	this->movementSpeed = SPEED;
-	this->mouseSensitivity = SENSITIVTY;
+	this->movement_speed = SPEED;
+	this->mouse_sensitivity = SENSITIVTY;
 	this->zoom = ZOOM;
-	this->updateCameraVectors();
+	this->update_camera_vectors();
 }
 
-void camera::processKeyboard(cameraMovement direction, GLfloat deltaTime)
+void camera::process_keyboard(camera_movement direction, GLfloat delta_time)
 {
-	GLfloat velocity = this->movementSpeed * deltaTime;
+	GLfloat velocity = this->movement_speed * delta_time;
 	if (direction == FORWARD)
 		this->position += this->front * velocity;
 	if (direction == BACKWARD)
@@ -29,41 +29,41 @@ void camera::processKeyboard(cameraMovement direction, GLfloat deltaTime)
 		this->position += this->up * velocity;
 }
 
-void camera::processMouseMovement(GLfloat xoffset, GLfloat yoffset)
+void camera::process_mouse_movement(GLfloat x_offset, GLfloat y_offset)
 {
-	xoffset *= this->mouseSensitivity;
-	yoffset *= this->mouseSensitivity;
-	this->yaw += xoffset;
-	this->pitch += yoffset;
+	x_offset *= this->mouse_sensitivity;
+	y_offset *= this->mouse_sensitivity;
+	this->yaw += x_offset;
+	this->pitch += y_offset;
 	if (this->pitch > 89.0f)
 		this->pitch = 89.0f;
 	if (this->pitch < -89.0f)
 		this->pitch = -89.0f;
-	this->updateCameraVectors();
+	this->update_camera_vectors();
 }
 
-void camera::processMouseScroll(GLfloat yoffset)
+void camera::process_mouse_scroll(GLfloat y_offset)
 {
 	if (this->zoom >= 1.0f && this->zoom <= 45.0f)
-		this->zoom -= yoffset;
+		this->zoom -= y_offset;
 	if (this->zoom <= 1.0f)
 		this->zoom = 1.0f;
 	if (this->zoom >= 45.0f)
 		this->zoom = 45.0f;
 }
 
-glm::mat4 camera::getViewMatrix()
+glm::mat4 camera::get_view_matrix()
 {
 	return glm::lookAt(this->position, this->position + this->front, this->up);
 }
 
-void camera::updateCameraVectors()
+void camera::update_camera_vectors()
 {
 	glm::vec3 front;
 	front.x = cos(glm::radians(this->yaw)) * cos(glm::radians(this->pitch));
 	front.y = sin(glm::radians(this->pitch));
 	front.z = sin(glm::radians(this->yaw)) * cos(glm::radians(this->pitch));
 	this->front = glm::normalize(front);
-	this->right = glm::normalize(glm::cross(this->front, this->worldUp));
+	this->right = glm::normalize(glm::cross(this->front, this->world_up));
 	this->up = glm::normalize(glm::cross(this->right, this->front));
 }

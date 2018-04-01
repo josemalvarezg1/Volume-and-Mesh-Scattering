@@ -180,75 +180,75 @@ void mesh::create_vbo()
 	glBindVertexArray(0);
 }
 
-meshSet::meshSet()
+mesh_set::mesh_set()
 {
 	this->visible_interface = false;
-	this->model_interface = interfaceModel::instance();
+	this->model_interface = interface_model::instance();
 }
 
-meshSet::~meshSet()
+mesh_set::~mesh_set()
 {
 	this->mesh_models.empty();
 }
 
-void meshSet::click_model(int selectedModel)
+void mesh_set::click_model(int selected_model)
 {
 	this->model_interface->show();
-	this->model_interface->translation = this->mesh_models[selectedModel]->translation;
-	this->model_interface->rotation = this->mesh_models[selectedModel]->rotation;
-	this->model_interface->scale = this->mesh_models[selectedModel]->scale;
-	this->model_interface->asymmetry_param_g = this->mesh_models[selectedModel]->asymmetry_param_g;
-	this->model_interface->current_material = this->mesh_models[selectedModel]->current_material;
-	this->model_interface->q = this->mesh_models[selectedModel]->q;
-	this->model_interface->radius = this->mesh_models[selectedModel]->radius;
-	this->model_interface->bias = this->mesh_models[selectedModel]->bias;
+	this->model_interface->translation = this->mesh_models[selected_model]->translation;
+	this->model_interface->rotation = this->mesh_models[selected_model]->rotation;
+	this->model_interface->scale = this->mesh_models[selected_model]->scale;
+	this->model_interface->asymmetry_param_g = this->mesh_models[selected_model]->asymmetry_param_g;
+	this->model_interface->current_material = this->mesh_models[selected_model]->current_material;
+	this->model_interface->q = this->mesh_models[selected_model]->q;
+	this->model_interface->radius = this->mesh_models[selected_model]->radius;
+	this->model_interface->bias = this->mesh_models[selected_model]->bias;
 	this->visible_interface = true;
 }
 
-void meshSet::not_click_model()
+void mesh_set::not_click_model()
 {
 	this->model_interface->hide();
 	this->visible_interface = false;
 }
 
-void meshSet::update_interface(int selectedModel)
+void mesh_set::update_interface(int selected_model)
 {
-	if (visible_interface && selectedModel >= 0)
+	if (visible_interface && selected_model >= 0)
 	{
-		if (this->mesh_models[selectedModel]->translation != this->model_interface->translation)
+		if (this->mesh_models[selected_model]->translation != this->model_interface->translation)
 		{
-			this->mesh_models[selectedModel]->translation = this->model_interface->translation;
-			this->mesh_models[selectedModel]->change_values = true;
+			this->mesh_models[selected_model]->translation = this->model_interface->translation;
+			this->mesh_models[selected_model]->change_values = true;
 		}
-		if (this->mesh_models[selectedModel]->rotation != this->model_interface->rotation)
+		if (this->mesh_models[selected_model]->rotation != this->model_interface->rotation)
 		{
-			this->mesh_models[selectedModel]->rotation = this->model_interface->rotation;
-			this->mesh_models[selectedModel]->change_values = true;
+			this->mesh_models[selected_model]->rotation = this->model_interface->rotation;
+			this->mesh_models[selected_model]->change_values = true;
 		}
-		if (this->mesh_models[selectedModel]->scale != this->model_interface->scale)
+		if (this->mesh_models[selected_model]->scale != this->model_interface->scale)
 		{
-			this->mesh_models[selectedModel]->scale = this->model_interface->scale;
-			this->mesh_models[selectedModel]->change_values = true;
+			this->mesh_models[selected_model]->scale = this->model_interface->scale;
+			this->mesh_models[selected_model]->change_values = true;
 		}
-		if (this->mesh_models[selectedModel]->asymmetry_param_g != this->model_interface->asymmetry_param_g)
+		if (this->mesh_models[selected_model]->asymmetry_param_g != this->model_interface->asymmetry_param_g)
 		{
-			this->mesh_models[selectedModel]->asymmetry_param_g = this->model_interface->asymmetry_param_g;
-			this->mesh_models[selectedModel]->change_values = true;
+			this->mesh_models[selected_model]->asymmetry_param_g = this->model_interface->asymmetry_param_g;
+			this->mesh_models[selected_model]->change_values = true;
 		}
-		if (this->mesh_models[selectedModel]->radius != this->model_interface->radius)
+		if (this->mesh_models[selected_model]->radius != this->model_interface->radius)
 		{
-			this->mesh_models[selectedModel]->radius = this->model_interface->radius;
-			this->mesh_models[selectedModel]->change_values = true;
+			this->mesh_models[selected_model]->radius = this->model_interface->radius;
+			this->mesh_models[selected_model]->change_values = true;
 		}
-		if (this->mesh_models[selectedModel]->bias != this->model_interface->bias)
+		if (this->mesh_models[selected_model]->bias != this->model_interface->bias)
 		{
-			this->mesh_models[selectedModel]->bias = this->model_interface->bias;
-			this->mesh_models[selectedModel]->change_values = true;
+			this->mesh_models[selected_model]->bias = this->model_interface->bias;
+			this->mesh_models[selected_model]->change_values = true;
 		}
-		if (this->mesh_models[selectedModel]->current_material != this->model_interface->current_material)
+		if (this->mesh_models[selected_model]->current_material != this->model_interface->current_material)
 		{
-			this->mesh_models[selectedModel]->current_material = this->model_interface->current_material;
-			this->mesh_models[selectedModel]->change_values = true;
+			this->mesh_models[selected_model]->current_material = this->model_interface->current_material;
+			this->mesh_models[selected_model]->change_values = true;
 		}
 	}
 }

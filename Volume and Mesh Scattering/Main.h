@@ -19,24 +19,18 @@
 #include "G-Buffer.h"
 #include "Material.h"
 
-const float PI = 3.1415926535897932384626433832795;
-
 void reshape(GLFWwindow *window, int width, int height);
-void keyInput(GLFWwindow *window, int key, int scancode, int action, int mods);
+void key_input(GLFWwindow *window, int key, int scan_code, int action, int mods);
 void click(GLFWwindow* window, int button, int action, int mods);
-void scroll(GLFWwindow* window, double xoffset, double yoffset);
-void posCursor(GLFWwindow* window, double x, double y);
-void charInput(GLFWwindow* window, unsigned int scanChar);
-void dropPath(GLFWwindow* window, int count, const char** paths);
+void scroll(GLFWwindow* window, double x_offset, double y_offset);
+void pos_cursor(GLFWwindow* window, double x, double y);
+void char_input(GLFWwindow* window, unsigned int scan_char);
+void drop_path(GLFWwindow* window, int count, const char** paths);
 void movement();
-int negative_positive();
-void generate_ortographic_cameras();
-float lerp(float a, float b, float f);
-void generateSamples(float sigma_tr, float radius);
-bool initGlfw();
-bool initGlew();
-bool initAntTweakBar();
-bool initScene();
+bool init_glfw();
+bool init_glew();
+bool init_ant_tweak_bar();
+bool init_scene();
 void display();
 void destroy();
 int main();

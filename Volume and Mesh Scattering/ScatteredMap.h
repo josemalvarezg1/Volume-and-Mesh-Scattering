@@ -2,13 +2,13 @@
 #include <GL/glew.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <vector>
 
-class ScatteredMap
+class scattered_map
 {
 public:
-	glm::vec3 position;
-	unsigned int texture, buffer, g_depth, depth_map;
-	unsigned int attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
-	ScatteredMap(glm::vec3 position, int g_width, int g_height);
-	~ScatteredMap();
+	unsigned int buffer, array_texture, depth_texture, attachments[2];
+	scattered_map(int g_width, int g_height, int layers);
+	~scattered_map();
+	void update_scattered_map(int g_width, int g_height, int layers);
 };

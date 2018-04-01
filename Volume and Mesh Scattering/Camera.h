@@ -4,7 +4,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-enum cameraMovement
+enum camera_movement
 {
 	FORWARD,
 	BACKWARD,
@@ -27,19 +27,19 @@ public:
 	glm::vec3 front;
 	glm::vec3 up;
 	glm::vec3 right;
-	glm::vec3 worldUp;
+	glm::vec3 world_up;
 	GLfloat yaw;
 	GLfloat pitch;
-	GLfloat movementSpeed;
-	GLfloat mouseSensitivity;
+	GLfloat movement_speed;
+	GLfloat mouse_sensitivity;
 	GLfloat zoom;
 
 	camera(glm::vec3 position);
-	void processKeyboard(cameraMovement direction, GLfloat deltaTime);
-	void processMouseMovement(GLfloat xoffset, GLfloat yoffset);
-	void processMouseScroll(GLfloat yoffset);
-	glm::mat4 getViewMatrix();
+	void process_keyboard(camera_movement direction, GLfloat delta_time);
+	void process_mouse_movement(GLfloat x_offset, GLfloat y_offset);
+	void process_mouse_scroll(GLfloat y_offset);
+	glm::mat4 get_view_matrix();
 
 private:
-	void updateCameraVectors();
+	void update_camera_vectors();
 };
