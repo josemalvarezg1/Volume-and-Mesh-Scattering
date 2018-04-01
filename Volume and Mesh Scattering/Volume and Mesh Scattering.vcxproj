@@ -137,6 +137,9 @@
     <ClCompile Include="Material.cpp" />
     <ClCompile Include="Model.cpp" />
     <ClCompile Include="ScatteredMap.cpp" />
+    <ClCompile Include="Texture.cpp" />
+    <ClCompile Include="TransferFunction.cpp" />
+    <ClCompile Include="Volume.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
@@ -150,6 +153,9 @@
     <ClInclude Include="Material.h" />
     <ClInclude Include="Model.h" />
     <ClInclude Include="ScatteredMap.h" />
+    <ClInclude Include="Texture.h" />
+    <ClInclude Include="TransferFunction.h" />
+    <ClInclude Include="Volume.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\gBuffer.frag" />
