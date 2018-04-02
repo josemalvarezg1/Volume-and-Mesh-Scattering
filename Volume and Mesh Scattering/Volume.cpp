@@ -152,6 +152,8 @@ volumeRender::volumeRender(int screenWidth, int screenHeight)
 	glGenFramebuffers(1, &this->frameBuffer);
 	this->createBackFaceText();
 	this->createFrameBuffer();
+	this->visible_interface = false;
+	this->volume_interface = interface_volume::instance();
 }
 
 volumeRender::~volumeRender()
@@ -213,10 +215,10 @@ glm::uvec4 volumeRender::getParameters(std::string path)
 
 void volumeRender::initShaders()
 {
-	this->backface.loadShader("../src/shaders/backFace.vert", CGLSLProgram::VERTEX);
-	this->backface.loadShader("../src/shaders/backFace.frag", CGLSLProgram::FRAGMENT);
-	this->raycasting.loadShader("../src/shaders/rayCasting.vert", CGLSLProgram::VERTEX);
-	this->raycasting.loadShader("../src/shaders/rayCasting.frag", CGLSLProgram::FRAGMENT);
+	this->backface.loadShader("Shaders/backFace.vert", CGLSLProgram::VERTEX);
+	this->backface.loadShader("Shaders/backFace.frag", CGLSLProgram::FRAGMENT);
+	this->raycasting.loadShader("Shaders/rayCasting.vert", CGLSLProgram::VERTEX);
+	this->raycasting.loadShader("Shaders/rayCasting.frag", CGLSLProgram::FRAGMENT);
 
 	this->backface.create_link();
 	this->raycasting.create_link();
@@ -269,6 +271,13 @@ bool volumeRender::clickVolume(double x, double y, glm::mat4 &projection, glm::m
 				this->pressVolumeLeft = true;
 			this->xReference = x;
 			this->yReference = y;
+
+			this->volume_interface->show();
+			this->volume_interface->translation = this->volumes[this->indexSelect]->translation;
+			this->volume_interface->rotation = this->volumes[this->indexSelect]->rotation;
+			this->volume_interface->scale = this->volumes[this->indexSelect]->escalation;
+			this->visible_interface = true;
+
 			return true;
 		}
 	}
@@ -519,4 +528,23 @@ void volumeRender::resizeScreen(const glm::vec2 screen)
 	this->screenHeight = (int)screen.y;
 	this->createBackFaceText();
 	this->createFrameBuffer();
+}
+
+void volumeRender::update_interface()
+{
+	if (visible_interface)
+	{
+		if (this->volumes[this->indexSelect]->translation != this->volume_interface->translation)
+		{
+			this->volumes[this->indexSelect]->translation = this->volume_interface->translation;
+		}
+		if (this->volumes[this->indexSelect]->rotation != this->volume_interface->rotation)
+		{
+			this->volumes[this->indexSelect]->rotation = this->volume_interface->rotation;
+		}
+		if (this->volumes[this->indexSelect]->escalation != this->volume_interface->scale)
+		{
+			this->volumes[this->indexSelect]->escalation = this->volume_interface->scale;
+		}
+	}
 }

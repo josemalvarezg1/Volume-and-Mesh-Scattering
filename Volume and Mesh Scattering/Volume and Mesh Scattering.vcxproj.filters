@@ -57,6 +57,9 @@
     <ClCompile Include="Texture.cpp">
       <Filter>Archivos de código fuente</Filter>
     </ClCompile>
+    <ClCompile Include="InterfaceVolume.cpp">
+      <Filter>Archivos de código fuente</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Main.h">
@@ -101,6 +104,9 @@
     <ClInclude Include="Volume.h">
       <Filter>Archivos de encabezado</Filter>
     </ClInclude>
+    <ClInclude Include="InterfaceVolume.h">
+      <Filter>Archivos de encabezado</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\program.frag">
@@ -134,6 +140,30 @@
       <Filter>Shaders</Filter>
     </None>
     <None Include="Shaders\scatteredMap.geom">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\quad.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\function.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\function.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\quad.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\backFace.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\backFace.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\rayCasting.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\rayCasting.frag">
       <Filter>Shaders</Filter>
     </None>
   </ItemGroup>

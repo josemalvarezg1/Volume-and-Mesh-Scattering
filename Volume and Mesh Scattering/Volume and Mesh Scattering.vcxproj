@@ -132,6 +132,7 @@
     <ClCompile Include="Halton.cpp" />
     <ClCompile Include="InterfaceLight.cpp" />
     <ClCompile Include="InterfaceModel.cpp" />
+    <ClCompile Include="InterfaceVolume.cpp" />
     <ClCompile Include="Light.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="Material.cpp" />
@@ -148,6 +149,7 @@
     <ClInclude Include="Halton.h" />
     <ClInclude Include="InterfaceLight.h" />
     <ClInclude Include="InterfaceModel.h" />
+    <ClInclude Include="InterfaceVolume.h" />
     <ClInclude Include="Light.h" />
     <ClInclude Include="Main.h" />
     <ClInclude Include="Material.h" />
@@ -158,6 +160,10 @@
     <ClInclude Include="Volume.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Shaders\backFace.frag" />
+    <None Include="Shaders\backFace.vert" />
+    <None Include="Shaders\function.frag" />
+    <None Include="Shaders\function.vert" />
     <None Include="Shaders\gBuffer.frag" />
     <None Include="Shaders\gBuffer.vert" />
     <None Include="Shaders\gBufferPosition.frag" />
@@ -166,6 +172,10 @@
     <None Include="Shaders\light.vert" />
     <None Include="Shaders\program.frag" />
     <None Include="Shaders\program.vert" />
+    <None Include="Shaders\quad.frag" />
+    <None Include="Shaders\quad.vert" />
+    <None Include="Shaders\rayCasting.frag" />
+    <None Include="Shaders\rayCasting.vert" />
     <None Include="Shaders\scatteredMap.frag" />
     <None Include="Shaders\scatteredMap.geom" />
     <None Include="Shaders\scatteredMap.vert" />

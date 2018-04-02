@@ -1,14 +1,11 @@
 #include "Main.h"
-#include "Model.h"
-#include "Halton.h"
-#include "ScatteredMap.h"
 
 GLFWwindow *g_window;
 int g_width, g_height;
-GLuint num_of_lights, num_of_orto_cameras, num_of_samples_per_frag;
+GLuint num_of_lights, num_of_ortho_cameras, num_of_samples_per_frag;
 GLfloat delta_time = 0.0f, last_frame = 0.0f, current_frame;
 GLdouble last_x = 600.0, last_y = 340.0;
-bool keys[1024], keys_pressed[1024], selecting_model = false, selecting_light = false, first_mouse = true, activate_camera = false, change_light = false;
+bool keys[1024], keys_pressed[1024], selecting_model = false, selecting_light = false, first_mouse = true, activate_camera = false, change_light = false, selecting_volume = false;
 scattered_map *scattered_maps;
 halton *halton_generator;
 glm::mat4 projection, view, model;
@@ -18,6 +15,8 @@ camera *scene_camera;
 mesh_set *m_set;
 light_buffers_set *light_buffers;
 materials_set *materials;
+interface_function *transfer_funtion;
+volumeRender *volumes;
 
 CGLSLProgram glsl_blinn, glsl_g_buffer, glsl_g_buffer_plane, glsl_scattered_map;
 int selected_model = -1;
@@ -55,6 +54,7 @@ void reshape(GLFWwindow *window, int width, int height)
 	g_width = max(width, 1);
 	g_height = max(height, 1);
 
+	volumes->resizeScreen(glm::vec2(g_width, g_height));
 	scene_light->light_interface->reshape(g_width, g_height);
 	m_set->model_interface->reshape(g_width, g_height);
 
@@ -95,6 +95,10 @@ void key_input(GLFWwindow *window, int key, int scan_code, int action, int mods)
 					m_set->not_click_model();
 				if (selecting_light)
 					scene_light->not_click_light();
+				if (selecting_volume) {
+					transfer_funtion->hide = true;
+					volumes->volume_interface->hide();
+				}
 			}
 			else {
 				glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
@@ -102,8 +106,18 @@ void key_input(GLFWwindow *window, int key, int scan_code, int action, int mods)
 					m_set->click_model(selected_model);
 				if (selecting_light)
 					scene_light->click_light();
+				if (selecting_volume) {
+					transfer_funtion->hide = false;
+					volumes->volume_interface->show();
+				}
 			}
 		}
+		if (keys[GLFW_KEY_DELETE])
+			transfer_funtion->delete_point();
+		if (keys[GLFW_KEY_M])
+			transfer_funtion->movable = true;
+		if (keys[GLFW_KEY_N])
+			transfer_funtion->movable = false;
 	}
 }
 
@@ -113,6 +127,8 @@ void click(GLFWwindow* window, int button, int action, int mods)
 		return;
 	double x, y;
 	glfwGetCursorPos(g_window, &x, &y);
+	view = scene_camera->get_view_matrix();
+	projection = glm::perspective(scene_camera->zoom, (float)g_width / (float)g_height, 0.1f, 100.0f);
 	if (action == GLFW_PRESS)
 	{
 		if (button == GLFW_MOUSE_BUTTON_LEFT)
@@ -125,28 +141,65 @@ void click(GLFWwindow* window, int button, int action, int mods)
 				if (index <= m_set->mesh_models.size())
 				{
 					scene_light->not_click_light();
+					volumes->volume_interface->hide();
 					selected_model = index - 1;
 					m_set->click_model(selected_model);
 					selecting_model = true;
 					selecting_light = false;
+					selecting_volume = false;
+					transfer_funtion->hide = true;
 				}
 				else
 				{
 					m_set->not_click_model();
+					volumes->volume_interface->hide();
 					scene_light->click_light();
 					selecting_model = false;
 					selected_model = -1;
 					selecting_light = true;
+					transfer_funtion->hide = true;
 				}
 			}
 			else {
 				selecting_model = false;
+				selecting_volume = false;
 				selected_model = -1;
 				m_set->not_click_model();
 				scene_light->not_click_light();
 				selecting_light = false;
 			}
+			if (transfer_funtion->click_transfer_f(x, y, g_width, g_height))
+			{
+				volumes->UpdateTransferFunction(transfer_funtion->get_color_points());
+				return;
+			}
+			if (volumes->clickVolume(x, y, projection, view, scene_camera->position, false)) {
+				selecting_volume = true;
+				transfer_funtion->hide = false;
+				volumes->volume_interface->show();
+				m_set->not_click_model();
+				scene_light->not_click_light();
+				return;
+			}
 		}
+		else
+		{
+			if (button == GLFW_MOUSE_BUTTON_RIGHT)
+			{
+				if (volumes->clickVolume(x, y, projection, view, scene_camera->position, true))
+					return;
+			}
+		}
+	} else if (action == GLFW_RELEASE)
+	{
+		if (button == GLFW_MOUSE_BUTTON_LEFT)
+		{
+			transfer_funtion->disable_select();
+			volumes->disableSelect();
+		}
+		else
+			if (button == GLFW_MOUSE_BUTTON_RIGHT)
+				volumes->disableSelect();
 	}
 }
 
@@ -177,6 +230,14 @@ void pos_cursor(GLFWwindow* window, double x, double y)
 	last_y = y;
 	if (activate_camera)
 		scene_camera->process_mouse_movement(x_offset, y_offset);
+
+	if (transfer_funtion->poscursor_transfer_f(x, y, g_width, g_height))
+	{
+		volumes->UpdateTransferFunction(transfer_funtion->get_color_points());
+		return;
+	}
+	/*if (volumes->poscursorVolume(x, y))
+		return;*/
 }
 
 void char_input(GLFWwindow* window, unsigned int scan_char)
@@ -187,7 +248,7 @@ void char_input(GLFWwindow* window, unsigned int scan_char)
 
 void drop_path(GLFWwindow* window, int count, const char** paths)
 {
-	//volumes->dropPath(count, paths);
+	volumes->dropPath(count, paths);
 }
 
 void movement()
@@ -353,8 +414,8 @@ bool init_scene()
 	mesh *scene_model;
 
 	num_of_lights = 1;
-	num_of_orto_cameras = 4;
-	num_of_samples_per_frag = 3 * num_of_orto_cameras;
+	num_of_ortho_cameras = 1;
+	num_of_samples_per_frag = 3 * num_of_ortho_cameras;
 
 	scene_light = new light();
 	scene_model = new mesh();
@@ -362,6 +423,10 @@ bool init_scene()
 	halton_generator = new halton();
 	materials = new materials_set();
 	light_buffers = new light_buffers_set();
+	transfer_funtion = new interface_function();
+	volumes = new volumeRender(g_width, g_height);
+	volumes->UpdateTransferFunction(transfer_funtion->get_color_points());
+	transfer_funtion->hide = true;
 
 	for (size_t i = 0; i < num_of_lights; i++)
 	{
@@ -383,17 +448,19 @@ bool init_scene()
 	materials->materials.push_back(cream);
 	materials->materials.push_back(none);
 
-	scattered_maps = new scattered_map(g_width, g_height, num_of_orto_cameras);
+	scattered_maps = new scattered_map(g_width, g_height, num_of_ortho_cameras);
 	scene_camera = new camera(glm::vec3(0.0f, 0.0f, 16.0f));
 	scene_model->load("Models/obj/bunny.obj");
 	m_set->mesh_models.push_back(scene_model);
-	halton_generator->generate_orthographic_cameras(num_of_orto_cameras);
+	halton_generator->generate_orthographic_cameras(num_of_ortho_cameras);
 
 	return true;
 }
 
 void display()
 {
+	glEnable(GL_DEPTH_TEST);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glm::mat4 projection_ortho, view_ortho, view_proj_ortho_light, view_proj_ortho_random, model_mat;
 	glm::vec3 sigma_tr;
 
@@ -452,7 +519,7 @@ void display()
 			model_mat = model_mat * glm::toMat4(m_set->mesh_models[i]->rotation);
 			model_mat = glm::scale(model_mat, glm::vec3(m_set->mesh_models[i]->scale));
 
-			for (size_t j = 0; j < num_of_orto_cameras; j++)
+			for (size_t j = 0; j < num_of_ortho_cameras; j++)
 			{
 				view_ortho = glm::lookAt(halton_generator->camera_positions[j], m_set->mesh_models[i]->center, glm::vec3(0.0f, 1.0f, 0.0f));
 				view_proj_ortho_random = projection_ortho * view_ortho;
@@ -460,8 +527,8 @@ void display()
 			}
 
 			glUniformMatrix4fv(glsl_scattered_map.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
-			glUniform1i(glsl_scattered_map.getLocation("n_cameras"), num_of_orto_cameras);
-			glUniformMatrix4fv(glsl_scattered_map.getLocation("cameras_matrix"), num_of_orto_cameras, GL_FALSE, glm::value_ptr(view_proj_ortho_randoms[0]));
+			glUniform1i(glsl_scattered_map.getLocation("n_cameras"), num_of_ortho_cameras);
+			glUniformMatrix4fv(glsl_scattered_map.getLocation("cameras_matrix"), num_of_ortho_cameras, GL_FALSE, glm::value_ptr(view_proj_ortho_randoms[0]));
 			glUniformMatrix4fv(glsl_scattered_map.getLocation("vp_light"), 1, GL_FALSE, glm::value_ptr(view_proj_ortho_light));
 			glUniform1i(glsl_scattered_map.getLocation("g_position"), 0);
 			glUniform1i(glsl_scattered_map.getLocation("g_normal"), 1);
@@ -547,12 +614,18 @@ void display()
 	glBindTexture(GL_TEXTURE_2D_ARRAY, scattered_maps->array_texture);
 	render_quad();
 	glsl_g_buffer_plane.disable();
+
+	glDisable(GL_DEPTH_TEST);
+
+	volumes->display(projection * view, scene_camera->position, scene_light->translation, scene_light->on, scene_light->ambient_comp, scene_light->diffuse_comp, scene_light->specular_comp);
+	transfer_funtion->display();
 }
 
 void destroy()
 {
 	glfwDestroyWindow(g_window);
 	glfwTerminate();
+	transfer_funtion->~interface_function();
 }
 
 int main()
@@ -570,10 +643,12 @@ int main()
 		last_frame = current_frame;
 		glfwPollEvents();
 		movement();
+		transfer_funtion->update_coords();
 		display();
 		TwDraw();
 		change_light = scene_light->update_interface();
 		m_set->update_interface(selected_model);
+		volumes->update_interface();
 		glfwSwapBuffers(g_window);
 	}
 

@@ -19,143 +19,143 @@ enum structure
 };
 
 #define ERROR 0.0001
-#define HISTDISPX 0.65
-#define HISTDISPY 0.65
-#define HISTSIZEX 0.6
-#define HISTSIZEY 0.6
-#define MAPDISPX 0.65
-#define MAPDISPY 0.65
-#define MAPSIZEX 0.472
-#define MAPSIZEY 0.3712
-#define POINTDISPX 0.351
-#define POINTDISPY 0.23
-#define POINTSIZEX 0.015
-#define POINTSIZEY 0.015
-#define SELECTORDISPX 0.351
-#define SELECTORDISPY 0.291
-#define SELECTORSIZEX 0.01
-#define SELECTORSIZEY 0.1
-#define BARDISPX 0.35
-#define BARDISPY 0.29
-#define BARSIZEX 0.1
-#define BARSIZEY 0.1
-#define AREADISPX 0.35
-#define AREADISPY -0.12
-#define AREASIZEX 0.6
-#define AREASIZEY 0.7
-#define COLORSDISPX 0.35
-#define COLORSDISPY -0.53
-#define COLORSSIZEX 0.6
-#define COLORSSIZEY 0.1
+#define HISTDISP_X 0.65
+#define HISTDISP_Y 0.65
+#define HISTSIZE_X 0.6
+#define HISTSIZE_Y 0.6
+#define MAPDISP_X 0.65
+#define MAPDISP_Y 0.65
+#define MAPSIZE_X 0.472
+#define MAPSIZE_Y 0.3712
+#define POINTDISP_X 0.351
+#define POINTDISP_Y 0.23
+#define POINTSIZE_X 0.015
+#define POINTSIZE_Y 0.015
+#define SELECTORDISP_X 0.351
+#define SELECTORDISP_Y 0.291
+#define SELECTORSIZE_X 0.01
+#define SELECTORSIZE_Y 0.1
+#define BARDISP_X 0.35
+#define BARDISP_Y 0.29
+#define BARSIZE_X 0.1
+#define BARSIZE_Y 0.1
+#define AREADISP_X 0.35
+#define AREADISP_Y - 0.12
+#define AREASIZE_X 0.6
+#define AREASIZE_Y 0.7
+#define COLORSDISP_X 0.35
+#define COLORSDISP_Y - 0.53
+#define COLORSSIZE_X 0.6
+#define COLORSSIZE_Y 0.1
 
-class quadColor
+class quad_color
 {
 public:
-	std::vector<glm::vec2> coordsVertex;
+	std::vector<glm::vec2> coords_vertex;
 	std::vector<glm::vec4> colors;
 	GLuint vbo, vao;
-	quadColor(std::vector<glm::vec2> coordsVertex, std::vector<glm::vec4> colors);
-	~quadColor();
-	void mobilize(double displX, double displY);
-	void createVBO();
+	quad_color(std::vector<glm::vec2> coords_vertex, std::vector<glm::vec4> colors);
+	~quad_color();
+	void mobilize(double displ_x, double displ_y);
+	void create_vbo();
 	void display();
 };
 
-class quadTexture
+class quad_texture
 {
 public:
-	std::vector<glm::vec2> coordsVertex, coordsTexture;
+	std::vector<glm::vec2> coords_vertex, coords_texture;
 	GLuint vbo, vao;
-	quadTexture(double sizeX, double sizeY);
-	~quadTexture();
-	void createVBO();
+	quad_texture(double size_x, double size_y);
+	~quad_texture();
+	void create_vbo();
 	void display();
 };
 
 class region
 {
 public:
-	double displacementX, displacementY, sizeX, sizeY;
-	bool vertMovable, horizMovable;
+	double displacement_x, displacement_y, size_x, size_y;
+	bool vert_movable, horiz_movable;
 
-	region(double dispX, double dispY, double sizeX, double sizeY, bool horizMovable, bool vertMovable);
-	glm::vec2 getDisp();
-	glm::vec2 getMinCoords();
-	glm::vec2 getMaxCoords();
-	void mobilize(double displX, double displY);
-	void editPos(double displX, double displY);
-	bool intersection(double displX, double displY);
-	bool intersectionX(double displX);
-	bool intersectionY(double displY);
+	region(double disp_x, double disp_y, double size_x, double size_y, bool horiz_movable, bool vert_movable);
+	glm::vec2 get_disp();
+	glm::vec2 get_min_coords();
+	glm::vec2 get_max_coords();
+	void mobilize(double displ_x, double displ_y);
+	void edit_pos(double displ_x, double displ_y);
+	bool intersection(double displ_x, double displ_y);
+	bool intersection_x(double displ_x);
+	bool intersection_y(double displ_y);
 };
 
 class point : public region
 {
 public:
-	double coordH;
-	glm::vec2 coordSV;
+	double coord_h;
+	glm::vec2 coord_sv;
 
-	point(double dispX, double dispY, double sizeX, double sizeY, bool horizMovable, bool vertMovable, double coordH, glm::vec2 coordSV);
-	void mobilizeSP(double displX, double displY);
+	point(double disp_x, double disp_y, double size_x, double size_y, bool horiz_movable, bool vert_movable, double coord_h, glm::vec2 coord_sv);
+	void mobilize_sp(double displ_x, double displ_y);
 };
 
 class histogram : public region
 {
 public:
-	std::vector<point*> controlPoints;
-	region *cartesianMap;
-	quadColor *connections;
+	std::vector<point*> control_points;
+	region *cartesian_map;
+	quad_color *connections;
 
-	histogram(double dispX, double dispY, double sizeX, double sizeY, bool horizMovable, bool vertMovable);
-	void mobilizeH(double displX, double displY);
-	int selected(double dispX, double dispY);
-	bool collision(double dispX, double dispY, int indexSelect);
-	bool circlesIntersection(glm::vec2 circle1, glm::vec2 circle2);
-	bool between(double lowerLimit, double position, double upperLimit);
-	bool creation(double dispX);
-	void updateConnections(glm::vec2 coordsXS, glm::vec2 coordsPX, glm::vec2 coordsPY, glm::vec2 coordsYPS);
+	histogram(double disp_x, double disp_y, double size_x, double size_y, bool horiz_movable, bool vert_movable);
+	void mobilize_h(double displ_x, double displ_y);
+	int selected(double disp_x, double disp_y);
+	bool collision(double disp_x, double disp_y, int index_select);
+	bool circles_intersection(glm::vec2 first_circle, glm::vec2 second_circle);
+	bool between(double lower_limit, double position, double upper_limit);
+	bool creation(double disp_x);
+	void update_connections(glm::vec2 coords_xs, glm::vec2 coords_px, glm::vec2 coords_py, glm::vec2 coords_yps);
 };
 
-class colorPick
+class color_pick
 {
 public:
-	quadColor *colorBarQ, *colorAreaQ, *colorSelectQ;
-	region *selector, *point, *colorBarR, *colorAreaR;
+	quad_color *color_bar_q, *color_area_q, *color_select_q;
+	region *selector, *point, *color_bar_r, *color_area_r;
 
-	colorPick();
-	~colorPick();
-	void mobilize(double displX, double displY);
+	color_pick();
+	~color_pick();
+	void mobilize(double displ_x, double displ_y);
 };
 
-class interfaceFunction
+class interface_function
 {
 public:
 	histogram *map;
-	colorPick *colorPicker;
-	std::vector<quadTexture*> quadsT;
+	color_pick *color_picker;
+	std::vector<quad_texture*> quads_t;
 	std::vector<texture*> textures;
-	bool histogramPress, cartesianMapPress, colorBarPress, colorAreaPress, hide, movable;
-	int indexSelect;
-	double xReference, yReference;
+	bool histogram_press, cartesian_map_press, color_bar_press, color_area_press, hide, movable;
+	int index_select;
+	double x_reference, y_reference;
 	CGLSLProgram p1, p2;
 
-	interfaceFunction();
-	~interfaceFunction();
-	void initShaders();
-	void renderHistogram();
-	void renderFunction();
-	void renderPoints();
-	void renderColorPicker();
-	void renderSelectorAndPoint();
+	interface_function();
+	~interface_function();
+	void init_shaders();
+	void render_histogram();
+	void render_function();
+	void render_points();
+	void render_color_picker();
+	void render_selector_and_point();
 	void display();
-	void mobilize(double displX, double displY);
-	void updateCoords();
-	void updateLines();
-	void updateColorArea();
-	void updateColorSelect();
-	bool clickTransferF(double x, double y, int gWidth, int gHeight);
-	void disableSelect();
-	bool poscursorTransferF(double x, double y, int gWidth, int gHeight);
-	void deletePoint();
-	std::vector<double> getColorPoints();
+	void mobilize(double displ_x, double displ_y);
+	void update_coords();
+	void update_lines();
+	void update_color_area();
+	void update_color_select();
+	bool click_transfer_f(double x, double y, int g_width, int g_height);
+	void disable_select();
+	bool poscursor_transfer_f(double x, double y, int g_width, int g_height);
+	void delete_point();
+	std::vector<double> get_color_points();
 };

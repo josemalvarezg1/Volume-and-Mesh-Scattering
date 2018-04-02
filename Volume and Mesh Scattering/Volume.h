@@ -6,6 +6,7 @@
 #include <fstream>
 #include <sstream>
 #include "GLSLProgram.h"
+#include "InterfaceVolume.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -36,12 +37,15 @@ class volumeRender
 public:
 	CGLSLProgram backface, raycasting;
 	int screenWidth, screenHeight;
-	unsigned int indexSelect;
+	int indexSelect;
 	GLuint frameBuffer, backFaceText, transferFunctionText;
 	cube *unitaryCube;
 	std::vector<volume*> volumes;
 	bool pressVolumeRight, pressVolumeLeft;
 	double xReference, yReference;
+	interface_volume *volume_interface;
+	bool visible_interface;
+
 	volumeRender(int screenWidth, int screenHeight);
 	~volumeRender();
 	void dropPath(int count, const char** paths);
@@ -62,4 +66,6 @@ public:
 	void display(glm::mat4 &viewProjection, glm::vec3 viewPos, glm::vec3 lightPos, bool on, glm::vec3 ambientComp, glm::vec3 diffuseComp, glm::vec3 specularComp);
 	void changeVolume(int type);
 	void resizeScreen(const glm::vec2 screen);
+
+	void update_interface();
 };

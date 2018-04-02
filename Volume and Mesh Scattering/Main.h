@@ -1,7 +1,7 @@
 #pragma once
 #define GLFW_DLL
 #define GLEW_STATIC
-#define STB_IMAGE_IMPLEMENTATION
+
 #include <iostream>
 #include <string.h>
 #include "Camera.h"
@@ -18,6 +18,11 @@
 #include "Light.h"
 #include "G-Buffer.h"
 #include "Material.h"
+#include "Model.h"
+#include "Halton.h"
+#include "ScatteredMap.h"
+#include "TransferFunction.h"
+#include "Volume.h"
 
 void reshape(GLFWwindow *window, int width, int height);
 void key_input(GLFWwindow *window, int key, int scan_code, int action, int mods);
