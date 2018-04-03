@@ -1,12 +1,12 @@
 #version 330
-layout(location = 0) in vec3 vertexCoords;
-layout(location = 1) in vec3 volumeCoords;
+layout(location = 0) in vec3 vertex_coords;
+layout(location = 1) in vec3 volume_coords;
 uniform mat4 MVP;
 
 out vec3 coordinate;
 
 void main()
 {
-	coordinate = volumeCoords;
-    gl_Position = MVP * vec4(vertexCoords, 1.0);
+	coordinate = volume_coords;
+    gl_Position = MVP * vec4(vertex_coords, 1.0);
 }

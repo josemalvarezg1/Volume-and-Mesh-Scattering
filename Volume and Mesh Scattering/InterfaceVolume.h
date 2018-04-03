@@ -14,7 +14,7 @@ private:
 public:
 	glm::vec3 translation;
 	glm::quat rotation;
-	GLfloat scale;
+	GLfloat scale, asymmetry_param_g, radius;
 
 	static interface_volume * instance();
 	~interface_volume();

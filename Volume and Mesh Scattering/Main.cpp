@@ -16,7 +16,7 @@ mesh_set *m_set;
 light_buffers_set *light_buffers;
 materials_set *materials;
 interface_function *transfer_funtion;
-volumeRender *volumes;
+volume_render *volumes;
 
 CGLSLProgram glsl_blinn, glsl_g_buffer, glsl_g_buffer_plane, glsl_scattered_map;
 int selected_model = -1;
@@ -54,7 +54,7 @@ void reshape(GLFWwindow *window, int width, int height)
 	g_width = max(width, 1);
 	g_height = max(height, 1);
 
-	volumes->resizeScreen(glm::vec2(g_width, g_height));
+	volumes->resize_screen(glm::vec2(g_width, g_height));
 	scene_light->light_interface->reshape(g_width, g_height);
 	m_set->model_interface->reshape(g_width, g_height);
 
@@ -170,10 +170,10 @@ void click(GLFWwindow* window, int button, int action, int mods)
 			}
 			if (transfer_funtion->click_transfer_f(x, y, g_width, g_height))
 			{
-				volumes->UpdateTransferFunction(transfer_funtion->get_color_points());
+				volumes->update_transfer_function(transfer_funtion->get_color_points());
 				return;
 			}
-			if (volumes->clickVolume(x, y, projection, view, scene_camera->position, false)) {
+			if (volumes->click_volume(x, y, projection, view, scene_camera->position, false)) {
 				selecting_volume = true;
 				transfer_funtion->hide = false;
 				volumes->volume_interface->show();
@@ -186,7 +186,7 @@ void click(GLFWwindow* window, int button, int action, int mods)
 		{
 			if (button == GLFW_MOUSE_BUTTON_RIGHT)
 			{
-				if (volumes->clickVolume(x, y, projection, view, scene_camera->position, true))
+				if (volumes->click_volume(x, y, projection, view, scene_camera->position, true))
 					return;
 			}
 		}
@@ -195,11 +195,11 @@ void click(GLFWwindow* window, int button, int action, int mods)
 		if (button == GLFW_MOUSE_BUTTON_LEFT)
 		{
 			transfer_funtion->disable_select();
-			volumes->disableSelect();
+			volumes->disable_select();
 		}
 		else
 			if (button == GLFW_MOUSE_BUTTON_RIGHT)
-				volumes->disableSelect();
+				volumes->disable_select();
 	}
 }
 
@@ -233,7 +233,7 @@ void pos_cursor(GLFWwindow* window, double x, double y)
 
 	if (transfer_funtion->poscursor_transfer_f(x, y, g_width, g_height))
 	{
-		volumes->UpdateTransferFunction(transfer_funtion->get_color_points());
+		volumes->update_transfer_function(transfer_funtion->get_color_points());
 		return;
 	}
 	/*if (volumes->poscursorVolume(x, y))
@@ -248,7 +248,7 @@ void char_input(GLFWwindow* window, unsigned int scan_char)
 
 void drop_path(GLFWwindow* window, int count, const char** paths)
 {
-	volumes->dropPath(count, paths);
+	volumes->drop_path(count, paths);
 }
 
 void movement()
@@ -424,8 +424,8 @@ bool init_scene()
 	materials = new materials_set();
 	light_buffers = new light_buffers_set();
 	transfer_funtion = new interface_function();
-	volumes = new volumeRender(g_width, g_height);
-	volumes->UpdateTransferFunction(transfer_funtion->get_color_points());
+	volumes = new volume_render(g_width, g_height);
+	volumes->update_transfer_function(transfer_funtion->get_color_points());
 	transfer_funtion->hide = true;
 
 	for (size_t i = 0; i < num_of_lights; i++)

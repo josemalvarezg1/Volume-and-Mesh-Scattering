@@ -28,6 +28,9 @@ interface_volume::interface_volume()
 	TwAddVarRW(this->volume_interface, "Posición Y", TW_TYPE_FLOAT, &this->translation[1], "group = 'Transformaciones' step = 0.01");
 	TwAddVarRW(this->volume_interface, "Posición Z", TW_TYPE_FLOAT, &this->translation[2], "group = 'Transformaciones' step = 0.01");
 	TwAddVarRW(this->volume_interface, "Rotación", TW_TYPE_QUAT4F, &this->rotation, "group='Transformaciones' opened=true");
+
+	TwAddVarRW(this->volume_interface, "Asimetría g", TW_TYPE_FLOAT, &this->asymmetry_param_g, "group='Parámetros de Dispersión' min=-1.0 max=0.99 step=0.01");
+	TwAddVarRW(this->volume_interface, "Radio", TW_TYPE_FLOAT, &this->radius, "group='Parámetros de Dispersión' min=0.5 max=1.0 step=0.001");
 }
 
 interface_volume::~interface_volume()

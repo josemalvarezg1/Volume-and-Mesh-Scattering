@@ -422,14 +422,14 @@ void interface_function::init_shaders()
 	this->p2.create_link();
 
 	this->p1.enable();
-	this->p1.addAttribute("vertCoords");
-	this->p1.addAttribute("texCoords");
-	this->p1.addUniform("textureId");
+	this->p1.addAttribute("vert_coords");
+	this->p1.addAttribute("tex_coords");
+	this->p1.addUniform("texture_id");
 	this->p1.addUniform("displacement");
 	this->p1.disable();
 
 	this->p2.enable();
-	this->p2.addAttribute("vertCoords");
+	this->p2.addAttribute("vert_coords");
 	this->p2.addAttribute("color");
 	this->p2.disable();
 }
@@ -439,7 +439,7 @@ void interface_function::render_histogram()
 	glBindTexture(GL_TEXTURE_2D, this->textures[HISTOGRAM]->get_texture_ID());
 	this->p1.enable();
 	glUniform2f(this->p1.getLocation("displacement"), (GLfloat) this->map->displacement_x, (GLfloat) this->map->displacement_y);
-	glUniform1i(this->p1.getLocation("textureId"), 0);
+	glUniform1i(this->p1.getLocation("texture_id"), 0);
 	this->quads_t[HISTOGRAM]->display();
 	this->p1.disable();
 }
