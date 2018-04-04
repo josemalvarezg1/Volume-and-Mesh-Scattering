@@ -129,7 +129,7 @@ void click(GLFWwindow* window, int button, int action, int mods)
 	glfwGetCursorPos(g_window, &x, &y);
 	view = scene_camera->get_view_matrix();
 	projection = glm::perspective(scene_camera->zoom, (float)g_width / (float)g_height, 0.1f, 100.0f);
-	if (action == GLFW_PRESS)
+	if (action == GLFW_PRESS && !activate_camera)
 	{
 		if (button == GLFW_MOUSE_BUTTON_LEFT)
 		{
@@ -157,12 +157,12 @@ void click(GLFWwindow* window, int button, int action, int mods)
 					selecting_model = false;
 					selected_model = -1;
 					selecting_light = true;
+					selecting_volume = false;
 					transfer_funtion->hide = true;
 				}
 			}
 			else {
 				selecting_model = false;
-				selecting_volume = false;
 				selected_model = -1;
 				m_set->not_click_model();
 				scene_light->not_click_light();
