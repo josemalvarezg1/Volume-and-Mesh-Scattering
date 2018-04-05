@@ -130,9 +130,9 @@ void main()
         offset.xyz = offset.xyz * 0.5 + 0.5;
 		offset.xy += samples[i].xy;
 
-		//theta = 2 * PI * radius;
-		//rotation_samples_matrix = mat2(vec2(cos(theta), sin(theta)), vec2(-sin(theta), cos(theta)));
-		//offset.xy = rotation_samples_matrix * offset.xy;
+		theta = 2 * PI * radius;
+		rotation_samples_matrix = mat2(vec2(cos(theta), sin(theta)), vec2(-sin(theta), cos(theta)));
+		offset.xy = rotation_samples_matrix * offset.xy;
 
 		xi = texture(g_position, offset.xy).xyz;
 		ni = texture(g_normal, offset.xy).xyz;
@@ -150,7 +150,6 @@ void main()
 			xv = xi  + (2 * A * de * ni_ast);
 			dv = vec3(length(xo - xv));
 			wv = w12 - (2 * (dot(w12, ni_ast)) * ni_ast);
-			//dr = sqrt(pow(r, vec3(2.0f)) + pow(zr, vec3(2.0f)));
 
 			cos_beta = -sqrt((pow(r, vec3(2.0f)) - pow(dot(x, w12), 2)) / (pow(r, vec3(2.0f)) + pow(de, vec3(2.0f))));
 			miu_0 = dot(-no, w12);
@@ -164,8 +163,6 @@ void main()
 			Ti = fresnel_t(wi, ni, refractive_index);
 			To = fresnel_t(wo, no, refractive_index);
 
-			//diffuse_part = (Ti * diffuse_part_d * dot_n_w * rj) / p;
-
 			diffuse_part = (Ti * diffuse_part_d * dot(ni, wi));
 
 			Lo += diffuse_part;
@@ -178,5 +175,5 @@ void main()
 
 	/* Fin: Generación de muestras */	
 
-	color = vec4(Lo, 1.0f);
+	color = vec4(Lo * diffuse_reflectance, 1.0f);
 }

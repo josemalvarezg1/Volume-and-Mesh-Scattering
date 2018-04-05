@@ -18,7 +18,7 @@ materials_set *materials;
 interface_function *transfer_funtion;
 volume_render *volumes;
 
-CGLSLProgram glsl_blinn, glsl_g_buffer, glsl_g_buffer_plane, glsl_scattered_map;
+CGLSLProgram glsl_blinn, glsl_g_buffer, glsl_g_buffer_plane, glsl_scattered_map, glsl_mipmaps;
 int selected_model = -1;
 GLuint quad_vao, quad_vbo;
 
@@ -328,11 +328,15 @@ bool init_glew()
 		glsl_scattered_map.loadShader("Shaders/scatteredMap.vert", CGLSLProgram::VERTEX);
 		glsl_scattered_map.loadShader("Shaders/scatteredMap.frag", CGLSLProgram::FRAGMENT);
 		glsl_scattered_map.loadShader("Shaders/scatteredMap.geom", CGLSLProgram::GEOMETRY);
+		glsl_mipmaps.loadShader("Shaders/mipmap.vert", CGLSLProgram::VERTEX);
+		glsl_mipmaps.loadShader("Shaders/mipmap.frag", CGLSLProgram::FRAGMENT);
+		glsl_mipmaps.loadShader("Shaders/mipmap.geom", CGLSLProgram::GEOMETRY);
 
 		glsl_blinn.create_link();
 		glsl_g_buffer.create_link();
 		glsl_g_buffer_plane.create_link();
 		glsl_scattered_map.create_link();
+		glsl_mipmaps.create_link();
 
 		glsl_blinn.enable();
 			glsl_blinn.addAttribute("position");
@@ -395,6 +399,16 @@ bool init_glew()
 			glsl_scattered_map.addUniform("zr");
 
 		glsl_scattered_map.disable();
+
+		glsl_mipmaps.enable();
+			glsl_mipmaps.addAttribute("position");
+			glsl_mipmaps.addAttribute("normal");
+
+			glsl_mipmaps.addUniform("n_cameras");
+			glsl_mipmaps.addUniform("cameras_matrix");
+
+		glsl_mipmaps.disable();
+		
 
 		return true;
 	}

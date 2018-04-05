@@ -60,6 +60,9 @@
     <ClCompile Include="InterfaceVolume.cpp">
       <Filter>Archivos de código fuente</Filter>
     </ClCompile>
+    <ClCompile Include="Mipmap.cpp">
+      <Filter>Archivos de código fuente</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Main.h">
@@ -105,6 +108,9 @@
       <Filter>Archivos de encabezado</Filter>
     </ClInclude>
     <ClInclude Include="InterfaceVolume.h">
+      <Filter>Archivos de encabezado</Filter>
+    </ClInclude>
+    <ClInclude Include="Mipmap.h">
       <Filter>Archivos de encabezado</Filter>
     </ClInclude>
   </ItemGroup>
@@ -164,6 +170,15 @@
       <Filter>Shaders</Filter>
     </None>
     <None Include="Shaders\rayCasting.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\mipmap.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\mipmap.geom">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\mipmap.vert">
       <Filter>Shaders</Filter>
     </None>
   </ItemGroup>

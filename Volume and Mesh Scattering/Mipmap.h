@@ -4,11 +4,11 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <vector>
 
-class scattered_map
+class mipmap
 {
 public:
 	unsigned int buffer, array_texture, depth_texture;
-	scattered_map(int g_width, int g_height, int layers);
-	~scattered_map();
-	void update_scattered_map(int g_width, int g_height, int layers);
+	mipmap(int g_width, int g_height, int layers, int mipmaps);
+	~mipmap();
+	void update_mipmap(int g_width, int g_height, int layers, int mipmaps);
 };
