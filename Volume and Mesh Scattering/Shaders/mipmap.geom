@@ -8,12 +8,14 @@ uniform int n_cameras;
 in vec3 geom_coord_text[3];
 
 out vec3 coord_text;
+out int current_layer;
 
 void main(void)
 {
 	for (int i = 0; i < n_cameras; i++)
 	{
 		gl_Layer = i;
+		current_layer = i;
 		for (int k = 0; k < 3; k++)
 		{
             coord_text = geom_coord_text[k];

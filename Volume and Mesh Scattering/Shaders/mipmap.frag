@@ -1,5 +1,6 @@
-#version 430
+#version 330
 in vec3 coord_text;
+in int current_layer;
 
 uniform sampler2DArray scattered_map;
 uniform int scaling;
@@ -15,9 +16,7 @@ void main(void)
 {
 	vec4 c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, step_1, step_2, step_3;
 	float adj_step, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, vstep_1, vstep_2, vstep_3;
-	int current_layer;
 
-	current_layer = gl_Layer;
 	adj_step = 1.0f / 1024.0f * 0.5f * scaling;
     
 	c0  = sampleTex(scattered_map, vec3(coord_text.xy, current_layer));
