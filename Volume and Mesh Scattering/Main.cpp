@@ -18,7 +18,7 @@ materials_set *materials;
 interface_function *transfer_funtion;
 volume_render *volumes;
 
-CGLSLProgram glsl_blinn, glsl_g_buffer, glsl_g_buffer_plane, glsl_scattered_map, glsl_mipmaps;
+CGLSLProgram glsl_blinn, glsl_g_buffer, glsl_g_buffer_plane, glsl_scattered_map, glsl_mipmaps, glsl_blending;
 int selected_model = -1;
 GLuint quad_vao, quad_vbo;
 
@@ -331,12 +331,15 @@ bool init_glew()
 		glsl_mipmaps.loadShader("Shaders/mipmap.vert", CGLSLProgram::VERTEX);
 		glsl_mipmaps.loadShader("Shaders/mipmap.frag", CGLSLProgram::FRAGMENT);
 		glsl_mipmaps.loadShader("Shaders/mipmap.geom", CGLSLProgram::GEOMETRY);
+		glsl_blending.loadShader("Shaders/blending.vert", CGLSLProgram::VERTEX);
+		glsl_blending.loadShader("Shaders/blending.frag", CGLSLProgram::FRAGMENT);
 
 		glsl_blinn.create_link();
 		glsl_g_buffer.create_link();
 		glsl_g_buffer_plane.create_link();
 		glsl_scattered_map.create_link();
 		glsl_mipmaps.create_link();
+		glsl_blending.create_link();
 
 		glsl_blinn.enable();
 			glsl_blinn.addAttribute("position");
@@ -397,7 +400,6 @@ bool init_glew()
 			glsl_scattered_map.addUniform("A");
 			glsl_scattered_map.addUniform("de");
 			glsl_scattered_map.addUniform("zr");
-
 		glsl_scattered_map.disable();
 
 		glsl_mipmaps.enable();
@@ -406,9 +408,27 @@ bool init_glew()
 
 			glsl_mipmaps.addUniform("n_cameras");
 			glsl_mipmaps.addUniform("cameras_matrix");
-
 		glsl_mipmaps.disable();
-		
+
+		glsl_blending.enable();
+			glsl_blending.addAttribute("position");
+			glsl_blending.addAttribute("normal");
+
+			glsl_blending.addUniform("MVP");
+			glsl_blending.addUniform("model_matrix");
+			glsl_blending.addUniform("scattered_map");
+			glsl_blending.addUniform("depth_map");
+			glsl_blending.addUniform("camera_pos");
+			glsl_blending.addUniform("light_pos");
+			glsl_blending.addUniform("bias");
+			glsl_blending.addUniform("epsilon");
+			glsl_blending.addUniform("refractive_index");
+			glsl_blending.addUniform("n_cameras");
+			glsl_blending.addUniform("cameras_matrix");
+			glsl_blending.addUniform("cameras_dirs");
+			glsl_blending.addUniform("gamma");
+			glsl_blending.addUniform("current_frame");
+		glsl_blending.disable();
 
 		return true;
 	}
@@ -592,7 +612,56 @@ void display()
 	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-	glsl_blinn.enable();
+	glsl_blending.enable();
+	for (size_t i = 0; i < m_set->mesh_models.size(); i++)
+	{
+		glStencilFunc(GL_ALWAYS, i + 1, -1);
+		glUniform3f(glsl_blending.getLocation("camera_pos"), scene_camera->position[0], scene_camera->position[1], scene_camera->position[2]);
+		glUniform3f(glsl_blending.getLocation("light_pos"), scene_light->translation.x, scene_light->translation.y, scene_light->translation.z);
+
+		std::vector<glm::mat4> view_proj_ortho_randoms;
+		std::vector<glm::vec3> cameras_dirs;
+
+		model_mat = glm::mat4(1.0f);
+		model_mat = glm::translate(model_mat, m_set->mesh_models[i]->translation);
+		model_mat = model_mat * glm::toMat4(m_set->mesh_models[i]->rotation);
+		model_mat = glm::scale(model_mat, glm::vec3(m_set->mesh_models[i]->scale));
+
+		for (size_t j = 0; j < num_of_ortho_cameras; j++)
+		{
+			view_ortho = glm::lookAt(halton_generator->camera_positions[j], m_set->mesh_models[i]->center, glm::vec3(0.0f, 1.0f, 0.0f));
+			view_proj_ortho_random = projection_ortho * view_ortho;
+			view_proj_ortho_randoms.push_back(view_proj_ortho_random);
+			cameras_dirs.push_back(halton_generator->camera_positions[j]);
+		}
+
+		glUniformMatrix4fv(glsl_blending.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
+		glUniformMatrix4fv(glsl_blending.getLocation("MVP"), 1, GL_FALSE, glm::value_ptr(projection * view * model_mat));
+		glUniform1i(glsl_blending.getLocation("scattered_map"), 0);
+		glUniform1i(glsl_blending.getLocation("depth_map"), 1);
+		glUniform1f(glsl_blending.getLocation("bias"), m_set->mesh_models[i]->bias);
+		glUniform1f(glsl_blending.getLocation("epsilon"), m_set->mesh_models[i]->epsilon);
+		glUniform1f(glsl_blending.getLocation("refractive_index"), m_set->mesh_models[i]->refractive_index);
+		glUniform1i(glsl_blending.getLocation("n_cameras"), num_of_ortho_cameras);
+		glUniformMatrix4fv(glsl_blending.getLocation("cameras_matrix"), num_of_ortho_cameras, GL_FALSE, glm::value_ptr(view_proj_ortho_randoms[0]));
+		glUniformMatrix4fv(glsl_blending.getLocation("cameras_dirs"), num_of_ortho_cameras, GL_FALSE, glm::value_ptr(cameras_dirs[0]));
+		glUniform1f(glsl_blending.getLocation("gamma"), 1.0f);
+		glUniform1i(glsl_blending.getLocation("current_frame"), 1);
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D_ARRAY, scattered_maps->array_texture);
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D_ARRAY, scattered_maps->depth_texture);
+
+		glBindVertexArray(m_set->mesh_models[i]->vao);
+		glDrawArrays(GL_TRIANGLES, 0, m_set->mesh_models[i]->vertices.size());
+		glBindVertexArray(0);
+	}
+
+
+	glsl_blending.disable();
+
+	/*glsl_blinn.enable();
 	for (size_t i = 0; i < m_set->mesh_models.size(); i++)
 	{
 		glStencilFunc(GL_ALWAYS, i + 1, -1);
@@ -612,7 +681,7 @@ void display()
 		glDrawArrays(GL_TRIANGLES, 0, m_set->mesh_models[i]->vertices.size());
 		glBindVertexArray(0);
 	}
-	glsl_blinn.disable();
+	glsl_blinn.disable();*/
 
 	glStencilFunc(GL_ALWAYS, m_set->mesh_models.size() + 1, -1);
 	scene_light->display(projection * view);

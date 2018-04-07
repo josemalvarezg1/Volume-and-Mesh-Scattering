@@ -164,6 +164,8 @@
   <ItemGroup>
     <None Include="Shaders\backFace.frag" />
     <None Include="Shaders\backFace.vert" />
+    <None Include="Shaders\blending.frag" />
+    <None Include="Shaders\blending.vert" />
     <None Include="Shaders\function.frag" />
     <None Include="Shaders\function.vert" />
     <None Include="Shaders\gBuffer.frag" />

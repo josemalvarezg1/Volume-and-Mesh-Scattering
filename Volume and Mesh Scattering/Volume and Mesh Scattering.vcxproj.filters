@@ -181,5 +181,11 @@
     <None Include="Shaders\mipmap.vert">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="Shaders\blending.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\blending.frag">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>
