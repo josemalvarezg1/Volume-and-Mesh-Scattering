@@ -4,15 +4,15 @@ in vec3 frag_pos;
 in vec3 frag_normal;
 
 uniform sampler2DArray scattered_map;
-uniform sampler2DArrayShadow depth_map;
+uniform sampler2DArray depth_map;
 uniform vec3 camera_pos;
-uniform vec4 light_pos;
+uniform vec3 light_pos;
 uniform float bias;
 uniform float epsilon;
 uniform float refractive_index;
 uniform int n_cameras;
-uniform mat4 cameras_matrix[1];
-uniform vec3 cameras_dirs[1];
+uniform mat4 cameras_matrix[16];
+uniform vec3 cameras_dirs[16];
 uniform float gamma;
 uniform int current_frame;
 
@@ -29,12 +29,26 @@ const vec2 kernel[KERNEL_SIZE] = {
 	0.5 * ARRAY_TEX_STEP * vec2(-3.0f, 1.0f)
 };
 
-float sample_shadow_map(vec4 light_pos)
+float sample_shadow_map(vec4 object_pos)
 {
-	light_pos.w -= bias;
-	if (light_pos.x < 0.0 || light_pos.x > 1.0) return 1.0;
-	if (light_pos.y < 0.0 || light_pos.y > 1.0) return 1.0;
-	return texture(depth_map, light_pos).r;
+	float closestdepth = texture(depth_map, object_pos.xyz).r; 
+    float currentdepth = object_pos.w;
+    float shadow = 0.0;
+    vec2 texelsize = vec2(1.0f / 1200.0f, 1.0f / 680.0f);
+    for(int x = -1; x <= 1; ++x)
+    {
+        for(int y = -1; y <= 1; ++y)
+        {
+            float pcfdepth = texture(depth_map, vec3(object_pos.xy + vec2(x, y) * texelsize, object_pos.w)).r; 
+            shadow += currentdepth - bias > pcfdepth  ? 1.0 : 0.0;        
+        }    
+    }
+    shadow /= 9.0;
+    
+    if(object_pos.w > 1.0)
+        shadow = 0.0;
+        
+    return 1.0 - shadow;
 }
 
 vec4 sample_color_map(vec3 coord)
@@ -72,24 +86,25 @@ void main(void)
 	vec3 no = normalize(frag_normal);
 	vec3 wo = normalize(camera_pos - frag_pos);
 	color = vec4(0.0f);
-	float div = 0.0f;
+	float div = 0.0f, vi;
 	vec3 pos, offset, dir;
+	vec4 l;
 	for (int i = 0; i < n_cameras; i++)
 	{
 		dir = cameras_dirs[i];
 		offset = epsilon * (no - dir * dot(no, dir));
-		pos = frag_pos - offset;
-		vec4 l = cameras_matrix[i] * vec4(pos, 1.0f);
+		pos = frag_pos + offset;
+		l = cameras_matrix[i] * vec4(pos, 1.0f);
+		l.xyz /= l.w;
+		l = l * 0.5 + 0.5;
 		float visibility = 1.0f;
-		for (int j = 0; j < KERNEL_SIZE; j++)
-		{
-			float offset = 1.0f;
-			vec4 kernel_j = vec4(l.xy + offset * kernel[j], i, l.z);
-			float vi = sample_shadow_map(kernel_j.xyzw);
-			visibility *= vi;
-		}
+		vec4 kernel_j = vec4(l.xy, i, l.z);
+		vi = sample_shadow_map(kernel_j.xyzw);
+		visibility *= vi;
+		
 		vec4 sample_color_map = sample_color_map(vec3(l.xy, i));
-		color += (sample_color_map / max(sample_color_map.a, 1)) * visibility;
+		//color += sample_color_map;
+		color += (sample_color_map / max(sample_color_map.a, 1.0f)) * visibility;
 		div += visibility;
 	}
 
@@ -97,4 +112,5 @@ void main(void)
 
 	float fresnel = fresnel_t(wo, no, 1.0f / refractive_index);
 	color *= clamp(fresnel, 0.0f, 1.0f);
+	//color = vec4(vec3(vi), 1.0); 
 }

@@ -448,7 +448,7 @@ bool init_scene()
 	mesh *scene_model;
 
 	num_of_lights = 1;
-	num_of_ortho_cameras = 1;
+	num_of_ortho_cameras = 16;
 	num_of_samples_per_frag = 3 * num_of_ortho_cameras;
 
 	scene_light = new light();
@@ -694,7 +694,7 @@ void display()
 	model_mat = glm::scale(model_mat, glm::vec3(0.3f));
 	glUniformMatrix4fv(glsl_g_buffer_plane.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D_ARRAY, scattered_maps->array_texture);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, scattered_maps->depth_texture);
 	render_quad();
 	glsl_g_buffer_plane.disable();
 

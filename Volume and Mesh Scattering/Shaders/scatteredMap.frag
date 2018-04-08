@@ -121,8 +121,7 @@ void main()
 
 	for (int i = 0; i < n_samples; i++)
     {
-		vec3 sample_e = frag_pos;
-        vec4 offset = vec4(sample_e, 1.0);
+        vec4 offset = vec4(frag_pos, 1.0f);
         // De espacio de vista a espacio de clipping
         offset = vp_light * offset;
         offset.xyz /= offset.w;
