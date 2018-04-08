@@ -11,43 +11,34 @@ uniform float bias;
 uniform float epsilon;
 uniform float refractive_index;
 uniform int n_cameras;
-uniform mat4 cameras_matrix[16];
-uniform vec3 cameras_dirs[16];
+uniform mat4 cameras_matrix[8];
+uniform vec3 cameras_dirs[8];
 uniform float gamma;
 uniform int current_frame;
+uniform int g_width;
+uniform int g_height;
 
 out vec4 color;
 
-#define ARRAY_TEX_STEP 1.0f / 1024.0f
-#define KERNEL_SIZE 5
-
-const vec2 kernel[KERNEL_SIZE] = {
-	vec2(0),
-	0.5 * ARRAY_TEX_STEP * vec2(-1.0f, 3.0f),
-	0.5 * ARRAY_TEX_STEP * vec2(3.0f, 1.0f),
-	0.5 * ARRAY_TEX_STEP * vec2(1.0f, -3.0f),
-	0.5 * ARRAY_TEX_STEP * vec2(-3.0f, 1.0f)
-};
-
 float sample_shadow_map(vec4 object_pos)
 {
-	float closestdepth = texture(depth_map, object_pos.xyz).r; 
-    float currentdepth = object_pos.w;
+	float closest_depth = texture(depth_map, object_pos.xyz).r; 
+    float current_depth = object_pos.w;
     float shadow = 0.0;
-    vec2 texelsize = vec2(1.0f / 1200.0f, 1.0f / 680.0f);
-    for(int x = -1; x <= 1; ++x)
+    vec2 texel_size = vec2(1.0f / g_width, 1.0f / g_height);
+	vec3 light_dir = normalize(cameras_dirs[0] - frag_pos);
+	float bias_value = max(0.05f * (1.0f - dot(frag_normal, light_dir)), bias);
+    for (int x = -1; x <= 1; x++)
     {
-        for(int y = -1; y <= 1; ++y)
+        for (int y = -1; y <= 1; y++)
         {
-            float pcfdepth = texture(depth_map, vec3(object_pos.xy + vec2(x, y) * texelsize, object_pos.w)).r; 
-            shadow += currentdepth - bias > pcfdepth  ? 1.0 : 0.0;        
+            float pcf_depth = texture(depth_map, vec3(object_pos.xy + vec2(x, y) * texel_size, object_pos.w)).r; 
+            shadow += current_depth - bias_value > pcf_depth  ? 1.0 : 0.0;
         }    
     }
-    shadow /= 9.0;
-    
-    if(object_pos.w > 1.0)
-        shadow = 0.0;
-        
+    shadow /= 9.0;    
+    if (object_pos.w > 1.0)
+        shadow = 0.0;        
     return 1.0 - shadow;
 }
 
@@ -98,12 +89,10 @@ void main(void)
 		l.xyz /= l.w;
 		l = l * 0.5 + 0.5;
 		float visibility = 1.0f;
-		vec4 kernel_j = vec4(l.xy, i, l.z);
-		vi = sample_shadow_map(kernel_j.xyzw);
-		visibility *= vi;
-		
+		vec4 object_pos = vec4(l.xy, i, l.z);
+		vi = sample_shadow_map(object_pos.xyzw);
+		visibility *= vi;		
 		vec4 sample_color_map = sample_color_map(vec3(l.xy, i));
-		//color += sample_color_map;
 		color += (sample_color_map / max(sample_color_map.a, 1.0f)) * visibility;
 		div += visibility;
 	}

@@ -328,9 +328,9 @@ bool init_glew()
 		glsl_scattered_map.loadShader("Shaders/scatteredMap.vert", CGLSLProgram::VERTEX);
 		glsl_scattered_map.loadShader("Shaders/scatteredMap.frag", CGLSLProgram::FRAGMENT);
 		glsl_scattered_map.loadShader("Shaders/scatteredMap.geom", CGLSLProgram::GEOMETRY);
-		glsl_mipmaps.loadShader("Shaders/mipmap.vert", CGLSLProgram::VERTEX);
+		/*glsl_mipmaps.loadShader("Shaders/mipmap.vert", CGLSLProgram::VERTEX);
 		glsl_mipmaps.loadShader("Shaders/mipmap.frag", CGLSLProgram::FRAGMENT);
-		glsl_mipmaps.loadShader("Shaders/mipmap.geom", CGLSLProgram::GEOMETRY);
+		glsl_mipmaps.loadShader("Shaders/mipmap.geom", CGLSLProgram::GEOMETRY);*/
 		glsl_blending.loadShader("Shaders/blending.vert", CGLSLProgram::VERTEX);
 		glsl_blending.loadShader("Shaders/blending.frag", CGLSLProgram::FRAGMENT);
 
@@ -338,7 +338,7 @@ bool init_glew()
 		glsl_g_buffer.create_link();
 		glsl_g_buffer_plane.create_link();
 		glsl_scattered_map.create_link();
-		glsl_mipmaps.create_link();
+		//glsl_mipmaps.create_link();
 		glsl_blending.create_link();
 
 		glsl_blinn.enable();
@@ -402,13 +402,13 @@ bool init_glew()
 			glsl_scattered_map.addUniform("zr");
 		glsl_scattered_map.disable();
 
-		glsl_mipmaps.enable();
+		/*glsl_mipmaps.enable();
 			glsl_mipmaps.addAttribute("position");
 			glsl_mipmaps.addAttribute("normal");
 
 			glsl_mipmaps.addUniform("n_cameras");
 			glsl_mipmaps.addUniform("cameras_matrix");
-		glsl_mipmaps.disable();
+		glsl_mipmaps.disable();*/
 
 		glsl_blending.enable();
 			glsl_blending.addAttribute("position");
@@ -428,6 +428,8 @@ bool init_glew()
 			glsl_blending.addUniform("cameras_dirs");
 			glsl_blending.addUniform("gamma");
 			glsl_blending.addUniform("current_frame");
+			glsl_blending.addUniform("g_width");
+			glsl_blending.addUniform("g_height");
 		glsl_blending.disable();
 
 		return true;
@@ -448,7 +450,7 @@ bool init_scene()
 	mesh *scene_model;
 
 	num_of_lights = 1;
-	num_of_ortho_cameras = 16;
+	num_of_ortho_cameras = 8;
 	num_of_samples_per_frag = 3 * num_of_ortho_cameras;
 
 	scene_light = new light();
@@ -647,6 +649,8 @@ void display()
 		glUniformMatrix4fv(glsl_blending.getLocation("cameras_dirs"), num_of_ortho_cameras, GL_FALSE, glm::value_ptr(cameras_dirs[0]));
 		glUniform1f(glsl_blending.getLocation("gamma"), 1.0f);
 		glUniform1i(glsl_blending.getLocation("current_frame"), 1);
+		glUniform1i(glsl_blending.getLocation("g_width"), g_width);
+		glUniform1i(glsl_blending.getLocation("g_height"), g_height);
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D_ARRAY, scattered_maps->array_texture);
@@ -657,8 +661,6 @@ void display()
 		glDrawArrays(GL_TRIANGLES, 0, m_set->mesh_models[i]->vertices.size());
 		glBindVertexArray(0);
 	}
-
-
 	glsl_blending.disable();
 
 	/*glsl_blinn.enable();
