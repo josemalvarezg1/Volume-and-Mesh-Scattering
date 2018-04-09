@@ -14,7 +14,7 @@ mesh::mesh()
 	this->q = 1.0f;
 	this->radius = 0.5f;
 	this->bias = 0.05f;
-	this->epsilon = 0.05f;
+	this->epsilon = -0.02f;
 	this->change_values = true;
 }
 

@@ -4,7 +4,7 @@ layout(triangles) in;
 layout(triangle_strip, max_vertices = 60) out;
 uniform mat4 model_matrix;
 uniform int n_cameras;
-uniform mat4 cameras_matrix[8];
+uniform mat4 cameras_matrix[6];
 
 out vec3 frag_pos;
 out vec3 frag_normal;
@@ -23,8 +23,8 @@ void main(void)
 		for (int k = 0; k < 3; k++)
 		{
 			gl_Position = cameras_matrix[i] * vec4(gs_in[k].frag_pos, 1.0);
-			frag_normal = gs_in[0].frag_normal;
-			frag_pos = gs_in[0].frag_pos;
+			frag_normal = gs_in[k].frag_normal;
+			frag_pos = gs_in[k].frag_pos;
 			EmitVertex();
 		}
 		EndPrimitive();

@@ -11,8 +11,8 @@ uniform float bias;
 uniform float epsilon;
 uniform float refractive_index;
 uniform int n_cameras;
-uniform mat4 cameras_matrix[8];
-uniform vec3 cameras_dirs[8];
+uniform mat4 cameras_matrix[6];
+uniform vec3 cameras_dirs[6];
 uniform float gamma;
 uniform int current_frame;
 uniform int g_width;
@@ -20,14 +20,16 @@ uniform int g_height;
 
 out vec4 color;
 
+
 float sample_shadow_map(vec4 object_pos)
 {
 	float closest_depth = texture(depth_map, object_pos.xyz).r; 
     float current_depth = object_pos.w;
+	int index = int(object_pos.z);
     float shadow = 0.0;
     vec2 texel_size = vec2(1.0f / g_width, 1.0f / g_height);
-	vec3 light_dir = normalize(cameras_dirs[0] - frag_pos);
-	float bias_value = max(0.05f * (1.0f - dot(frag_normal, light_dir)), bias);
+	vec3 light_dir = normalize(cameras_dirs[index] - frag_pos);
+	float bias_value = 0.05f * (1.0f - dot(frag_normal, light_dir));
     for (int x = -1; x <= 1; x++)
     {
         for (int y = -1; y <= 1; y++)
@@ -39,7 +41,7 @@ float sample_shadow_map(vec4 object_pos)
     shadow /= 9.0;    
     if (object_pos.w > 1.0)
         shadow = 0.0;        
-    return 1.0 - shadow;
+    return clamp(1.0 - shadow, 0.0f, 1.0f);
 }
 
 vec4 sample_color_map(vec3 coord)
@@ -89,9 +91,26 @@ void main(void)
 		l.xyz /= l.w;
 		l = l * 0.5 + 0.5;
 		float visibility = 1.0f;
-		vec4 object_pos = vec4(l.xy, i, l.z);
-		vi = sample_shadow_map(object_pos.xyzw);
-		visibility *= vi;		
+		float bias = 0.005*tan(acos(dot(no, dir)));
+		bias = clamp(bias, 0,0.01);
+		if (texture(depth_map, vec3(l.xy, i)).z  <  l.z - bias)
+		{
+			visibility = 0.0;
+		}
+
+		/*vec2 poissonDisk[4] = vec2[](vec2( -0.94201624, -0.39906216 ), vec2( 0.94558609, -0.76890725 ), vec2( -0.094184101, -0.92938870 ), vec2( 0.34495938, 0.29387760 ));
+		for (int j=0;j<4;j++)
+		{
+		  if (texture(depth_map, vec3(l.xy + poissonDisk[i]/700.0f, i)).z  <  l.z - bias )
+		  {
+			visibility-=0.2;
+		  }
+		}*/
+
+		//vec4 object_pos = vec4(l.xy, i, l.z);
+		//vi = sample_shadow_map(object_pos.xyzw);
+		//visibility *= vi;
+		
 		vec4 sample_color_map = sample_color_map(vec3(l.xy, i));
 		color += (sample_color_map / max(sample_color_map.a, 1.0f)) * visibility;
 		div += visibility;
@@ -101,5 +120,4 @@ void main(void)
 
 	float fresnel = fresnel_t(wo, no, 1.0f / refractive_index);
 	color *= clamp(fresnel, 0.0f, 1.0f);
-	//color = vec4(vec3(vi), 1.0); 
 }
