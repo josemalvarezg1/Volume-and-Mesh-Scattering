@@ -20,7 +20,6 @@ uniform mat4 model_matrix;
 uniform sampler2D g_position;
 uniform sampler2D g_normal;
 uniform sampler2D g_depth;
-uniform float bias;
 uniform float radius;
 
 // Valores pre-calculados
@@ -100,28 +99,6 @@ float fresnel_t(vec3 inv, vec3 n, float n_1)
     return (Ts + Tp) / 2.0f;
 }
 
-float sample_shadow_map(vec3 object_pos)
-{
-	float closest_depth = texture(g_depth, object_pos.xy).r; 
-    float current_depth = object_pos.z;
-    float shadow = 0.0;
-    vec2 texel_size = vec2(1.0f / 1200, 1.0f / 680);
-	vec3 light_dir = normalize(light_pos - frag_pos);
-	float bias_value = 0.05f * (1.0f - dot(frag_normal, light_dir));
-    for (int x = -1; x <= 1; x++)
-    {
-        for (int y = -1; y <= 1; y++)
-        {
-            float pcf_depth = texture(g_depth, object_pos.xy + vec2(x, y) * texel_size).r; 
-            shadow += current_depth - bias_value > pcf_depth  ? 1.0 : 0.0;
-        }    
-    }
-    shadow /= 9.0;    
-    if (object_pos.z > 1.0)
-        shadow = 0.0;        
-    return 1.0 - shadow;
-}
-
 void main() 
 {
 	vec3 xo, no, wo, Lo, Ll, xi, ni, wi, x, r, dr, dr_pow, w12, p, ni_ast, xv, dv, wv;
@@ -158,7 +135,13 @@ void main()
 		xi = texture(g_position, offset.xy).xyz;
 		ni = texture(g_normal, offset.xy).xyz;
 		
-		float visibility = sample_shadow_map(offset.xyz);
+		float visibility = 1.0f;
+		float bias = 0.005 * tan(acos(dot(no, wi)));
+		bias = clamp(bias, 0.0f, 0.01f);
+		if (texture(g_depth, offset.xy).r  <  offset.z - bias)
+		{
+			visibility = 0.0;
+		}
 
 		if (visibility > 0.0f)
 		{

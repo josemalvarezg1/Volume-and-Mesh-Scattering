@@ -115,12 +115,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Shaders\program.frag">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\program.vert">
-      <Filter>Shaders</Filter>
-    </None>
     <None Include="Shaders\gBuffer.vert">
       <Filter>Shaders</Filter>
     </None>

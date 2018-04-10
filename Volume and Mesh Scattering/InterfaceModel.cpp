@@ -36,7 +36,6 @@ interface_model::interface_model()
 		TwAddVarRW(this->model_interface, "Material", light, &this->current_material, "group='Parámetros de Dispersión'");
 	}
 	TwAddVarRW(this->model_interface, "Radio", TW_TYPE_FLOAT, &this->radius, "group='Parámetros de Dispersión' min=0.01 max=20.0 step=0.1");
-	TwAddVarRW(this->model_interface, "Bias", TW_TYPE_FLOAT, &this->bias, "group='Parámetros de Dispersión' min=0.001 max=1.0 step=0.001");
 	TwAddVarRW(this->model_interface, "Epsilon", TW_TYPE_FLOAT, &this->epsilon, "group='Parámetros de Dispersión' min=-1.0 max=1.0 step=0.001");
 }
 

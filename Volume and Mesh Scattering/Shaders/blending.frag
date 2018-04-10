@@ -7,7 +7,6 @@ uniform sampler2DArray scattered_map;
 uniform sampler2DArray depth_map;
 uniform vec3 camera_pos;
 uniform vec3 light_pos;
-uniform float bias;
 uniform float epsilon;
 uniform float refractive_index;
 uniform int n_cameras;
@@ -19,7 +18,6 @@ uniform int g_width;
 uniform int g_height;
 
 out vec4 color;
-
 
 float sample_shadow_map(vec4 object_pos)
 {
@@ -91,8 +89,8 @@ void main(void)
 		l.xyz /= l.w;
 		l = l * 0.5 + 0.5;
 		float visibility = 1.0f;
-		float bias = 0.005*tan(acos(dot(no, dir)));
-		bias = clamp(bias, 0,0.01);
+		float bias = 0.005 * tan(acos(dot(no, dir)));
+		bias = clamp(bias, 0.0f, 0.01f);
 		if (texture(depth_map, vec3(l.xy, i)).z  <  l.z - bias)
 		{
 			visibility = 0.0;

@@ -177,8 +177,6 @@
     <None Include="Shaders\mipmap.frag" />
     <None Include="Shaders\mipmap.geom" />
     <None Include="Shaders\mipmap.vert" />
-    <None Include="Shaders\program.frag" />
-    <None Include="Shaders\program.vert" />
     <None Include="Shaders\quad.frag" />
     <None Include="Shaders\quad.vert" />
     <None Include="Shaders\rayCasting.frag" />

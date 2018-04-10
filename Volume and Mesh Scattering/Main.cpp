@@ -18,7 +18,7 @@ materials_set *materials;
 interface_function *transfer_funtion;
 volume_render *volumes;
 
-CGLSLProgram glsl_blinn, glsl_g_buffer, glsl_g_buffer_plane, glsl_scattered_map, glsl_mipmaps, glsl_blending;
+CGLSLProgram glsl_g_buffer, glsl_g_buffer_plane, glsl_scattered_map, glsl_mipmaps, glsl_blending;
 int selected_model = -1;
 GLuint quad_vao, quad_vbo;
 
@@ -319,8 +319,6 @@ bool init_glew()
 		std::cout << "Vendor: " << glGetString(GL_VENDOR) << std::endl;
 		std::cout << "Renderer: " << glGetString(GL_RENDERER) << std::endl;
 
-		glsl_blinn.loadShader("Shaders/program.vert", CGLSLProgram::VERTEX);
-		glsl_blinn.loadShader("Shaders/program.frag", CGLSLProgram::FRAGMENT);
 		glsl_g_buffer.loadShader("Shaders/gBuffer.vert", CGLSLProgram::VERTEX);
 		glsl_g_buffer.loadShader("Shaders/gBuffer.frag", CGLSLProgram::FRAGMENT);
 		glsl_g_buffer_plane.loadShader("Shaders/gBufferPosition.vert", CGLSLProgram::VERTEX);
@@ -334,23 +332,11 @@ bool init_glew()
 		glsl_blending.loadShader("Shaders/blending.vert", CGLSLProgram::VERTEX);
 		glsl_blending.loadShader("Shaders/blending.frag", CGLSLProgram::FRAGMENT);
 
-		glsl_blinn.create_link();
 		glsl_g_buffer.create_link();
 		glsl_g_buffer_plane.create_link();
 		glsl_scattered_map.create_link();
 		//glsl_mipmaps.create_link();
 		glsl_blending.create_link();
-
-		glsl_blinn.enable();
-			glsl_blinn.addAttribute("position");
-			glsl_blinn.addAttribute("normal");
-
-			glsl_blinn.addUniform("view_matrix");
-			glsl_blinn.addUniform("projection_matrix");
-			glsl_blinn.addUniform("model_matrix");
-			glsl_blinn.addUniform("light_pos");
-			glsl_blinn.addUniform("eye");
-		glsl_blinn.disable();
 
 		glsl_g_buffer.enable();
 			glsl_g_buffer.addAttribute("position");
@@ -385,7 +371,6 @@ bool init_glew()
 			glsl_scattered_map.addUniform("g_position");
 			glsl_scattered_map.addUniform("g_normal");
 			glsl_scattered_map.addUniform("g_depth");
-			glsl_scattered_map.addUniform("bias");
 			glsl_scattered_map.addUniform("radius");
 			glsl_scattered_map.addUniform("refractive_index");
 			glsl_scattered_map.addUniform("diffuse_reflectance");
@@ -420,7 +405,6 @@ bool init_glew()
 			glsl_blending.addUniform("depth_map");
 			glsl_blending.addUniform("camera_pos");
 			glsl_blending.addUniform("light_pos");
-			glsl_blending.addUniform("bias");
 			glsl_blending.addUniform("epsilon");
 			glsl_blending.addUniform("refractive_index");
 			glsl_blending.addUniform("n_cameras");
@@ -569,7 +553,6 @@ void display()
 			glUniform1i(glsl_scattered_map.getLocation("g_position"), 0);
 			glUniform1i(glsl_scattered_map.getLocation("g_normal"), 1);
 			glUniform1i(glsl_scattered_map.getLocation("g_depth"), 2);
-			glUniform1f(glsl_scattered_map.getLocation("bias"), m_set->mesh_models[i]->bias);
 			glUniform1f(glsl_scattered_map.getLocation("radius"), m_set->mesh_models[i]->radius);
 			glUniform1i(glsl_scattered_map.getLocation("n_samples"), num_of_samples_per_frag);
 			glUniform2fv(glsl_scattered_map.getLocation("samples"), num_of_samples_per_frag, glm::value_ptr(halton_generator->samples[0]));
@@ -641,7 +624,6 @@ void display()
 		glUniformMatrix4fv(glsl_blending.getLocation("MVP"), 1, GL_FALSE, glm::value_ptr(projection * view * model_mat));
 		glUniform1i(glsl_blending.getLocation("scattered_map"), 0);
 		glUniform1i(glsl_blending.getLocation("depth_map"), 1);
-		glUniform1f(glsl_blending.getLocation("bias"), m_set->mesh_models[i]->bias);
 		glUniform1f(glsl_blending.getLocation("epsilon"), m_set->mesh_models[i]->epsilon);
 		glUniform1f(glsl_blending.getLocation("refractive_index"), m_set->mesh_models[i]->refractive_index);
 		glUniform1i(glsl_blending.getLocation("n_cameras"), num_of_ortho_cameras);
@@ -662,28 +644,6 @@ void display()
 		glBindVertexArray(0);
 	}
 	glsl_blending.disable();
-
-	/*glsl_blinn.enable();
-	for (size_t i = 0; i < m_set->mesh_models.size(); i++)
-	{
-		glStencilFunc(GL_ALWAYS, i + 1, -1);
-		glUniform3f(glsl_blinn.getLocation("eye"), scene_camera->position[0], scene_camera->position[1], scene_camera->position[2]);
-		glUniform3f(glsl_blinn.getLocation("light_pos"), scene_light->translation.x, scene_light->translation.y, scene_light->translation.z);
-
-		model_mat = glm::mat4(1.0f);
-		model_mat = glm::translate(model_mat, m_set->mesh_models[i]->translation);
-		model_mat = model_mat * glm::toMat4(m_set->mesh_models[i]->rotation);
-		model_mat = glm::scale(model_mat, glm::vec3(m_set->mesh_models[i]->scale));
-
-		glUniformMatrix4fv(glsl_blinn.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
-		glUniformMatrix4fv(glsl_blinn.getLocation("view_matrix"), 1, GL_FALSE, glm::value_ptr(view));
-		glUniformMatrix4fv(glsl_blinn.getLocation("projection_matrix"), 1, GL_FALSE, glm::value_ptr(projection));
-
-		glBindVertexArray(m_set->mesh_models[i]->vao);
-		glDrawArrays(GL_TRIANGLES, 0, m_set->mesh_models[i]->vertices.size());
-		glBindVertexArray(0);
-	}
-	glsl_blinn.disable();*/
 
 	glStencilFunc(GL_ALWAYS, m_set->mesh_models.size() + 1, -1);
 	scene_light->display(projection * view);
