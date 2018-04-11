@@ -65,6 +65,7 @@ void reshape(GLFWwindow *window, int width, int height)
 		m_set->mesh_models[i]->change_values = true;
 
 	glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
+	scattered_maps->update_scattered_map(g_width, g_height, num_of_ortho_cameras);
 	glViewport(0, 0, g_width, g_height);
 }
 
@@ -629,7 +630,7 @@ void display()
 		glUniform1i(glsl_blending.getLocation("n_cameras"), num_of_ortho_cameras);
 		glUniformMatrix4fv(glsl_blending.getLocation("cameras_matrix"), num_of_ortho_cameras, GL_FALSE, glm::value_ptr(view_proj_ortho_randoms[0]));
 		glUniformMatrix4fv(glsl_blending.getLocation("cameras_dirs"), num_of_ortho_cameras, GL_FALSE, glm::value_ptr(cameras_dirs[0]));
-		glUniform1f(glsl_blending.getLocation("gamma"), 1.0f);
+		glUniform1f(glsl_blending.getLocation("gamma"), m_set->mesh_models[i]->gamma);
 		glUniform1i(glsl_blending.getLocation("current_frame"), 1);
 		glUniform1i(glsl_blending.getLocation("g_width"), g_width);
 		glUniform1i(glsl_blending.getLocation("g_height"), g_height);

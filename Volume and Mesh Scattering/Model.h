@@ -20,7 +20,7 @@ public:
 	GLuint vbo, vao;
 	glm::quat rotation;
 	GLboolean change_values;
-	GLfloat scale, max_value, asymmetry_param_g, refractive_index, q, radius, epsilon;
+	GLfloat scale, max_value, asymmetry_param_g, refractive_index, q, radius, epsilon, gamma;
 	std::vector<glm::vec3> vertices, normals;
 	glm::vec3 max_vertex, min_vertex, center, translation, ambient_comp, diffuse_comp, specular_comp;
 	material_m current_material;

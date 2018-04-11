@@ -16,7 +16,7 @@ private:
 public:
 	glm::vec3 translation;
 	glm::quat rotation;
-	GLfloat scale, asymmetry_param_g, q, radius, epsilon;
+	GLfloat scale, asymmetry_param_g, q, radius, epsilon, gamma;
 	material_m current_material;
 
 	static interface_model * instance();
