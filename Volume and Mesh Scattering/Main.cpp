@@ -435,7 +435,7 @@ bool init_scene()
 	mesh *scene_model;
 
 	num_of_lights = 1;
-	num_of_ortho_cameras = 6;
+	num_of_ortho_cameras = 16;
 	num_of_samples_per_frag = 3 * num_of_ortho_cameras;
 
 	scene_light = new light();
@@ -506,7 +506,7 @@ void display()
 			model_mat = glm::scale(model_mat, glm::vec3(m_set->mesh_models[j]->scale));
 
 			glUniformMatrix4fv(glsl_g_buffer.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
-			glUniformMatrix4fv(glsl_g_buffer.getLocation("vp_matrix"), 1, GL_FALSE, glm::value_ptr(view_proj_ortho_light));
+			glUniformMatrix4fv(glsl_g_buffer.getLocation("light_matrix"), 1, GL_FALSE, glm::value_ptr(view_proj_ortho_light));
 
 			glBindVertexArray(m_set->mesh_models[j]->vao);
 			glDrawArrays(GL_TRIANGLES, 0, m_set->mesh_models[j]->vertices.size());

@@ -181,5 +181,5 @@ void main()
 
 	/* Fin: Generación de muestras */	
 
-	color = vec4(Lo , 1.0f);
+	color = vec4(Lo * diffuse_reflectance, 1.0f);
 }

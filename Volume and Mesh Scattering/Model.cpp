@@ -12,9 +12,9 @@ mesh::mesh()
 	this->refractive_index = 1.3f;
 	this->current_material = Crema;
 	this->q = 1.0f;
-	this->radius = 0.5f;
-	this->epsilon = -0.02f;
-	this->gamma = 1.2f;
+	this->radius = 0.1f;
+	this->epsilon = 0.02f;
+	this->gamma = 1.0f;
 	this->change_values = true;
 }
 

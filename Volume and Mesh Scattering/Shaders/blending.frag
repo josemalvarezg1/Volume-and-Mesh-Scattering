@@ -10,8 +10,8 @@ uniform vec3 light_pos;
 uniform float epsilon;
 uniform float refractive_index;
 uniform int n_cameras;
-uniform mat4 cameras_matrix[6];
-uniform vec3 cameras_dirs[6];
+uniform mat4 cameras_matrix[16];
+uniform vec3 cameras_dirs[16];
 uniform float gamma;
 uniform int current_frame;
 uniform int g_width;
@@ -87,13 +87,13 @@ void main(void)
 	{
 		dir = cameras_dirs[i];
 		offset = epsilon * (no - dir * dot(no, dir));
-		pos = xo + offset;
+		pos = xo - offset;
 		l = cameras_matrix[i] * vec4(pos, 1.0f);
 		l.xyz /= l.w;
 		l = l * 0.5 + 0.5;
 		float visibility = 1.0f;
 		float bias = 0.005 * tan(acos(dot(no, dir)));
-		bias = clamp(bias, 0.0f, 0.01f);
+		bias = clamp(bias, 0.01f, 0.02f);
 		if (texture(depth_map, vec3(l.xy, i)).z  <  l.z - bias)
 		{
 			visibility = 0.0;
