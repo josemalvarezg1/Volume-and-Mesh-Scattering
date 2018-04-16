@@ -471,7 +471,10 @@ bool init_scene()
 
 	scattered_maps = new scattered_map(g_width, g_height, num_of_ortho_cameras);
 	scene_camera = new camera(glm::vec3(0.0f, 0.0f, 16.0f));
-	scene_model->load("Models/obj/bunny.obj");
+	//scene_model->load("Models/obj/bunny.obj");
+	const char** paths = new const char*[1];
+	paths[0] = "Models\\raw\\bucky_32x32x32_8.raw";
+	volumes->drop_path(1, paths);
 	m_set->mesh_models.push_back(scene_model);
 	halton_generator->generate_orthographic_cameras(num_of_ortho_cameras);
 

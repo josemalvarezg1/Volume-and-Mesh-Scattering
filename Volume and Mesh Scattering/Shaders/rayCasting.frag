@@ -6,10 +6,14 @@ uniform vec2 screen_size;
 uniform float step_size;
 uniform vec3 light_pos;
 uniform bool lighting;
-uniform vec3 view_pos;
+uniform vec3 camera_pos;
 uniform vec3 ambient_comp;
 uniform vec3 diffuse_comp;
 uniform vec3 specular_comp;
+uniform float radius;
+uniform float albedo;
+uniform float asymmetry_param_g;
+uniform vec4 back_radiance;
 
 in vec3 in_coord;
 in vec3 frag_pos;
@@ -44,7 +48,7 @@ vec4 illuminate(vec3 position, vec4 actual_color)
     gradient = gradient * vec3(2.0) - vec3(1.0);
 	N = normalize(normalize(light_pos) - position);	  
     L = normalize(light_pos - frag_pos);
-	V = normalize(view_pos - frag_pos);
+	V = normalize(camera_pos - frag_pos);
 	diffuse = abs(dot(N, gradient));
 	specular = pow(max(dot(N, normalize(L + V)), 0.0), 64.0);
 	actual_color.rgb = actual_color.rgb * (ambient_comp + (diffuse_comp * diffuse) + (specular_comp * specular));	

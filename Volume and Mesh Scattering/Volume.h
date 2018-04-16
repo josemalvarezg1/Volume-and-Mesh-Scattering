@@ -28,7 +28,9 @@ public:
 	GLuint width, height, depth, bits, volume_text;
 	glm::quat rotation;
 	glm::vec3 translation;
-	GLfloat escalation, step, asymmetry_param_g, radius;
+	GLfloat escalation, step, asymmetry_param_g, radius, albedo;
+	glm::vec4 back_radiance;
+
 	volume(std::string path, GLuint width, GLuint height, GLuint depth, GLuint bits);
 	~volume();
 };
