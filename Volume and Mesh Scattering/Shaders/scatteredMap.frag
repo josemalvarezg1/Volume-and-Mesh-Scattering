@@ -67,7 +67,7 @@ vec3 diffuse_part_prime(vec3 x, vec3 w12, vec3 r, vec3 no)
 	x_dot_w12 = dot(x, w12);
     w12_dot_no = dot(w12, no);
     x_dot_no = dot(x, no);
-	factor_1 = (1 / (4 * c_phi_2)) * 2.4674011 * (exp(-effec_r) / pow(r, vec3(3.0f)));
+	factor_1 = (1 / (4 * c_phi_2)) * 0.02533 * (exp(-effec_r) / pow(r, vec3(3.0f)));
 	factor_2 = c_phi_1 * ((r * r) / D + 3 * one_effec_r * x_dot_w12);
 	factor_3 = 3 * D * one_effec_r * w12_dot_no;
 	factor_4 = (one_effec_r + 3 * D * (3 * one_effec_r + effec_r * effec_r) / (r * r) * x_dot_w12) * x_dot_no;
@@ -123,14 +123,14 @@ void main()
         vec4 offset = vec4(frag_pos, 1.0f);
         // De espacio de vista a espacio de clipping
         offset = vp_light * offset;
-        offset.xyz /= offset.w;
-        // El offset estará en un rango [0:1]
-        offset.xyz = offset.xyz * 0.5 + 0.5;
+        offset.xyz /= offset.w;   
+		// El offset estará en un rango [0:1]     
+		offset.xyz = offset.xyz * 0.5 + 0.5;
 		offset.xy += samples[i].xy;
-
 		theta = 2 * PI * radius;
 		rotation_samples_matrix = mat2(vec2(cos(theta), sin(theta)), vec2(-sin(theta), cos(theta)));
 		offset.xy = rotation_samples_matrix * offset.xy;
+		
 
 		xi = texture(g_position, offset.xy).xyz;
 		ni = texture(g_normal, offset.xy).xyz;
@@ -147,7 +147,7 @@ void main()
 		{
 			x = xo - xi;
 			r = vec3(length(x));
-			w12 = refract(wi, ni, refractive_index);	
+			w12 = refract(-wi, ni, refractive_index);	
 
 			/* Inicio: Parte Difusa */
 
@@ -166,7 +166,7 @@ void main()
 			diffuse_part_prime_2 = diffuse_part_prime(xo - xv, wv, dv, no);
 			diffuse_part_d = diffuse_part_prime_1 - diffuse_part_prime_2;
 
-			Ti = fresnel_t(wi, ni, refractive_index);
+			Ti = fresnel_t(wi, ni, 1.0f / refractive_index);
 			To = fresnel_t(wo, no, refractive_index);
 
 			diffuse_part = (Ti * diffuse_part_d * dot(ni, wi));

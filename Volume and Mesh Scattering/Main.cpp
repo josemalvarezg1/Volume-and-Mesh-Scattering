@@ -1,5 +1,9 @@
 #include "Main.h"
 
+// Falta: Quitar clase m_set (sólo será un modelo .obj por rendering)	
+// Falta: Re-calcular el scattered-map al hacer full-screen
+// Falta: Agregar más luces
+
 GLFWwindow *g_window;
 int g_width, g_height;
 GLuint num_of_lights, num_of_ortho_cameras, num_of_samples_per_frag;
@@ -64,7 +68,7 @@ void reshape(GLFWwindow *window, int width, int height)
 	for (size_t i = 0; i < m_set->mesh_models.size(); i++)
 		m_set->mesh_models[i]->change_values = true;
 
-	glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	scattered_maps->update_scattered_map(g_width, g_height, num_of_ortho_cameras);
 	glViewport(0, 0, g_width, g_height);
 }
@@ -435,7 +439,7 @@ bool init_scene()
 	mesh *scene_model;
 
 	num_of_lights = 1;
-	num_of_ortho_cameras = 16;
+	num_of_ortho_cameras = 6;
 	num_of_samples_per_frag = 3 * num_of_ortho_cameras;
 
 	scene_light = new light();
@@ -471,10 +475,10 @@ bool init_scene()
 
 	scattered_maps = new scattered_map(g_width, g_height, num_of_ortho_cameras);
 	scene_camera = new camera(glm::vec3(0.0f, 0.0f, 16.0f));
-	//scene_model->load("Models/obj/bunny.obj");
+	scene_model->load("Models/obj/bunny.obj");
 	const char** paths = new const char*[1];
 	paths[0] = "Models\\raw\\bucky_32x32x32_8.raw";
-	volumes->drop_path(1, paths);
+	//volumes->drop_path(1, paths);
 	m_set->mesh_models.push_back(scene_model);
 	halton_generator->generate_orthographic_cameras(num_of_ortho_cameras);
 
@@ -500,7 +504,7 @@ void display()
 		glsl_g_buffer.enable();
 		for (size_t j = 0; j < m_set->mesh_models.size(); j++)
 		{
-			view_ortho = glm::lookAt(scene_light->translation, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			view_ortho = glm::lookAt(scene_light->translation, m_set->mesh_models[j]->center, glm::vec3(0.0f, 1.0f, 0.0f));
 			view_proj_ortho_light = projection_ortho * view_ortho;
 
 			model_mat = glm::mat4(1.0f);

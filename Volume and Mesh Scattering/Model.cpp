@@ -8,13 +8,13 @@ mesh::mesh()
 	this->ambient_comp = glm::vec3(0.15f, 0.15f, 0.15f);
 	this->diffuse_comp = glm::vec3(1.0f, 1.0f, 1.0f);
 	this->specular_comp = glm::vec3(1.0f, 1.0f, 1.0f);
-	this->asymmetry_param_g = 0.77f;
+	this->asymmetry_param_g = -1.0f;
 	this->refractive_index = 1.3f;
-	this->current_material = Crema;
+	this->current_material = Patata;
 	this->q = 1.0f;
-	this->radius = 0.1f;
-	this->epsilon = 0.02f;
-	this->gamma = 1.0f;
+	this->radius = 0.01f;
+	this->epsilon = 0.04f;
+	this->gamma = 2.0f;
 	this->change_values = true;
 }
 
