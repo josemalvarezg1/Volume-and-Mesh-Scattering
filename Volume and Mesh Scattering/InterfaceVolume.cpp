@@ -33,6 +33,9 @@ interface_volume::interface_volume()
 	TwAddVarRW(this->volume_interface, "Radio", TW_TYPE_FLOAT, &this->radius, "group='Parámetros de Dispersión' min=0.5 max=1.0 step=0.001");
 	TwAddVarRW(this->volume_interface, "Albedo", TW_TYPE_FLOAT, &this->albedo, "group='Parámetros de Dispersión' min=0.04 max=0.99 step=0.001");
 	TwAddVarRW(this->volume_interface, "Resplandor de fondo", TW_TYPE_COLOR4F, &this->back_radiance, "group='Parámetros de Dispersión'");
+
+	TwAddVarRW(this->volume_interface, "Coeficiente de dispersión", TW_TYPE_COLOR3F, &this->scattering_coeff, "group='Parámetros de Dispersión'");
+	TwAddVarRW(this->volume_interface, "Coeficiente de extinción", TW_TYPE_COLOR3F, &this->extinction_coeff, "group='Parámetros de Dispersión'");
 }
 
 interface_volume::~interface_volume()

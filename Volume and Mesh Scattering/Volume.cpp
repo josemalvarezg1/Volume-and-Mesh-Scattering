@@ -85,7 +85,6 @@ volume::volume(std::string path, GLuint width, GLuint height, GLuint depth, GLui
 	this->escalation = 4.0f;
 	this->asymmetry_param_g = 0.77f;
 	this->radius = 0.5f;
-	this->albedo = 0.04f;
 	this->back_radiance = glm::vec4(1.0f);
 	this->step = (GLfloat)(1.0f / sqrt((this->width * this->width) + (this->height * this->height) + (this->depth * this->depth)));
 	if (this->bits == 8u)
@@ -243,7 +242,6 @@ void volume_render::init_shaders()
 	this->raycasting.addUniform("lighting");
 	this->raycasting.addUniform("camera_pos");
 	this->raycasting.addUniform("radius");
-	this->raycasting.addUniform("albedo");
 	this->raycasting.addUniform("asymmetry_param_g");
 	this->raycasting.addUniform("back_radiance");
 	this->raycasting.addUniform("ambient_comp");
@@ -252,6 +250,9 @@ void volume_render::init_shaders()
 	this->raycasting.addUniform("back_face_text");
 	this->raycasting.addUniform("volume_text");
 	this->raycasting.addUniform("transfer_function_text");
+	this->raycasting.addUniform("scattering_coeff");
+	this->raycasting.addUniform("extinction_coeff");
+
 	this->raycasting.disable();
 }
 
@@ -285,8 +286,9 @@ bool volume_render::click_volume(double x, double y, glm::mat4 &projection, glm:
 			this->volume_interface->scale = this->volumes[this->index_select]->escalation;
 			this->volume_interface->asymmetry_param_g = this->volumes[this->index_select]->asymmetry_param_g;
 			this->volume_interface->radius = this->volumes[this->index_select]->radius;
-			this->volume_interface->albedo = this->volumes[this->index_select]->albedo;
 			this->volume_interface->back_radiance = this->volumes[this->index_select]->back_radiance;
+			this->volume_interface->scattering_coeff = this->volumes[this->index_select]->scattering_coeff;
+			this->volume_interface->extinction_coeff = this->volumes[this->index_select]->extinction_coeff;
 			this->visible_interface = true;
 
 			return true;
@@ -483,13 +485,14 @@ void volume_render::render_cube_raycast(glm::mat4 &MVP, glm::mat4 &model, glm::v
 	glUniformMatrix4fv(this->raycasting.getLocation("model"), 1, GL_FALSE, glm::value_ptr(model));
 	glUniform3fv(this->raycasting.getLocation("camera_pos"), 1, &view_pos[0]);
 	glUniform1f(this->raycasting.getLocation("radius"), this->volumes[this->index_select]->radius);
-	glUniform1f(this->raycasting.getLocation("albedo"), this->volumes[this->index_select]->albedo);
 	glUniform1f(this->raycasting.getLocation("asymmetry_param_g"), this->volumes[this->index_select]->asymmetry_param_g);
 	glUniform4fv(this->raycasting.getLocation("back_radiance"), 1, &this->volumes[this->index_select]->back_radiance[0]);
 	glUniform3fv(this->raycasting.getLocation("light_pos"), 1, &light_pos[0]);
 	glUniform3fv(this->raycasting.getLocation("ambient_comp"), 1, &ambient_comp[0]);
 	glUniform3fv(this->raycasting.getLocation("diffuse_comp"), 1, &diffuse_comp[0]);
 	glUniform3fv(this->raycasting.getLocation("specular_comp"), 1, &specular_comp[0]);
+	glUniform3fv(this->raycasting.getLocation("scattering_coeff"), 1, &this->volumes[this->index_select]->scattering_coeff[0]);
+	glUniform3fv(this->raycasting.getLocation("extinction_coeff"), 1, &this->volumes[this->index_select]->extinction_coeff[0]);
 	glUniform1i(this->raycasting.getLocation("lighting"), on);
 	this->unitary_cube->display();
 	this->raycasting.disable();
@@ -570,13 +573,17 @@ void volume_render::update_interface()
 		{
 			this->volumes[this->index_select]->radius = this->volume_interface->radius;
 		}
-		if (this->volumes[this->index_select]->albedo != this->volume_interface->albedo)
-		{
-			this->volumes[this->index_select]->albedo = this->volume_interface->albedo;
-		}
 		if (this->volumes[this->index_select]->back_radiance != this->volume_interface->back_radiance)
 		{
 			this->volumes[this->index_select]->back_radiance = this->volume_interface->back_radiance;
-		}		
+		}	
+		if (this->volumes[this->index_select]->scattering_coeff != this->volume_interface->scattering_coeff)
+		{
+			this->volumes[this->index_select]->scattering_coeff = this->volume_interface->scattering_coeff;
+		}
+		if (this->volumes[this->index_select]->extinction_coeff != this->volume_interface->extinction_coeff)
+		{
+			this->volumes[this->index_select]->extinction_coeff = this->volume_interface->extinction_coeff;
+		}
 	}
 }

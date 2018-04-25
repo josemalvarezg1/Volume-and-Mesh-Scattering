@@ -11,9 +11,10 @@ uniform vec3 ambient_comp;
 uniform vec3 diffuse_comp;
 uniform vec3 specular_comp;
 uniform float radius;
-uniform float albedo;
 uniform float asymmetry_param_g;
 uniform vec4 back_radiance;
+uniform vec3 scattering_coeff;
+uniform vec3 extinction_coeff;
 
 in vec3 in_coord;
 in vec3 frag_pos;
@@ -82,91 +83,91 @@ float fresnel_t(vec3 inv, vec3 n, float n_1)
 	return (Ts + Tp) / 2.0f;
 }
 
-void BSSRDF(vec3 frag_pos, vec3 frag_normal)
-{
-	vec3 xo, no, wo, Lo, Ll, xi, ni, wi, x, r, dr, dr_pow, w12, p, ni_ast, xv, dv, wv;
-	vec3 diffuse_part_prime_1, diffuse_part_prime_2, diffuse_part_d;
-	vec3 cos_beta, z_prime, R, T, diffuse_part;
-	float miu_0, Ti, To, theta;
-	mat2 rotation_samples_matrix;
-	vec4 light_diff;
-
-	xo = frag_pos;
-	no = normalize(frag_normal);
-	wo = normalize(camera_pos - frag_pos);
-
-	Lo = vec3(0.0f);
-	Ll = light_diff.xyz; 		/*Hasta ahora una sola luz por la parte que vamos en el paper*/
-
-	wi = normalize(light_pos);
-
-	/* Inicio: Generación de muestras */
-
-	for (int i = 0; i < 64; i++)
-	{
-		vec4 offset = vec4(xo, 1.0f);
-		// De espacio de vista a espacio de clipping
-		offset = vp_light * offset;
-		offset.xyz /= offset.w;
-		// El offset estará en un rango [0:1]
-		offset.xyz = offset.xyz * 0.5 + 0.5;
-		offset.xy += samples[i].xy;
-
-		theta = 2 * PI * radius;
-		rotation_samples_matrix = mat2(vec2(cos(theta), sin(theta)), vec2(-sin(theta), cos(theta)));
-		offset.xy = rotation_samples_matrix * offset.xy;
-
-		xi = texture(g_position, offset.xy).xyz;
-		ni = texture(g_normal, offset.xy).xyz;
-
-		float visibility = 1.0f;
-		float bias = 0.005 * tan(acos(dot(no, wi)));
-		bias = clamp(bias, 0.0f, 0.01f);
-		if (texture(g_depth, offset.xy).r  <  offset.z - bias)
-		{
-			visibility = 0.0;
-		}
-
-		if (visibility > 0.0f)
-		{
-			x = xo - xi;
-			r = vec3(length(x));
-			w12 = refract(wi, ni, refractive_index);
-
-			/* Inicio: Parte Difusa */
-
-			ni_ast = calculate_ni_ast(xo, xi, ni);
-
-			xv = xi + (2 * A * de * ni_ast);
-			dv = vec3(length(xo - xv));
-			wv = w12 - (2 * (dot(w12, ni_ast)) * ni_ast);
-
-			cos_beta = -sqrt((pow(r, vec3(2.0f)) - pow(dot(x, w12), 2)) / (pow(r, vec3(2.0f)) + pow(de, vec3(2.0f))));
-			miu_0 = dot(-no, w12);
-			dr_pow = calculate_dr_pow(r, D, miu_0, de, cos_beta, attenuation_coeff);
-			dr = sqrt(dr_pow);
-
-			diffuse_part_prime_1 = diffuse_part_prime(x, w12, dr, no);
-			diffuse_part_prime_2 = diffuse_part_prime(xo - xv, wv, dv, no);
-			diffuse_part_d = diffuse_part_prime_1 - diffuse_part_prime_2;
-
-			Ti = fresnel_t(wi, ni, refractive_index);
-			To = fresnel_t(wo, no, refractive_index);
-
-			diffuse_part = (Ti * diffuse_part_d * dot(ni, wi));
-
-			Lo += diffuse_part;
-
-			/* Fin: Parte Difusa */
-		}
-	}
-
-	Lo *= ((PI * Ll) / n_samples);
-
-	/* Fin: Generación de muestras */
-
-	color = vec4(Lo * diffuse_reflectance, 1.0f);
-}
+//void BSSRDF(vec3 frag_pos, vec3 frag_normal)
+//{
+//	vec3 xo, no, wo, Lo, Ll, xi, ni, wi, x, r, dr, dr_pow, w12, p, ni_ast, xv, dv, wv;
+//	vec3 diffuse_part_prime_1, diffuse_part_prime_2, diffuse_part_d;
+//	vec3 cos_beta, z_prime, R, T, diffuse_part;
+//	float miu_0, Ti, To, theta;
+//	mat2 rotation_samples_matrix;
+//	vec4 light_diff;
+//
+//	xo = frag_pos;
+//	no = normalize(frag_normal);
+//	wo = normalize(camera_pos - frag_pos);
+//
+//	Lo = vec3(0.0f);
+//	Ll = light_diff.xyz; 		/*Hasta ahora una sola luz por la parte que vamos en el paper*/
+//
+//	wi = normalize(light_pos);
+//
+//	/* Inicio: Generación de muestras */
+//
+//	for (int i = 0; i < 64; i++)
+//	{
+//		vec4 offset = vec4(xo, 1.0f);
+//		// De espacio de vista a espacio de clipping
+//		offset = vp_light * offset;
+//		offset.xyz /= offset.w;
+//		// El offset estará en un rango [0:1]
+//		offset.xyz = offset.xyz * 0.5 + 0.5;
+//		offset.xy += samples[i].xy;
+//
+//		theta = 2 * PI * radius;
+//		rotation_samples_matrix = mat2(vec2(cos(theta), sin(theta)), vec2(-sin(theta), cos(theta)));
+//		offset.xy = rotation_samples_matrix * offset.xy;
+//
+//		xi = texture(g_position, offset.xy).xyz;
+//		ni = texture(g_normal, offset.xy).xyz;
+//
+//		float visibility = 1.0f;
+//		float bias = 0.005 * tan(acos(dot(no, wi)));
+//		bias = clamp(bias, 0.0f, 0.01f);
+//		if (texture(g_depth, offset.xy).r  <  offset.z - bias)
+//		{
+//			visibility = 0.0;
+//		}
+//
+//		if (visibility > 0.0f)
+//		{
+//			x = xo - xi;
+//			r = vec3(length(x));
+//			w12 = refract(wi, ni, refractive_index);
+//
+//			/* Inicio: Parte Difusa */
+//
+//			ni_ast = calculate_ni_ast(xo, xi, ni);
+//
+//			xv = xi + (2 * A * de * ni_ast);
+//			dv = vec3(length(xo - xv));
+//			wv = w12 - (2 * (dot(w12, ni_ast)) * ni_ast);
+//
+//			cos_beta = -sqrt((pow(r, vec3(2.0f)) - pow(dot(x, w12), 2)) / (pow(r, vec3(2.0f)) + pow(de, vec3(2.0f))));
+//			miu_0 = dot(-no, w12);
+//			dr_pow = calculate_dr_pow(r, D, miu_0, de, cos_beta, attenuation_coeff);
+//			dr = sqrt(dr_pow);
+//
+//			diffuse_part_prime_1 = diffuse_part_prime(x, w12, dr, no);
+//			diffuse_part_prime_2 = diffuse_part_prime(xo - xv, wv, dv, no);
+//			diffuse_part_d = diffuse_part_prime_1 - diffuse_part_prime_2;
+//
+//			Ti = fresnel_t(wi, ni, refractive_index);
+//			To = fresnel_t(wo, no, refractive_index);
+//
+//			diffuse_part = (Ti * diffuse_part_d * dot(ni, wi));
+//
+//			Lo += diffuse_part;
+//
+//			/* Fin: Parte Difusa */
+//		}
+//	}
+//
+//	Lo *= ((PI * Ll) / n_samples);
+//
+//	/* Fin: Generación de muestras */
+//
+//	color = vec4(Lo * diffuse_reflectance, 1.0f);
+//}
 
 vec3 get_gradient(vec3 ray_position) 
 { 	

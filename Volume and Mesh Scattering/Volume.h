@@ -27,8 +27,8 @@ public:
 	std::string name;
 	GLuint width, height, depth, bits, volume_text;
 	glm::quat rotation;
-	glm::vec3 translation;
-	GLfloat escalation, step, asymmetry_param_g, radius, albedo;
+	glm::vec3 translation, scattering_coeff, extinction_coeff;
+	GLfloat escalation, step, asymmetry_param_g, radius;
 	glm::vec4 back_radiance;
 
 	volume(std::string path, GLuint width, GLuint height, GLuint depth, GLuint bits);
@@ -47,7 +47,7 @@ public:
 	bool press_volume_right, press_volume_left;
 	double x_reference, y_reference;
 	interface_volume *volume_interface;
-	bool visible_interface;
+	bool visible_interface;	
 
 	volume_render(int g_width, int g_height);
 	~volume_render();
