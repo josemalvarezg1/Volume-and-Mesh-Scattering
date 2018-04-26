@@ -1,6 +1,5 @@
 #include "Main.h"
 
-// Falta: Quitar clase m_set (sólo será un modelo .obj por rendering)	
 // Falta: Re-calcular el scattered-map al hacer full-screen
 // Falta: Agregar más luces
 
@@ -16,7 +15,7 @@ glm::mat4 projection, view, model;
 
 light *scene_light;
 camera *scene_camera;
-mesh_set *m_set;
+mesh *scene_model;
 light_buffers_set *light_buffers;
 materials_set *materials;
 interface_function *transfer_funtion;
@@ -60,13 +59,12 @@ void reshape(GLFWwindow *window, int width, int height)
 
 	volumes->resize_screen(glm::vec2(g_width, g_height));
 	scene_light->light_interface->reshape(g_width, g_height);
-	m_set->model_interface->reshape(g_width, g_height);
+	scene_model->model_interface->reshape(g_width, g_height);
 
 	for (size_t i = 0; i < num_of_lights; i++)
 		light_buffers->array_of_buffers[0]->update_g_buffer(g_width, g_height);
 
-	for (size_t i = 0; i < m_set->mesh_models.size(); i++)
-		m_set->mesh_models[i]->change_values = true;
+	scene_model->change_values = true;
 
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	scattered_maps->update_scattered_map(g_width, g_height, num_of_ortho_cameras);
@@ -97,7 +95,7 @@ void key_input(GLFWwindow *window, int key, int scan_code, int action, int mods)
 			{
 				glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 				if (selecting_model)
-					m_set->not_click_model();
+					scene_model->not_click_model();
 				if (selecting_light)
 					scene_light->not_click_light();
 				if (selecting_volume) {
@@ -108,7 +106,7 @@ void key_input(GLFWwindow *window, int key, int scan_code, int action, int mods)
 			else {
 				glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 				if (selecting_model)
-					m_set->click_model(selected_model);
+					scene_model->click_model();
 				if (selecting_light)
 					scene_light->click_light();
 				if (selecting_volume) {
@@ -143,12 +141,12 @@ void click(GLFWwindow* window, int button, int action, int mods)
 
 			if (index > 0)
 			{
-				if (index <= m_set->mesh_models.size())
+				if (index <= 1)
 				{
 					scene_light->not_click_light();
 					volumes->volume_interface->hide();
 					selected_model = index - 1;
-					m_set->click_model(selected_model);
+					scene_model->click_model();
 					selecting_model = true;
 					selecting_light = false;
 					selecting_volume = false;
@@ -156,7 +154,7 @@ void click(GLFWwindow* window, int button, int action, int mods)
 				}
 				else
 				{
-					m_set->not_click_model();
+					scene_model->not_click_model();
 					volumes->volume_interface->hide();
 					scene_light->click_light();
 					selecting_model = false;
@@ -169,7 +167,7 @@ void click(GLFWwindow* window, int button, int action, int mods)
 			else {
 				selecting_model = false;
 				selected_model = -1;
-				m_set->not_click_model();
+				scene_model->not_click_model();
 				scene_light->not_click_light();
 				selecting_light = false;
 			}
@@ -182,7 +180,7 @@ void click(GLFWwindow* window, int button, int action, int mods)
 				selecting_volume = true;
 				transfer_funtion->hide = false;
 				volumes->volume_interface->show();
-				m_set->not_click_model();
+				scene_model->not_click_model();
 				scene_light->not_click_light();
 				return;
 			}
@@ -436,7 +434,6 @@ bool init_scene()
 {
 	light_buffer *g_buffer;
 	material *potato, *marble, *skin, *milk, *cream, *none;
-	mesh *scene_model;
 
 	num_of_lights = 1;
 	num_of_ortho_cameras = 6;
@@ -444,7 +441,6 @@ bool init_scene()
 
 	scene_light = new light();
 	scene_model = new mesh();
-	m_set = new mesh_set();
 	halton_generator = new halton();
 	materials = new materials_set();
 	light_buffers = new light_buffers_set();
@@ -479,7 +475,6 @@ bool init_scene()
 	const char** paths = new const char*[1];
 	paths[0] = "Models\\raw\\bucky_32x32x32_8.raw";
 	//volumes->drop_path(1, paths);
-	m_set->mesh_models.push_back(scene_model);
 	halton_generator->generate_orthographic_cameras(num_of_ortho_cameras);
 
 	return true;
@@ -502,23 +497,20 @@ void display()
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		glsl_g_buffer.enable();
-		for (size_t j = 0; j < m_set->mesh_models.size(); j++)
-		{
-			view_ortho = glm::lookAt(scene_light->translation, m_set->mesh_models[j]->center, glm::vec3(0.0f, 1.0f, 0.0f));
+			view_ortho = glm::lookAt(scene_light->translation, scene_model->center, glm::vec3(0.0f, 1.0f, 0.0f));
 			view_proj_ortho_light = projection_ortho * view_ortho;
 
 			model_mat = glm::mat4(1.0f);
-			model_mat = glm::translate(model_mat, m_set->mesh_models[j]->translation);
-			model_mat = model_mat * glm::toMat4(m_set->mesh_models[j]->rotation);
-			model_mat = glm::scale(model_mat, glm::vec3(m_set->mesh_models[j]->scale));
+			model_mat = glm::translate(model_mat, scene_model->translation);
+			model_mat = model_mat * glm::toMat4(scene_model->rotation);
+			model_mat = glm::scale(model_mat, glm::vec3(scene_model->scale));
 
 			glUniformMatrix4fv(glsl_g_buffer.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
 			glUniformMatrix4fv(glsl_g_buffer.getLocation("light_matrix"), 1, GL_FALSE, glm::value_ptr(view_proj_ortho_light));
 
-			glBindVertexArray(m_set->mesh_models[j]->vao);
-			glDrawArrays(GL_TRIANGLES, 0, m_set->mesh_models[j]->vertices.size());
+			glBindVertexArray(scene_model->vao);
+			glDrawArrays(GL_TRIANGLES, 0, scene_model->vertices.size());
 			glBindVertexArray(0);
-		}
 		glsl_g_buffer.disable();
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -528,28 +520,26 @@ void display()
 	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
 	glsl_scattered_map.enable();
-	for (size_t i = 0; i < m_set->mesh_models.size(); i++)
-	{
-		if (m_set->mesh_models[i]->change_values || change_light)
+		if (scene_model->change_values || change_light)
 		{
 			glBindFramebuffer(GL_FRAMEBUFFER, scattered_maps->buffer);
 			glStencilFunc(GL_ALWAYS, 1, -1);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-			materials->materials[m_set->mesh_models[i]->current_material]->precalculate_values(m_set->mesh_models[i]->asymmetry_param_g);
-			sigma_tr = materials->materials[m_set->mesh_models[i]->current_material]->effective_transport_coeff;
-			halton_generator->generate_samples(min(sigma_tr.x, sigma_tr.y, sigma_tr.z) / m_set->mesh_models[i]->q, m_set->mesh_models[i]->radius, num_of_samples_per_frag);
+			materials->materials[scene_model->current_material]->precalculate_values(scene_model->asymmetry_param_g);
+			sigma_tr = materials->materials[scene_model->current_material]->effective_transport_coeff;
+			halton_generator->generate_samples(min(sigma_tr.x, sigma_tr.y, sigma_tr.z) / scene_model->q, scene_model->radius, num_of_samples_per_frag);
 
 			std::vector<glm::mat4> view_proj_ortho_randoms;
 
 			model_mat = glm::mat4(1.0f);
-			model_mat = glm::translate(model_mat, m_set->mesh_models[i]->translation);
-			model_mat = model_mat * glm::toMat4(m_set->mesh_models[i]->rotation);
-			model_mat = glm::scale(model_mat, glm::vec3(m_set->mesh_models[i]->scale));
+			model_mat = glm::translate(model_mat, scene_model->translation);
+			model_mat = model_mat * glm::toMat4(scene_model->rotation);
+			model_mat = glm::scale(model_mat, glm::vec3(scene_model->scale));
 
 			for (size_t j = 0; j < num_of_ortho_cameras; j++)
 			{
-				view_ortho = glm::lookAt(halton_generator->camera_positions[j], m_set->mesh_models[i]->center, glm::vec3(0.0f, 1.0f, 0.0f));
+				view_ortho = glm::lookAt(halton_generator->camera_positions[j], scene_model->center, glm::vec3(0.0f, 1.0f, 0.0f));
 				view_proj_ortho_random = projection_ortho * view_ortho;
 				view_proj_ortho_randoms.push_back(view_proj_ortho_random);
 			}
@@ -561,26 +551,26 @@ void display()
 			glUniform1i(glsl_scattered_map.getLocation("g_position"), 0);
 			glUniform1i(glsl_scattered_map.getLocation("g_normal"), 1);
 			glUniform1i(glsl_scattered_map.getLocation("g_depth"), 2);
-			glUniform1f(glsl_scattered_map.getLocation("radius"), m_set->mesh_models[i]->radius);
+			glUniform1f(glsl_scattered_map.getLocation("radius"), scene_model->radius);
 			glUniform1i(glsl_scattered_map.getLocation("n_samples"), num_of_samples_per_frag);
 			glUniform2fv(glsl_scattered_map.getLocation("samples"), num_of_samples_per_frag, glm::value_ptr(halton_generator->samples[0]));
-			glUniform1f(glsl_scattered_map.getLocation("asymmetry_param_g"), m_set->mesh_models[i]->asymmetry_param_g);
-			glUniform1f(glsl_scattered_map.getLocation("refractive_index"), m_set->mesh_models[i]->refractive_index);
-			glUniform3fv(glsl_scattered_map.getLocation("diffuse_reflectance"), 1, glm::value_ptr(materials->materials[m_set->mesh_models[i]->current_material]->diffuse_reflectance));
+			glUniform1f(glsl_scattered_map.getLocation("asymmetry_param_g"), scene_model->asymmetry_param_g);
+			glUniform1f(glsl_scattered_map.getLocation("refractive_index"), scene_model->refractive_index);
+			glUniform3fv(glsl_scattered_map.getLocation("diffuse_reflectance"), 1, glm::value_ptr(materials->materials[scene_model->current_material]->diffuse_reflectance));
 
 			glUniform3f(glsl_scattered_map.getLocation("light_pos"), scene_light->translation.x, scene_light->translation.y, scene_light->translation.z);
 			glUniform4f(glsl_scattered_map.getLocation("light_diff"), 1.0f, 1.0f, 1.0f, 1.0f);
 
 			// Valores pre-calculados
-			glUniform3fv(glsl_scattered_map.getLocation("attenuation_coeff"), 1, glm::value_ptr(materials->materials[m_set->mesh_models[i]->current_material]->attenuation_coeff));
-			glUniform3fv(glsl_scattered_map.getLocation("D"), 1, glm::value_ptr(materials->materials[m_set->mesh_models[i]->current_material]->D));
-			glUniform3fv(glsl_scattered_map.getLocation("effective_transport_coeff"), 1, glm::value_ptr(materials->materials[m_set->mesh_models[i]->current_material]->effective_transport_coeff));
-			glUniform1f(glsl_scattered_map.getLocation("c_phi_1"), materials->materials[m_set->mesh_models[i]->current_material]->c_phi_1);
-			glUniform1f(glsl_scattered_map.getLocation("c_phi_2"), materials->materials[m_set->mesh_models[i]->current_material]->c_phi_2);
-			glUniform1f(glsl_scattered_map.getLocation("c_e"), materials->materials[m_set->mesh_models[i]->current_material]->c_e);
-			glUniform1f(glsl_scattered_map.getLocation("A"), materials->materials[m_set->mesh_models[i]->current_material]->A);
-			glUniform3fv(glsl_scattered_map.getLocation("de"), 1, glm::value_ptr(materials->materials[m_set->mesh_models[i]->current_material]->de));
-			glUniform3fv(glsl_scattered_map.getLocation("zr"), 1, glm::value_ptr(materials->materials[m_set->mesh_models[i]->current_material]->zr));
+			glUniform3fv(glsl_scattered_map.getLocation("attenuation_coeff"), 1, glm::value_ptr(materials->materials[scene_model->current_material]->attenuation_coeff));
+			glUniform3fv(glsl_scattered_map.getLocation("D"), 1, glm::value_ptr(materials->materials[scene_model->current_material]->D));
+			glUniform3fv(glsl_scattered_map.getLocation("effective_transport_coeff"), 1, glm::value_ptr(materials->materials[scene_model->current_material]->effective_transport_coeff));
+			glUniform1f(glsl_scattered_map.getLocation("c_phi_1"), materials->materials[scene_model->current_material]->c_phi_1);
+			glUniform1f(glsl_scattered_map.getLocation("c_phi_2"), materials->materials[scene_model->current_material]->c_phi_2);
+			glUniform1f(glsl_scattered_map.getLocation("c_e"), materials->materials[scene_model->current_material]->c_e);
+			glUniform1f(glsl_scattered_map.getLocation("A"), materials->materials[scene_model->current_material]->A);
+			glUniform3fv(glsl_scattered_map.getLocation("de"), 1, glm::value_ptr(materials->materials[scene_model->current_material]->de));
+			glUniform3fv(glsl_scattered_map.getLocation("zr"), 1, glm::value_ptr(materials->materials[scene_model->current_material]->zr));
 
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, light_buffers->array_of_buffers[0]->g_position);
@@ -589,16 +579,14 @@ void display()
 			glActiveTexture(GL_TEXTURE2);
 			glBindTexture(GL_TEXTURE_2D, light_buffers->array_of_buffers[0]->g_depth);
 
-			glBindVertexArray(m_set->mesh_models[i]->vao);
-			glDrawArrays(GL_TRIANGLES, 0, m_set->mesh_models[i]->vertices.size());
+			glBindVertexArray(scene_model->vao);
+			glDrawArrays(GL_TRIANGLES, 0, scene_model->vertices.size());
 			glBindVertexArray(0);
 
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-			m_set->mesh_models[i]->change_values = false;
+			scene_model->change_values = false;
 		}
-	}
-
 	glsl_scattered_map.disable();
 
 	glEnable(GL_STENCIL_TEST);
@@ -606,9 +594,7 @@ void display()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
 	glsl_blending.enable();
-	for (size_t i = 0; i < m_set->mesh_models.size(); i++)
-	{
-		glStencilFunc(GL_ALWAYS, i + 1, -1);
+		glStencilFunc(GL_ALWAYS, 1, -1);
 		glUniform3f(glsl_blending.getLocation("camera_pos"), scene_camera->position[0], scene_camera->position[1], scene_camera->position[2]);
 		glUniform3f(glsl_blending.getLocation("light_pos"), scene_light->translation.x, scene_light->translation.y, scene_light->translation.z);
 
@@ -616,13 +602,13 @@ void display()
 		std::vector<glm::vec3> cameras_dirs;
 
 		model_mat = glm::mat4(1.0f);
-		model_mat = glm::translate(model_mat, m_set->mesh_models[i]->translation);
-		model_mat = model_mat * glm::toMat4(m_set->mesh_models[i]->rotation);
-		model_mat = glm::scale(model_mat, glm::vec3(m_set->mesh_models[i]->scale));
+		model_mat = glm::translate(model_mat, scene_model->translation);
+		model_mat = model_mat * glm::toMat4(scene_model->rotation);
+		model_mat = glm::scale(model_mat, glm::vec3(scene_model->scale));
 
 		for (size_t j = 0; j < num_of_ortho_cameras; j++)
 		{
-			view_ortho = glm::lookAt(halton_generator->camera_positions[j], m_set->mesh_models[i]->center, glm::vec3(0.0f, 1.0f, 0.0f));
+			view_ortho = glm::lookAt(halton_generator->camera_positions[j], scene_model->center, glm::vec3(0.0f, 1.0f, 0.0f));
 			view_proj_ortho_random = projection_ortho * view_ortho;
 			view_proj_ortho_randoms.push_back(view_proj_ortho_random);
 			cameras_dirs.push_back(halton_generator->camera_positions[j]);
@@ -632,12 +618,12 @@ void display()
 		glUniformMatrix4fv(glsl_blending.getLocation("MVP"), 1, GL_FALSE, glm::value_ptr(projection * view * model_mat));
 		glUniform1i(glsl_blending.getLocation("scattered_map"), 0);
 		glUniform1i(glsl_blending.getLocation("depth_map"), 1);
-		glUniform1f(glsl_blending.getLocation("epsilon"), m_set->mesh_models[i]->epsilon);
-		glUniform1f(glsl_blending.getLocation("refractive_index"), m_set->mesh_models[i]->refractive_index);
+		glUniform1f(glsl_blending.getLocation("epsilon"), scene_model->epsilon);
+		glUniform1f(glsl_blending.getLocation("refractive_index"), scene_model->refractive_index);
 		glUniform1i(glsl_blending.getLocation("n_cameras"), num_of_ortho_cameras);
 		glUniformMatrix4fv(glsl_blending.getLocation("cameras_matrix"), num_of_ortho_cameras, GL_FALSE, glm::value_ptr(view_proj_ortho_randoms[0]));
 		glUniformMatrix4fv(glsl_blending.getLocation("cameras_dirs"), num_of_ortho_cameras, GL_FALSE, glm::value_ptr(cameras_dirs[0]));
-		glUniform1f(glsl_blending.getLocation("gamma"), m_set->mesh_models[i]->gamma);
+		glUniform1f(glsl_blending.getLocation("gamma"), scene_model->gamma);
 		glUniform1i(glsl_blending.getLocation("current_frame"), 1);
 		glUniform1i(glsl_blending.getLocation("g_width"), g_width);
 		glUniform1i(glsl_blending.getLocation("g_height"), g_height);
@@ -647,13 +633,12 @@ void display()
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D_ARRAY, scattered_maps->depth_texture);
 
-		glBindVertexArray(m_set->mesh_models[i]->vao);
-		glDrawArrays(GL_TRIANGLES, 0, m_set->mesh_models[i]->vertices.size());
+		glBindVertexArray(scene_model->vao);
+		glDrawArrays(GL_TRIANGLES, 0, scene_model->vertices.size());
 		glBindVertexArray(0);
-	}
 	glsl_blending.disable();
 
-	glStencilFunc(GL_ALWAYS, m_set->mesh_models.size() + 1, -1);
+	glStencilFunc(GL_ALWAYS, 2, -1);
 	scene_light->display(projection * view);
 
 	glDisable(GL_STENCIL_TEST);
@@ -700,7 +685,7 @@ int main()
 		display();
 		TwDraw();
 		change_light = scene_light->update_interface();
-		m_set->update_interface(selected_model);
+		scene_model->update_interface();
 		volumes->update_interface();
 		glfwSwapBuffers(g_window);
 	}

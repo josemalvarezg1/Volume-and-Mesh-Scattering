@@ -24,6 +24,8 @@ public:
 	std::vector<glm::vec3> vertices, normals;
 	glm::vec3 max_vertex, min_vertex, center, translation, ambient_comp, diffuse_comp, specular_comp;
 	material_m current_material;
+	interface_model *model_interface;
+	bool visible_interface;
 
 	mesh();
 	~mesh();
@@ -33,19 +35,8 @@ public:
 	void calculate_center();
 	void load(std::string path);
 	void create_vbo();
-};
-
-class mesh_set {
-public:
-	std::vector<mesh*> mesh_models;
-	interface_model *model_interface;
-	bool visible_interface;
-
-	mesh_set();
-	~mesh_set();
-
-	void click_model(int selected_model);
+	void click_model();
 	void not_click_model();
-	void update_interface(int selected_model);
+	void update_interface();
 };
 
