@@ -2,15 +2,16 @@
 layout (location = 0) in vec3 position;
 layout (location = 1) in vec3 normal;
 
-out vec3 frag_pos;
-out vec3 frag_normal;
+out VS_OUT
+{
+	vec3 frag_pos;
+	vec3 frag_normal;
+} vs_out;
 
 uniform mat4 model_matrix;
-uniform mat4 light_matrix;
 
 void main()
 {
-    gl_Position = light_matrix *  model_matrix * vec4(position, 1.0f);
-	frag_pos = vec3(model_matrix * vec4(position, 1.0f));
-    frag_normal = transpose(inverse(mat3(model_matrix))) * normal;
+	vs_out.frag_pos = vec3(model_matrix * vec4(position, 1.0f));
+	vs_out.frag_normal = transpose(inverse(mat3(model_matrix))) * normal;
 }

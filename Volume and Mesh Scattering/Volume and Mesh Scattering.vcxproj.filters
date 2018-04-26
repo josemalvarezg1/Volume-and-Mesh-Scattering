@@ -181,5 +181,8 @@
     <None Include="Shaders\blending.frag">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="Shaders\gBuffer.geom">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>
