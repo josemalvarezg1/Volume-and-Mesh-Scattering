@@ -1,12 +1,14 @@
 #version 330
-layout (location = 0) out vec3 g_position;
-layout (location = 1) out vec3 g_normal;
+layout (location = 0) out vec3 g_out;
 
 in vec3 frag_pos;
 in vec3 frag_normal;
+in int num_of_buffer;
 
 void main()
 {    
-    g_position = frag_pos;
-    g_normal = normalize(frag_normal);
+	if (num_of_buffer == 0)
+		g_out = frag_pos;
+	else
+		g_out = normalize(frag_normal);
 }

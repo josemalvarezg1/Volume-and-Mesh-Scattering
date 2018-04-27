@@ -18,9 +18,9 @@ uniform int n_samples;
 uniform int num_of_lights;
 uniform vec2 samples[64];
 uniform mat4 model_matrix;
-uniform sampler2D g_position;
-uniform sampler2D g_normal;
-uniform sampler2D g_depth;
+uniform sampler2DArray g_position;
+uniform sampler2DArray g_normal;
+uniform sampler2DArray g_depth;
 uniform float radius;
 
 // Valores pre-calculados
@@ -35,6 +35,13 @@ uniform vec3 de;
 uniform vec3 zr;
 
 const float PI = 3.1415926535897932384626433832795;
+
+vec2 poissonDisk[4] = vec2[](
+	vec2(-0.94201624, -0.39906216),
+	vec2(0.94558609, -0.76890725),
+	vec2(-0.094184101, -0.92938870),
+	vec2(0.34495938, 0.29387760)
+);
 
 out vec4 color;
 
@@ -139,9 +146,14 @@ void main()
 			float visibility = 1.0f;
 			float bias = 0.005 * tan(acos(dot(no, wi)));
 			bias = clamp(bias, 0.0f, 0.01f);
+			
 			if (texture(g_depth, vec3(offset.xy, l)).r < offset.z - bias)
 			{
-				visibility = 0.0;
+				for (int k = 0; k < 4; k++) {
+					if (texture(g_depth, vec3(offset.xy + poissonDisk[k] / 700.0f, l)).z  <  offset.z - bias) {
+						visibility -= 0.2f;
+					}
+				}
 			}
 
 			if (visibility > 0.0f)
@@ -178,10 +190,11 @@ void main()
 			}
 		}
 
-		Lo *= ((PI * Ll) / n_samples);
+		Lo *= ((PI * Ll));
 	}
 
 	/* Fin: Generación de muestras */	
+	Lo /= n_samples;
 
 	color = vec4(Lo * diffuse_reflectance, 1.0f);
 }
