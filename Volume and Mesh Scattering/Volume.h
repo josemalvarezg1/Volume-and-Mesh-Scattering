@@ -7,6 +7,7 @@
 #include <sstream>
 #include <algorithm>
 #include "GLSLProgram.h"
+#include "Light.h"
 #include "InterfaceVolume.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -65,8 +66,8 @@ public:
 	void create_backface_text();
 	bool create_frame_buffer();
 	void render_cube(glm::mat4 &MVP);
-	void render_cube_raycast(glm::mat4 &MVP, glm::mat4 &model, glm::vec3 view_pos, glm::vec3 light_pos, bool on, glm::vec3 ambient_comp, glm::vec3 diffuse_comp, glm::vec3 specular_comp);
-	void display(glm::mat4 &viewProjection, glm::vec3 view_pos, glm::vec3 light_pos, bool on, glm::vec3 ambient_comp, glm::vec3 diffuse_comp, glm::vec3 specular_comp);
+	void render_cube_raycast(glm::mat4 &MVP, glm::mat4 &model, glm::vec3 view_pos, std::vector<light*> scene_lights);
+	void display(glm::mat4 &viewProjection, glm::vec3 view_pos, std::vector<light*> scene_lights);
 	void change_volume(int type);
 	void resize_screen(const glm::vec2 screen);
 

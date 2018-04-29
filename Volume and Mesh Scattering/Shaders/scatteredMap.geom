@@ -3,7 +3,7 @@
 layout(triangles) in;
 layout(triangle_strip, max_vertices = 60) out;
 uniform int n_cameras;
-uniform mat4 cameras_matrix[6];
+uniform mat4 cameras_matrix[16];
 
 out vec3 frag_pos;
 out vec3 frag_normal;

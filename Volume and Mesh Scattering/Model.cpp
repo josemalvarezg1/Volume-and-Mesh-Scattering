@@ -2,7 +2,7 @@
 
 mesh::mesh()
 {
-	this->translation = glm::vec3(0.0f, 0.0f, 0.0f);
+	this->translation = glm::vec3(-3.0f, 0.0f, 0.0f);
 	this->rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
 	this->scale = 5.0f;
 	this->ambient_comp = glm::vec3(0.15f, 0.15f, 0.15f);

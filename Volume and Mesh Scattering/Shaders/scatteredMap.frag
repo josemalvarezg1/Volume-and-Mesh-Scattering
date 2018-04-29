@@ -43,6 +43,15 @@ vec2 poissonDisk[4] = vec2[](
 	vec2(0.34495938, 0.29387760)
 );
 
+float sample_shadow_map(vec3 pos, int light_index)
+{
+	vec4 light_pos = vp_light[light_index] * vec4(pos, 1.0f);
+	light_pos.z -= 0.0015; //bias to avoid shadow acne
+	if (light_pos.x < 0.0 || light_pos.x > 1.0) return 1.0;
+	if (light_pos.y < 0.0 || light_pos.y > 1.0) return 1.0;
+	return texture(g_depth, vec3(light_pos.xy, light_index)).r;
+}
+
 out vec4 color;
 
 vec3 calculate_ni_ast(vec3 xo, vec3 xi, vec3 ni)
@@ -149,11 +158,7 @@ void main()
 			
 			if (texture(g_depth, vec3(offset.xy, l)).r < offset.z - bias)
 			{
-				for (int k = 0; k < 4; k++) {
-					if (texture(g_depth, vec3(offset.xy + poissonDisk[k] / 700.0f, l)).z  <  offset.z - bias) {
-						visibility -= 0.2f;
-					}
-				}
+				visibility = 0.0f;
 			}
 
 			if (visibility > 0.0f)
@@ -179,7 +184,7 @@ void main()
 				diffuse_part_prime_2 = diffuse_part_prime(xo - xv, wv, dv, no);
 				diffuse_part_d = diffuse_part_prime_1 - diffuse_part_prime_2;
 
-				Ti = fresnel_t(wi, ni, 1.0f / refractive_index);
+				Ti = fresnel_t(wi, ni, refractive_index);
 				To = fresnel_t(wo, no, refractive_index);
 
 				diffuse_part = (Ti * diffuse_part_d * dot(ni, wi));
@@ -190,11 +195,13 @@ void main()
 			}
 		}
 
-		Lo *= ((PI * Ll));
+		Lo *= ((PI * Ll) / n_samples);
 	}
 
 	/* Fin: Generación de muestras */	
-	Lo /= n_samples;
 
 	color = vec4(Lo * diffuse_reflectance, 1.0f);
+	// Corrección Gamma
+
+	color = pow(color, vec4(1.0f / 1.8f));
 }

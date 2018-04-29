@@ -3,7 +3,7 @@ layout (location = 0) out vec3 g_out;
 
 in vec3 frag_pos;
 in vec3 frag_normal;
-in int num_of_buffer;
+uniform int num_of_buffer;
 
 void main()
 {    

@@ -240,6 +240,7 @@ void volume_render::init_shaders()
 	this->raycasting.addUniform("step_size");
 	this->raycasting.addUniform("light_pos");
 	this->raycasting.addUniform("lighting");
+	this->raycasting.addUniform("num_of_lights");
 	this->raycasting.addUniform("camera_pos");
 	this->raycasting.addUniform("radius");
 	this->raycasting.addUniform("asymmetry_param_g");
@@ -467,8 +468,19 @@ void volume_render::render_cube(glm::mat4 &MVP)
 	this->backface.disable();
 }
 
-void volume_render::render_cube_raycast(glm::mat4 &MVP, glm::mat4 &model, glm::vec3 view_pos, glm::vec3 light_pos, bool on, glm::vec3 ambient_comp, glm::vec3 diffuse_comp, glm::vec3 specular_comp)
+void volume_render::render_cube_raycast(glm::mat4 &MVP, glm::mat4 &model, glm::vec3 view_pos, std::vector<light*> scene_lights)
 {
+	std::vector<glm::vec3> light_pos, ambient_comp, diffuse_comp, specular_comp;
+	std::vector<GLint> on;
+
+	for (int i = 0; i < scene_lights.size(); i++) {
+		light_pos.push_back(scene_lights[i]->translation);
+		ambient_comp.push_back(scene_lights[i]->ambient_comp);
+		diffuse_comp.push_back(scene_lights[i]->diffuse_comp);
+		specular_comp.push_back(scene_lights[i]->specular_comp);
+		on.push_back(scene_lights[i]->on);
+	}
+
 	this->raycasting.enable();
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_1D, this->transfer_function_text);
@@ -487,18 +499,19 @@ void volume_render::render_cube_raycast(glm::mat4 &MVP, glm::mat4 &model, glm::v
 	glUniform1f(this->raycasting.getLocation("radius"), this->volumes[this->index_select]->radius);
 	glUniform1f(this->raycasting.getLocation("asymmetry_param_g"), this->volumes[this->index_select]->asymmetry_param_g);
 	glUniform4fv(this->raycasting.getLocation("back_radiance"), 1, &this->volumes[this->index_select]->back_radiance[0]);
-	glUniform3fv(this->raycasting.getLocation("light_pos"), 1, &light_pos[0]);
-	glUniform3fv(this->raycasting.getLocation("ambient_comp"), 1, &ambient_comp[0]);
-	glUniform3fv(this->raycasting.getLocation("diffuse_comp"), 1, &diffuse_comp[0]);
-	glUniform3fv(this->raycasting.getLocation("specular_comp"), 1, &specular_comp[0]);
-	glUniform3fv(this->raycasting.getLocation("scattering_coeff"), 1, &this->volumes[this->index_select]->scattering_coeff[0]);
-	glUniform3fv(this->raycasting.getLocation("extinction_coeff"), 1, &this->volumes[this->index_select]->extinction_coeff[0]);
-	glUniform1i(this->raycasting.getLocation("lighting"), on);
+	glUniform3fv(this->raycasting.getLocation("light_pos"), scene_lights.size(), glm::value_ptr(light_pos[0]));
+	glUniform3fv(this->raycasting.getLocation("ambient_comp"), scene_lights.size(), glm::value_ptr(ambient_comp[0]));
+	glUniform3fv(this->raycasting.getLocation("diffuse_comp"), scene_lights.size(), glm::value_ptr(diffuse_comp[0]));
+	glUniform3fv(this->raycasting.getLocation("specular_comp"), scene_lights.size(), glm::value_ptr(specular_comp[0]));
+	glUniform3fv(this->raycasting.getLocation("scattering_coeff"), scene_lights.size(), &this->volumes[this->index_select]->scattering_coeff[0]);
+	glUniform3fv(this->raycasting.getLocation("extinction_coeff"), scene_lights.size(), &this->volumes[this->index_select]->extinction_coeff[0]);
+	glUniform1iv(this->raycasting.getLocation("lighting"), scene_lights.size(), &on[0]);
+	glUniform1i(this->raycasting.getLocation("num_of_lights"), scene_lights.size());
 	this->unitary_cube->display();
 	this->raycasting.disable();
 }
 
-void volume_render::display(glm::mat4 &viewProjection, glm::vec3 view_pos, glm::vec3 light_pos, bool on, glm::vec3 ambient_comp, glm::vec3 diffuse_comp, glm::vec3 specular_comp)
+void volume_render::display(glm::mat4 &viewProjection, glm::vec3 view_pos, std::vector<light*> scene_lights)
 {
 	if (this->index_select != -1)
 	{
@@ -516,7 +529,7 @@ void volume_render::display(glm::mat4 &viewProjection, glm::vec3 view_pos, glm::
 		glCullFace(GL_BACK);
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-		this->render_cube_raycast(MVP, model, view_pos, light_pos, on, ambient_comp, diffuse_comp, specular_comp);
+		this->render_cube_raycast(MVP, model, view_pos, scene_lights);
 		glDisable(GL_BLEND);
 		glDisable(GL_DEPTH_TEST);
 		glDisable(GL_CULL_FACE);

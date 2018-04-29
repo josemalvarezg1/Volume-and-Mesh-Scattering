@@ -4,12 +4,13 @@ uniform sampler2D back_face_text;
 uniform sampler3D volume_text;
 uniform vec2 screen_size;
 uniform float step_size;
-uniform vec3 light_pos;
-uniform bool lighting;
+uniform int num_of_lights;
+uniform vec3 light_pos[3];
+uniform bool lighting[3];
 uniform vec3 camera_pos;
-uniform vec3 ambient_comp;
-uniform vec3 diffuse_comp;
-uniform vec3 specular_comp;
+uniform vec3 ambient_comp[3];
+uniform vec3 diffuse_comp[3];
+uniform vec3 specular_comp[3];
 uniform float radius;
 uniform float asymmetry_param_g;
 uniform vec4 back_radiance;
@@ -195,12 +196,17 @@ vec4 illuminate(vec3 position, vec4 actual_color)
 	float diffuse, specular;
 	gradient = get_gradient(position);
     gradient = gradient * vec3(2.0) - vec3(1.0);
-	N = normalize(normalize(light_pos) - position);	  
-    L = normalize(light_pos - frag_pos);
-	V = normalize(camera_pos - frag_pos);
-	diffuse = abs(dot(N, gradient));
-	specular = pow(max(dot(N, normalize(L + V)), 0.0), 64.0);
-	actual_color.rgb = actual_color.rgb * (ambient_comp + (diffuse_comp * diffuse) + (specular_comp * specular));	
+
+	for (int i = 0; i < num_of_lights; i++) {
+		if (lighting[i]) {
+			N = normalize(normalize(light_pos[i]) - position);
+			L = normalize(light_pos[i] - frag_pos);
+			V = normalize(camera_pos - frag_pos);
+			diffuse = abs(dot(N, gradient));
+			specular = pow(max(dot(N, normalize(L + V)), 0.0), 64.0);
+			actual_color.rgb = actual_color.rgb * (ambient_comp[i] + (diffuse_comp[i] * diffuse) + (specular_comp[i] * specular));
+		}
+	}
 	return actual_color;
 }
 
@@ -216,8 +222,7 @@ vec4 ray_casting(vec3 direction, float lenght_in_out)
 	{
 		density = texture(volume_text, position).x;
 		actual_color = texture(transfer_function_text, density);
-		if (lighting)
-			actual_color = illuminate(position, actual_color);
+		actual_color = illuminate(position, actual_color);
     	actual_color.a = 1.0 - exp(-0.5 * actual_color.a);
     	accumulated_color.rgb += accumulated_color.a * actual_color.rgb * actual_color.a;
     	accumulated_color.a *= (1.0 - actual_color.a);

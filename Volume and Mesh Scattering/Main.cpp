@@ -66,7 +66,7 @@ void reshape(GLFWwindow *window, int width, int height)
 
 	scene_model->change_values = true;
 
-	glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	scattered_maps->update_scattered_map(g_width, g_height, num_of_ortho_cameras);
 	glViewport(0, 0, g_width, g_height);
 }
@@ -463,8 +463,8 @@ bool init_scene()
 	{
 		scene_lights.push_back(new light());
 	}
-	scene_lights[1]->translation = glm::vec3(0.0f, 5.0f, 5.0f);
-	scene_lights[2]->translation = glm::vec3(3.0f, 5.0f, -5.0f);
+	scene_lights[1]->translation = glm::vec3(3.0, 5.0f, 0.0f);
+	scene_lights[2]->translation = glm::vec3(0.0f, 0.0f, 5.0f);
 	selected_light = 0;
 
 	potato = new material(glm::vec3(0.68f, 0.70f, 0.55f), glm::vec3(0.0024f, 0.0090f, 0.12f), glm::vec3(0.77f, 0.62f, 0.21f), 1.3f);
@@ -486,7 +486,7 @@ bool init_scene()
 	scene_model->load("Models/obj/bunny.obj");
 	const char** paths = new const char*[1];
 	paths[0] = "Models\\raw\\bucky_32x32x32_8.raw";
-	//volumes->drop_path(1, paths);
+	volumes->drop_path(1, paths);
 	halton_generator->generate_orthographic_cameras(num_of_ortho_cameras);
 
 	return true;
@@ -670,19 +670,19 @@ void display()
 
 	glDisable(GL_STENCIL_TEST);
 
-	glsl_g_buffer_plane.enable();
-	model_mat = glm::mat4(1.0f);
-	model_mat = glm::translate(model_mat, glm::vec3(0.7, -0.7, -1.0));
-	model_mat = glm::scale(model_mat, glm::vec3(0.3f));
-	glUniformMatrix4fv(glsl_g_buffer_plane.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D_ARRAY, scattered_maps->array_texture);
-	render_quad();
-	glsl_g_buffer_plane.disable();
+	//glsl_g_buffer_plane.enable();
+	//model_mat = glm::mat4(1.0f);
+	//model_mat = glm::translate(model_mat, glm::vec3(0.7, -0.7, -1.0));
+	//model_mat = glm::scale(model_mat, glm::vec3(0.3f));
+	//glUniformMatrix4fv(glsl_g_buffer_plane.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
+	//glActiveTexture(GL_TEXTURE0);
+	//glBindTexture(GL_TEXTURE_2D_ARRAY, scattered_maps->array_texture);
+	//render_quad();
+	//glsl_g_buffer_plane.disable();
 
-	glDisable(GL_DEPTH_TEST);
+	//glDisable(GL_DEPTH_TEST);
 
-	volumes->display(projection * view, scene_camera->position, scene_lights[0]->translation, scene_lights[0]->on, scene_lights[0]->ambient_comp, scene_lights[0]->diffuse_comp, scene_lights[0]->specular_comp); // Por ahora una sola luz
+	volumes->display(projection * view, scene_camera->position, scene_lights);
 	transfer_funtion->display();
 }
 

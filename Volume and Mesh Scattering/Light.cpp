@@ -4,7 +4,7 @@ light::light()
 {
 	this->on = false;
 	this->visible_interface = false;
-	this->translation = glm::vec3(-3.0f, 5.0f, 5.0f);
+	this->translation = glm::vec3(-3.0f, 3.0f, 5.0f);
 	this->ambient_comp = glm::vec3(0.15f, 0.15f, 0.15f);
 	this->diffuse_comp = glm::vec3(1.0f, 1.0f, 1.0f);
 	this->specular_comp = glm::vec3(1.0f, 1.0f, 1.0f);

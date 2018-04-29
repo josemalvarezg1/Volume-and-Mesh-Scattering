@@ -9,8 +9,8 @@ uniform vec3 camera_pos;
 uniform float epsilon;
 uniform float refractive_index;
 uniform int n_cameras;
-uniform mat4 cameras_matrix[6];
-uniform vec3 cameras_dirs[6];
+uniform mat4 cameras_matrix[16];
+uniform vec3 cameras_dirs[16];
 uniform float gamma;
 uniform int current_frame;
 uniform int g_width;
@@ -79,11 +79,7 @@ void main(void)
 		bias = clamp(bias, 0.01f, 0.02f);
 		if (texture(depth_map, vec3(l.xy, i)).z  <  l.z - bias)
 		{
-			for (int k = 0; k < 4; k++) {
-				if (texture(depth_map, vec3(l.xy + poissonDisk[k] / 700.0f, l)).z  <  l.z - bias) {
-					visibility -= 0.2f;
-				}
-			}
+			visibility = 0.0f;
 		}
 		vec4 sample_color_map = sample_color_map(vec3(l.xy, i));
 		color += (sample_color_map / max(sample_color_map.a, 1.0f)) * visibility;
