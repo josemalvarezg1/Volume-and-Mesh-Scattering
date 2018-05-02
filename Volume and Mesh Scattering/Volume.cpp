@@ -80,11 +80,14 @@ volume::volume(std::string path, GLuint width, GLuint height, GLuint depth, GLui
 	this->height = height;
 	this->depth = depth;
 	this->bits = bits;
+	this->change_values = true;
 	this->rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
 	this->translation = glm::vec3(0.0f);
 	this->escalation = 4.0f;
 	this->asymmetry_param_g = 0.77f;
 	this->radius = 0.5f;
+	this->scattering_coeff = glm::vec3(0.02894f, 0.02145f, 0.01215f);
+	this->extinction_coeff = glm::vec3(0.0002f, 0.0028f, 0.016f);
 	this->back_radiance = glm::vec4(1.0f);
 	this->step = (GLfloat)(1.0f / sqrt((this->width * this->width) + (this->height * this->height) + (this->depth * this->depth)));
 	if (this->bits == 8u)
@@ -569,34 +572,42 @@ void volume_render::update_interface()
 		if (this->volumes[this->index_select]->translation != this->volume_interface->translation)
 		{
 			this->volumes[this->index_select]->translation = this->volume_interface->translation;
+			this->volumes[this->index_select]->change_values = true;
 		}
 		if (this->volumes[this->index_select]->rotation != this->volume_interface->rotation)
 		{
 			this->volumes[this->index_select]->rotation = this->volume_interface->rotation;
+			this->volumes[this->index_select]->change_values = true;
 		}
 		if (this->volumes[this->index_select]->escalation != this->volume_interface->scale)
 		{
 			this->volumes[this->index_select]->escalation = this->volume_interface->scale;
+			this->volumes[this->index_select]->change_values = true;
 		}
 		if (this->volumes[this->index_select]->asymmetry_param_g != this->volume_interface->asymmetry_param_g)
 		{
 			this->volumes[this->index_select]->asymmetry_param_g = this->volume_interface->asymmetry_param_g;
+			this->volumes[this->index_select]->change_values = true;
 		}
 		if (this->volumes[this->index_select]->radius != this->volume_interface->radius)
 		{
 			this->volumes[this->index_select]->radius = this->volume_interface->radius;
+			this->volumes[this->index_select]->change_values = true;
 		}
 		if (this->volumes[this->index_select]->back_radiance != this->volume_interface->back_radiance)
 		{
 			this->volumes[this->index_select]->back_radiance = this->volume_interface->back_radiance;
+			this->volumes[this->index_select]->change_values = true;
 		}	
 		if (this->volumes[this->index_select]->scattering_coeff != this->volume_interface->scattering_coeff)
 		{
 			this->volumes[this->index_select]->scattering_coeff = this->volume_interface->scattering_coeff;
+			this->volumes[this->index_select]->change_values = true;
 		}
 		if (this->volumes[this->index_select]->extinction_coeff != this->volume_interface->extinction_coeff)
 		{
 			this->volumes[this->index_select]->extinction_coeff = this->volume_interface->extinction_coeff;
+			this->volumes[this->index_select]->change_values = true;
 		}
 	}
 }

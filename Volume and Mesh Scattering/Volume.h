@@ -31,6 +31,7 @@ public:
 	glm::vec3 translation, scattering_coeff, extinction_coeff;
 	GLfloat escalation, step, asymmetry_param_g, radius;
 	glm::vec4 back_radiance;
+	bool change_values;
 
 	volume(std::string path, GLuint width, GLuint height, GLuint depth, GLuint bits);
 	~volume();

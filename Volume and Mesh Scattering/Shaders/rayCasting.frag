@@ -190,42 +190,78 @@ vec3 get_gradient(vec3 ray_position)
     return normal;
 }
 
-vec4 illuminate(vec3 position, vec4 actual_color) 
+vec4 illuminate(vec3 position, vec4 actual_color, float index) 
 { 
-	vec3 gradient, N, L, V;
-	float diffuse, specular;
+	vec3 gradient, N, L, V, actual_shading, c, li;
+	float diffuse, specular, wo, phase_function;
 	gradient = get_gradient(position);
     gradient = gradient * vec3(2.0) - vec3(1.0);
-
 	for (int i = 0; i < num_of_lights; i++) {
 		if (lighting[i]) {
+			if (index == 0.0f) {
+				li = diffuse_comp[i];
+				c = scattering_coeff;
+			}
+			else {
+				li = (1.0f - actual_color.a) * li + actual_color.a;
+				c = (1.0f - actual_color.a) * c + actual_color.a * actual_color.rgb;
+			}
 			N = normalize(normalize(light_pos[i]) - position);
+			wo = dot(-N, gradient);
 			L = normalize(light_pos[i] - frag_pos);
 			V = normalize(camera_pos - frag_pos);
-			diffuse = abs(dot(N, gradient));
-			specular = pow(max(dot(N, normalize(L + V)), 0.0), 64.0);
-			actual_color.rgb = actual_color.rgb * (ambient_comp[i] + (diffuse_comp[i] * diffuse) + (specular_comp[i] * specular));
+			phase_function = (1.0f - pow(asymmetry_param_g, 2)) / pow((1.0f + pow(asymmetry_param_g, 2) - 2 * asymmetry_param_g * wo), 3/2);
+			actual_shading = extinction_coeff * phase_function;
+			//diffuse = abs(dot(N, gradient));
+			//specular = pow(max(dot(N, normalize(L + V)), 0.0), 64.0);
+			//actual_color.rgb = actual_color.rgb * (ambient_comp[i] + (diffuse_comp[i] * diffuse) + (specular_comp[i] * specular));
+			actual_color.rgb *= actual_shading;
 		}
 	}
 	return actual_color;
 }
 
+float shadowing(vec3 position) {
+	vec3 light_dir, ray_step;
+	float lenght_in_out, density, alpha_color, actual_color, i;
+	for (int l = 0; l < num_of_lights; l++) {
+		light_dir = normalize(light_pos[l] - position);
+		ray_step = light_dir * step_size;
+		lenght_in_out = length(light_dir);
+		alpha_color = 1.0f;
+		for (i = 0.0f; i < lenght_in_out; i += step_size)
+		{
+			density = texture(volume_text, position).x;
+			actual_color = texture(transfer_function_text, density).a;
+			actual_color = 1.0 - exp(-0.5 * actual_color);
+			alpha_color *= (1.0 - actual_color);
+			if (1.0 - alpha_color > 0.95) return alpha_color;
+			position += ray_step;
+		}
+	}
+	return 0.0;
+}
+
+
 vec4 ray_casting(vec3 direction, float lenght_in_out)
 {
 	vec4 accumulated_color, actual_color;
-	float i, density;
-	vec3 position, ray_step;
+	float i, density, shadow;
+	vec3 position, ray_step, c, li;
 	ray_step = direction * step_size;
 	accumulated_color = vec4(0.0, 0.0, 0.0, 1.0);
 	position = in_coord;
 	for(i = 0.0f; i < lenght_in_out; i += step_size)
 	{
+		//shadow = shadowing(position);
 		density = texture(volume_text, position).x;
 		actual_color = texture(transfer_function_text, density);
-		actual_color = illuminate(position, actual_color);
+		//actual_color = illuminate(position, actual_color, i);
     	actual_color.a = 1.0 - exp(-0.5 * actual_color.a);
     	accumulated_color.rgb += accumulated_color.a * actual_color.rgb * actual_color.a;
     	accumulated_color.a *= (1.0 - actual_color.a);
+		/*if (shadow <= 0.05) 
+			return vec4(1.0, 1.0, 1.0, actual_color.a);*/
 		if (1.0 - accumulated_color.a > 0.95) break;
 		position += ray_step;
 	}
@@ -245,5 +281,5 @@ void main()
 		color = ray_casting(normalize(direction), lenght_in_out);
 	}
 	else
-		color = vec4(1.0 , 1.0, 1.0, 0.0);
+		color = vec4(1.0, 1.0, 1.0, 0.0);
 }

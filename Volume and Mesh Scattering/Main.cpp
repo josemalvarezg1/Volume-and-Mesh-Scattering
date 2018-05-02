@@ -446,7 +446,7 @@ bool init_scene()
 	light_buffer *g_buffer;
 	material *potato, *marble, *skin, *milk, *cream, *none;
 
-	num_of_lights = 3;
+	num_of_lights = 1;
 	num_of_ortho_cameras = 6;
 	num_of_samples_per_frag = 3 * num_of_ortho_cameras;
 
@@ -463,8 +463,8 @@ bool init_scene()
 	{
 		scene_lights.push_back(new light());
 	}
-	scene_lights[1]->translation = glm::vec3(3.0, 5.0f, 0.0f);
-	scene_lights[2]->translation = glm::vec3(0.0f, 0.0f, 5.0f);
+	//scene_lights[1]->translation = glm::vec3(3.0, 5.0f, 0.0f);
+	//scene_lights[2]->translation = glm::vec3(0.0f, 0.0f, 5.0f);
 	selected_light = 0;
 
 	potato = new material(glm::vec3(0.68f, 0.70f, 0.55f), glm::vec3(0.0024f, 0.0090f, 0.12f), glm::vec3(0.77f, 0.62f, 0.21f), 1.3f);
@@ -536,7 +536,7 @@ void display()
 	glEnable(GL_STENCIL_TEST);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
-	glsl_scattered_map.enable();
+	/*glsl_scattered_map.enable();
 	if (scene_model->change_values || change_light)
 	{
 		glBindFramebuffer(GL_FRAMEBUFFER, scattered_maps->buffer);
@@ -613,13 +613,13 @@ void display()
 
 		scene_model->change_values = false;
 	}
-	glsl_scattered_map.disable();
+	glsl_scattered_map.disable();*/
 
 	glEnable(GL_STENCIL_TEST);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-	glsl_blending.enable();
+	/*glsl_blending.enable();
 	glStencilFunc(GL_ALWAYS, 1, -1);
 	glUniform3f(glsl_blending.getLocation("camera_pos"), scene_camera->position[0], scene_camera->position[1], scene_camera->position[2]);
 
@@ -661,7 +661,7 @@ void display()
 	glBindVertexArray(scene_model->vao);
 	glDrawArrays(GL_TRIANGLES, 0, scene_model->vertices.size());
 	glBindVertexArray(0);
-	glsl_blending.disable();
+	glsl_blending.disable();*/
 
 	for (int l = 0; l < num_of_lights; l++) {
 		glStencilFunc(GL_ALWAYS, 2 + l, -1);
@@ -684,6 +684,7 @@ void display()
 
 	volumes->display(projection * view, scene_camera->position, scene_lights);
 	transfer_funtion->display();
+
 }
 
 void destroy()
