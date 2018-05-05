@@ -26,7 +26,8 @@ class volume
 {
 public:
 	std::string name;
-	GLuint width, height, depth, bits, volume_text;
+	GLuint width, height, depth, bits, volume_text, text_vao, text_vbo;
+	std::vector<GLuint> z_texture;
 	glm::quat rotation;
 	glm::vec3 translation, scattering_coeff, extinction_coeff;
 	GLfloat escalation, step, asymmetry_param_g, radius;
@@ -34,13 +35,14 @@ public:
 	bool change_values;
 
 	volume(std::string path, GLuint width, GLuint height, GLuint depth, GLuint bits);
+	void create_quad_front_to_back(float dist);
 	~volume();
 };
 
 class volume_render
 {
 public:
-	CGLSLProgram backface, raycasting;
+	CGLSLProgram backface, raycasting, lightcube;
 	int g_width, g_height;
 	int index_select;
 	GLuint frame_buffer, backface_text, transfer_function_text;
@@ -61,6 +63,7 @@ public:
 	bool click_volume(double x, double y, glm::mat4 &projection, glm::mat4 &view, glm::vec3 camera_position, bool type);
 	bool pos_cursor_volume(double x, double y);
 	void disable_select();
+	std::vector<glm::vec3> calculate_dir_max(std::vector<glm::vec3> light_pos, glm::mat4 model);
 	bool intersection(double x, double y, glm::mat4 &projection, glm::mat4 &view, glm::vec3 camera_position);
 	void load_transfer_func_t(GLfloat data[][4]);
 	void update_transfer_function(std::vector<double> points);

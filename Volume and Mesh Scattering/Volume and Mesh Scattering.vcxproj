@@ -175,6 +175,8 @@
     <None Include="Shaders\gBufferPosition.vert" />
     <None Include="Shaders\light.frag" />
     <None Include="Shaders\light.vert" />
+    <None Include="Shaders\lightCube.frag" />
+    <None Include="Shaders\lightCube.vert" />
     <None Include="Shaders\mipmap.frag" />
     <None Include="Shaders\mipmap.geom" />
     <None Include="Shaders\mipmap.vert" />
