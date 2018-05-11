@@ -26,8 +26,7 @@ class volume
 {
 public:
 	std::string name;
-	GLuint width, height, depth, bits, volume_text, text_vao, text_vbo;
-	std::vector<GLuint> z_texture;
+	GLuint width, height, depth, bits, volume_text, volume_buffer, render_texture;
 	glm::quat rotation;
 	glm::vec3 translation, scattering_coeff, extinction_coeff;
 	GLfloat escalation, step, asymmetry_param_g, radius;
@@ -35,7 +34,6 @@ public:
 	bool change_values;
 
 	volume(std::string path, GLuint width, GLuint height, GLuint depth, GLuint bits);
-	void create_quad_front_to_back(float dist);
 	~volume();
 };
 
