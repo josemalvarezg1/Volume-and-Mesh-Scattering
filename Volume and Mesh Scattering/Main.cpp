@@ -682,7 +682,7 @@ void display()
 
 	//glDisable(GL_DEPTH_TEST);
 
-	volumes->display(projection * view, scene_camera->position, scene_lights);
+	volumes->display(projection * view, scene_camera->position, scene_lights[0]);
 	transfer_funtion->display();
 
 }
