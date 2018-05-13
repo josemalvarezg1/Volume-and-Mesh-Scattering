@@ -29,7 +29,7 @@ public:
 	GLuint width, height, depth, bits, volume_text, volume_buffer, render_texture, previous_texture, texture_vao, texture_vbo, current_index;
 	glm::quat rotation;
 	glm::vec3 translation, scattering_coeff, extinction_coeff;
-	GLfloat escalation, step, asymmetry_param_g, radius;
+	GLfloat escalation, step, asymmetry_param_g, radius, step_light_volume;
 	glm::vec4 back_radiance;
 	bool change_values;
 
@@ -62,7 +62,7 @@ public:
 	bool click_volume(double x, double y, glm::mat4 &projection, glm::mat4 &view, glm::vec3 camera_position, bool type);
 	bool pos_cursor_volume(double x, double y);
 	void disable_select();
-	glm::vec3 calculate_dir_max(glm::vec3 light_pos, glm::mat4 model);
+	glm::vec4 calculate_dir_max(glm::vec3 light_pos, glm::mat4 model);
 	glm::vec4 get_position(int index);
 	bool intersection(double x, double y, glm::mat4 &projection, glm::mat4 &view, glm::vec3 camera_position);
 	void load_transfer_func_t(GLfloat data[][4]);

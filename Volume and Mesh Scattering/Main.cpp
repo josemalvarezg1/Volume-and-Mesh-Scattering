@@ -1,7 +1,5 @@
 #include "Main.h"
 
-// Falta: Agregar más luces
-
 GLFWwindow *g_window;
 int g_width, g_height;
 GLuint num_of_lights, num_of_ortho_cameras, num_of_samples_per_frag, selected_light;
