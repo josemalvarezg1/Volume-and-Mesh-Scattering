@@ -110,20 +110,19 @@ volume::volume(std::string path, GLuint width, GLuint height, GLuint depth, GLui
 			glTexImage3D(GL_TEXTURE_3D, 0, GL_RED, this->width, this->height, this->depth, 0, GL_RED, GL_UNSIGNED_BYTE, texture_data);
 			glBindTexture(GL_TEXTURE_3D, 0);
 
-			GLuint attachment[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+			GLuint attachment[] = { GL_COLOR_ATTACHMENT0 };
 			
 			glGenVertexArrays(1, &texture_vao);
 			glGenBuffers(1, &texture_vbo);
+			glGenFramebuffers(1, &this->volume_buffer);
 			this->create_quad_light_volume();
 
-			glGenFramebuffers(1, &this->volume_buffer);
 			glGenTextures(1, &this->render_texture);
 			glGenTextures(1, &this->previous_texture);
 
 			glBindFramebuffer(GL_FRAMEBUFFER, this->volume_buffer);
 			
 			glBindTexture(GL_TEXTURE_2D, this->render_texture);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, this->width, this->height, 0, GL_RGBA, GL_FLOAT, NULL);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->render_texture, 0);
@@ -134,7 +133,8 @@ volume::volume(std::string path, GLuint width, GLuint height, GLuint depth, GLui
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, this->previous_texture, 0);
 			
-			glDrawBuffers(2, attachment);
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->volume_buffer);
+			glFramebufferTexture(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, this->render_texture, 0);
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			delete[] texture_data;
 		}
@@ -177,12 +177,15 @@ void volume::create_quad_light_volume()
 		0.5f, -0.5f,  0.0f, 1.0f,
 	};
 
+	glBindVertexArray(this->texture_vao);
 	glBindBuffer(GL_ARRAY_BUFFER, this->texture_vbo);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(quad_data), &quad_data, GL_STATIC_DRAW);
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)0);
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)(2 * sizeof(GLfloat)));
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
 }
 
 volume::~volume()
