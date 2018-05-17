@@ -668,20 +668,23 @@ void display()
 
 	glDisable(GL_STENCIL_TEST);
 
-	//glsl_g_buffer_plane.enable();
-	//model_mat = glm::mat4(1.0f);
-	//model_mat = glm::translate(model_mat, glm::vec3(0.7, -0.7, -1.0));
-	//model_mat = glm::scale(model_mat, glm::vec3(0.3f));
-	//glUniformMatrix4fv(glsl_g_buffer_plane.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
-	//glActiveTexture(GL_TEXTURE0);
-	//glBindTexture(GL_TEXTURE_2D_ARRAY, scattered_maps->array_texture);
-	//render_quad();
-	//glsl_g_buffer_plane.disable();
+	
 
-	//glDisable(GL_DEPTH_TEST);
+	glDisable(GL_DEPTH_TEST);
 
 	volumes->display(projection * view, scene_camera->position, scene_lights[0]);
 	transfer_funtion->display();
+
+	glsl_g_buffer_plane.enable();
+	model_mat = glm::mat4(1.0f);
+	model_mat = glm::translate(model_mat, glm::vec3(0.7, -0.7, -1.0));
+	model_mat = glm::scale(model_mat, glm::vec3(0.3f));
+	glUniformMatrix4fv(glsl_g_buffer_plane.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
+	glActiveTexture(GL_TEXTURE0);
+	//glBindTexture(GL_TEXTURE_2D_ARRAY, scattered_maps->array_texture);
+	glBindTexture(GL_TEXTURE_2D, volumes->volumes[0]->render_texture);
+	render_quad();
+	glsl_g_buffer_plane.disable();
 
 }
 

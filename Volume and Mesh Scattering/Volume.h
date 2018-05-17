@@ -70,8 +70,8 @@ public:
 	void create_backface_text();
 	bool create_frame_buffer();
 	void render_cube(glm::mat4 &MVP);
-	void render_cube_raycast(glm::mat4 &MVP, glm::mat4 &model, glm::vec3 view_pos, light* scene_lights);
-	void display(glm::mat4 &viewProjection, glm::vec3 view_pos, light* scene_lights);
+	void render_cube_raycast(glm::mat4 &MVP, glm::mat4 &model, glm::vec3 view_pos, light* scene_lights, glm::mat4 view_projection);
+	void display(glm::mat4 &view_projection, glm::vec3 view_pos, light* scene_lights);
 	void change_volume(int type);
 	void resize_screen(const glm::vec2 screen);
 

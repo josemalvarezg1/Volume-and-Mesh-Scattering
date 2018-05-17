@@ -2,9 +2,9 @@
 out vec4 color;
 in vec2 frag_tex_coords;
 
-uniform sampler2DArray position_tex;
+uniform sampler2D position_tex;
 
 void main() 
 {
-    color = texture(position_tex, vec3(frag_tex_coords, 2));
+    color = texture(position_tex, frag_tex_coords);
 }

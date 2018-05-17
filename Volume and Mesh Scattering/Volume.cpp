@@ -85,7 +85,6 @@ volume::volume(std::string path, GLuint width, GLuint height, GLuint depth, GLui
 	this->rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
 	this->translation = glm::vec3(0.0f);
 	this->escalation = 4.0f;
-	this->create_quad_light_volume();
 	this->asymmetry_param_g = 0.77f;
 	this->radius = 0.5f;
 	this->scattering_coeff = glm::vec3(0.02894f, 0.02145f, 0.01215f);
@@ -115,6 +114,7 @@ volume::volume(std::string path, GLuint width, GLuint height, GLuint depth, GLui
 			
 			glGenVertexArrays(1, &texture_vao);
 			glGenBuffers(1, &texture_vbo);
+			this->create_quad_light_volume();
 
 			glGenFramebuffers(1, &this->volume_buffer);
 			glGenTextures(1, &this->render_texture);
@@ -180,9 +180,9 @@ void volume::create_quad_light_volume()
 	glBindBuffer(GL_ARRAY_BUFFER, this->texture_vbo);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(quad_data), &quad_data, GL_STATIC_DRAW);
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)0);
 	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)(2 * sizeof(GLfloat)));
 }
 
 volume::~volume()
@@ -311,14 +311,14 @@ void volume_render::init_shaders()
 	this->lightcube.addAttribute("volume_coords");
 	this->lightcube.addUniform("MVP");
 	this->lightcube.addUniform("model_matrix");
+	this->lightcube.addUniform("vp_matrix");
 	this->lightcube.addUniform("light_pos");
 	this->lightcube.addUniform("axis");
 	this->lightcube.addUniform("start_texture");
 	this->lightcube.addUniform("position");
-	this->lightcube.addUniform("ray_distance");
 	this->lightcube.addUniform("iteration");
 	this->lightcube.addUniform("actual_texture");
-	this->raycasting.addUniform("volume_text");
+	this->lightcube.addUniform("volume_text");
 	this->lightcube.addUniform("previous_text");
 	this->lightcube.addUniform("transfer_function_text");
 	this->lightcube.disable();
@@ -617,7 +617,7 @@ void volume_render::render_cube(glm::mat4 &MVP)
 	this->backface.disable();
 }
 
-void volume_render::render_cube_raycast(glm::mat4 &MVP, glm::mat4 &model, glm::vec3 view_pos, light* scene_lights)
+void volume_render::render_cube_raycast(glm::mat4 &MVP, glm::mat4 &model, glm::vec3 view_pos, light* scene_lights, glm::mat4 view_projection)
 {
 	if (true) //Recordar poner condiciones de transfer_function y light_pos 
 	{
@@ -666,13 +666,13 @@ void volume_render::render_cube_raycast(glm::mat4 &MVP, glm::mat4 &model, glm::v
 				glUniform1i(this->lightcube.getLocation("previous_text"), 2);
 			}
 			glUniformMatrix4fv(this->lightcube.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model));
+			glUniformMatrix4fv(this->lightcube.getLocation("vp_matrix"), 1, GL_FALSE, glm::value_ptr(view_projection));
 			glUniform1i(this->lightcube.getLocation("actual_texture"), actual_texture);
 			glUniform1i(this->lightcube.getLocation("axis"), dir_max.w);
 			glUniform1f(this->lightcube.getLocation("start_texture"), start_texture);
 			glUniform3fv(this->lightcube.getLocation("light_pos"), 1, glm::value_ptr(scene_lights->translation));
 			glUniform3fv(this->lightcube.getLocation("normal"), 1, glm::value_ptr(-glm::vec3(dir_max.x, dir_max.y, dir_max.z)));
 			glUniform3fv(this->lightcube.getLocation("position"), 1, &position[0]);
-			glUniform3fv(this->lightcube.getLocation("ray_distance"), 1, &position[0]);
 			glUniform1f(this->lightcube.getLocation("iteration"), i);
 
 			glBindVertexArray(this->volumes[this->index_select]->texture_vao);
@@ -715,13 +715,13 @@ void volume_render::render_cube_raycast(glm::mat4 &MVP, glm::mat4 &model, glm::v
 	this->raycasting.disable();
 }
 
-void volume_render::display(glm::mat4 &viewProjection, glm::vec3 view_pos, light* scene_lights)
+void volume_render::display(glm::mat4 &view_projection, glm::vec3 view_pos, light* scene_lights)
 {
 	if (this->index_select != -1)
 	{
 		glm::mat4 model, MVP;
 		model = glm::translate(glm::mat4(1.0f), this->volumes[this->index_select]->translation) * glm::mat4_cast(this->volumes[this->index_select]->rotation) * glm::scale(model, glm::vec3(this->volumes[this->index_select]->escalation));
-		MVP = viewProjection * model;
+		MVP = view_projection * model;
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_CULL_FACE);
 		glCullFace(GL_FRONT);
@@ -733,7 +733,7 @@ void volume_render::display(glm::mat4 &viewProjection, glm::vec3 view_pos, light
 		glCullFace(GL_BACK);
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-		this->render_cube_raycast(MVP, model, view_pos, scene_lights);
+		this->render_cube_raycast(MVP, model, view_pos, scene_lights, view_projection);
 		glDisable(GL_BLEND);
 		glDisable(GL_DEPTH_TEST);
 		glDisable(GL_CULL_FACE);
