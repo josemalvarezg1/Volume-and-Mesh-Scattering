@@ -110,7 +110,7 @@ volume::volume(std::string path, GLuint width, GLuint height, GLuint depth, GLui
 			glTexImage3D(GL_TEXTURE_3D, 0, GL_RED, this->width, this->height, this->depth, 0, GL_RED, GL_UNSIGNED_BYTE, texture_data);
 			glBindTexture(GL_TEXTURE_3D, 0);
 
-			GLuint attachment[] = { GL_COLOR_ATTACHMENT0 };
+			GLuint attachments[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
 			
 			glGenVertexArrays(1, &texture_vao);
 			glGenBuffers(1, &texture_vbo);
@@ -123,6 +123,7 @@ volume::volume(std::string path, GLuint width, GLuint height, GLuint depth, GLui
 			glBindFramebuffer(GL_FRAMEBUFFER, this->volume_buffer);
 			
 			glBindTexture(GL_TEXTURE_2D, this->render_texture);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, this->width, this->height, 0, GL_RGBA, GL_FLOAT, NULL);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->render_texture, 0);
@@ -133,8 +134,7 @@ volume::volume(std::string path, GLuint width, GLuint height, GLuint depth, GLui
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, this->previous_texture, 0);
 			
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->volume_buffer);
-			glFramebufferTexture(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, this->render_texture, 0);
+			glDrawBuffers(2, attachments);
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			delete[] texture_data;
 		}
