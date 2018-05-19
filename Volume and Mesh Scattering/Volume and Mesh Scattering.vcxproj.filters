@@ -190,5 +190,11 @@
     <None Include="Shaders\lightCube.frag">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="Shaders\test.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\test.vert">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>
