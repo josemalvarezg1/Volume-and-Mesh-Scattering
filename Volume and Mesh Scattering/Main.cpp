@@ -23,8 +23,8 @@ int selected_model = -1;
 GLuint quad_vao, quad_vbo, texture_vao, texture_vbo;
 
 unsigned int g_buffer;
-unsigned int g_out;
-unsigned int attachments[1] = { GL_COLOR_ATTACHMENT0 };
+unsigned int g_out, g_out_prev, vol_ilum;
+unsigned int attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
 
 void create_gbuffer()
 {
@@ -38,8 +38,21 @@ void create_gbuffer()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_out, 0);
 
-	glDrawBuffers(1, attachments);
+	glGenTextures(1, &g_out_prev);
+	glBindTexture(GL_TEXTURE_2D, g_out_prev);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, g_width, g_height, 0, GL_RGBA, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, g_out_prev, 0);
+
+	glDrawBuffers(2, attachments);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	glGenTextures(1, &vol_ilum);
+	glBindTexture(GL_TEXTURE_3D, vol_ilum);
+	glTexStorage3D(GL_TEXTURE_3D, 1, GL_RGBA16F, volumes->volumes[0]->width, volumes->volumes[0]->height, volumes->volumes[0]->depth);
+	glBindTexture(GL_TEXTURE_3D, 0);
+
 }
 
 void create_quad_light_volume()
@@ -324,7 +337,7 @@ bool init_glfw()
 	if (!glfwInit())
 		return false;
 
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
 	glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
@@ -483,6 +496,13 @@ bool init_glew()
 		glsl_test.addUniform("position");
 		glsl_test.addUniform("transfer_function_text");
 		glsl_test.addUniform("volume_text");
+		glsl_test.addUniform("previous_text");
+		glsl_test.addUniform("iteration");
+		glsl_test.addUniform("actual_texture");
+		glsl_test.addUniform("light_pos");
+		glsl_test.addUniform("normal");
+		glsl_test.addUniform("volume_size");
+		glsl_test.addUniform("vp_matrix");
 		glsl_test.disable();
 
 		return true;
@@ -498,8 +518,6 @@ bool init_ant_tweak_bar()
 
 bool init_scene()
 {
-	create_gbuffer();
-	create_quad_light_volume();
 	light_buffer *g_buffer;
 	material *potato, *marble, *skin, *milk, *cream, *none;
 
@@ -545,6 +563,9 @@ bool init_scene()
 	paths[0] = "Models\\raw\\bucky_32x32x32_8.raw";
 	volumes->drop_path(1, paths);
 	halton_generator->generate_orthographic_cameras(num_of_ortho_cameras);
+
+	create_gbuffer();
+	create_quad_light_volume();
 
 	return true;
 }
@@ -734,6 +755,7 @@ void display()
 	glm::vec4 position_sign, dir_max;
 	glm::vec3 ray_step, position;
 	float distance, lenght_in_out, step_size, texture_step, start_texture;
+	GLvoid *img;
 
 	actual_texture = 1;
 	model = glm::translate(glm::mat4(1.0f), volumes->volumes[0]->translation) * glm::mat4_cast(volumes->volumes[0]->rotation) * glm::scale(glm::mat4(1.0f), glm::vec3(volumes->volumes[0]->escalation));
@@ -752,8 +774,9 @@ void display()
 	glsl_test.enable();
 	glBindFramebuffer(GL_FRAMEBUFFER, g_buffer);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	lenght_in_out = glm::length(glm::vec3(dir_max.x, dir_max.y, dir_max.z));
-	for (float i = 0.0f; i < lenght_in_out; i += step_size)
+	for (float i = 0.0f; i < step_size; i += step_size)
 	{
 		if (actual_texture == 1)
 			actual_texture = 0;
@@ -764,12 +787,31 @@ void display()
 		glUniform1i(glsl_test.getLocation("axis"), dir_max.w);
 		glUniform1f(glsl_test.getLocation("start_texture"), start_texture);
 		glUniform3fv(glsl_test.getLocation("position"), 1, &position[0]);
+		glUniform1f(glsl_test.getLocation("iteration"), i);
+		glUniform1i(glsl_test.getLocation("actual_texture"), actual_texture);
+		glUniform3fv(glsl_test.getLocation("light_pos"), 1, glm::value_ptr(scene_lights[0]->translation));
+		glUniform3fv(glsl_test.getLocation("normal"), 1, glm::value_ptr(-glm::vec3(dir_max.x, dir_max.y, dir_max.z)));
+		glUniform3iv(glsl_test.getLocation("volume_size"), 1, glm::value_ptr(glm::ivec3(volumes->volumes[0]->width, volumes->volumes[0]->height, volumes->volumes[0]->depth)));
+		glUniformMatrix4fv(glsl_test.getLocation("vp_matrix"), 1, GL_FALSE, glm::value_ptr(projection * view));
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_1D, volumes->transfer_function_text);
 		glUniform1i(glsl_test.getLocation("transfer_function_text"), 0);
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_3D, volumes->volumes[0]->volume_text);
 		glUniform1i(glsl_test.getLocation("volume_text"), 1);
+		if (i > 0.0f)
+		{
+			glActiveTexture(GL_TEXTURE2);
+			if (actual_texture == 0)
+			{
+				//glGetTexImage(GL_TEXTURE_2D, 1, GL_RGBA16F, GL_FLOAT, img);
+				glBindTexture(GL_TEXTURE_2D, g_out_prev);
+			}
+			else
+				glBindTexture(GL_TEXTURE_2D, g_out);
+			glUniform1i(glsl_test.getLocation("previous_text"), 2);
+		}
+		//glBindImageTexture(4, vol_ilum, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 		glBindVertexArray(texture_vao);
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		glBindVertexArray(0);

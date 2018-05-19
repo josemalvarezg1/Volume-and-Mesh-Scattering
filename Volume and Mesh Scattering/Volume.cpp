@@ -324,6 +324,7 @@ void volume_render::init_shaders()
 	this->lightcube.addUniform("volume_text");
 	this->lightcube.addUniform("previous_text");
 	this->lightcube.addUniform("transfer_function_text");
+	//Aqui falta normal
 	this->lightcube.disable();
 }
 
