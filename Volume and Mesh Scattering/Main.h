@@ -21,7 +21,6 @@
 #include "Model.h"
 #include "Halton.h"
 #include "ScatteredMap.h"
-#include "Mipmap.h"
 #include "TransferFunction.h"
 #include "Volume.h"
 

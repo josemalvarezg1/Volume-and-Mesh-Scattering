@@ -35,23 +35,6 @@ uniform vec3 de;
 uniform vec3 zr;
 
 const float PI = 3.1415926535897932384626433832795;
-
-vec2 poissonDisk[4] = vec2[](
-	vec2(-0.94201624, -0.39906216),
-	vec2(0.94558609, -0.76890725),
-	vec2(-0.094184101, -0.92938870),
-	vec2(0.34495938, 0.29387760)
-);
-
-float sample_shadow_map(vec3 pos, int light_index)
-{
-	vec4 light_pos = vp_light[light_index] * vec4(pos, 1.0f);
-	light_pos.z -= 0.0015; //bias to avoid shadow acne
-	if (light_pos.x < 0.0 || light_pos.x > 1.0) return 1.0;
-	if (light_pos.y < 0.0 || light_pos.y > 1.0) return 1.0;
-	return texture(g_depth, vec3(light_pos.xy, light_index)).r;
-}
-
 out vec4 color;
 
 vec3 calculate_ni_ast(vec3 xo, vec3 xi, vec3 ni)
@@ -121,7 +104,7 @@ void main()
 	vec3 xo, no, wo, Lo, Ll, xi, ni, wi, x, r, dr, dr_pow, w12, p, ni_ast, xv, dv, wv;
 	vec3 diffuse_part_prime_1, diffuse_part_prime_2, diffuse_part_d;
 	vec3 cos_beta, z_prime, R, T, diffuse_part;
-	float miu_0, Ti, To, theta;
+	float miu_0, Ti, To, theta, bias, visibility;
 	mat2 rotation_samples_matrix;
 
 	xo = frag_pos;
@@ -131,11 +114,10 @@ void main()
 	Lo = vec3(0.0f);
 	Ll = light_diff.xyz; 		/*Hasta ahora una sola luz por la parte que vamos en el paper*/
 
-	for (int l = 0; l < num_of_lights; l++) {
+	for (int l = 0; l < num_of_lights; l++) 
+	{
 		wi = normalize(light_pos[l]);
-
 		/* Inicio: Generación de muestras */
-
 		for (int i = 0; i < n_samples; i++)
 		{
 			vec4 offset = vec4(frag_pos, 1.0f);
@@ -152,14 +134,12 @@ void main()
 			xi = texture(g_position, vec3(offset.xy, l)).xyz;
 			ni = texture(g_normal, vec3(offset.xy, l)).xyz;
 
-			float visibility = 1.0f;
-			float bias = 0.005 * tan(acos(dot(no, wi)));
+			visibility = 1.0f;
+			bias = 0.005 * tan(acos(dot(no, wi)));
 			bias = clamp(bias, 0.0f, 0.01f);
 			
 			if (texture(g_depth, vec3(offset.xy, l)).r < offset.z - bias)
-			{
 				visibility = 0.0f;
-			}
 
 			if (visibility > 0.0f)
 			{

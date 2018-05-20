@@ -136,7 +136,6 @@
     <ClCompile Include="Light.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="Material.cpp" />
-    <ClCompile Include="Mipmap.cpp" />
     <ClCompile Include="Model.cpp" />
     <ClCompile Include="ScatteredMap.cpp" />
     <ClCompile Include="Texture.cpp" />
@@ -154,7 +153,6 @@
     <ClInclude Include="Light.h" />
     <ClInclude Include="Main.h" />
     <ClInclude Include="Material.h" />
-    <ClInclude Include="Mipmap.h" />
     <ClInclude Include="Model.h" />
     <ClInclude Include="ScatteredMap.h" />
     <ClInclude Include="Texture.h" />
@@ -177,9 +175,6 @@
     <None Include="Shaders\light.vert" />
     <None Include="Shaders\lightCube.frag" />
     <None Include="Shaders\lightCube.vert" />
-    <None Include="Shaders\mipmap.frag" />
-    <None Include="Shaders\mipmap.geom" />
-    <None Include="Shaders\mipmap.vert" />
     <None Include="Shaders\quad.frag" />
     <None Include="Shaders\quad.vert" />
     <None Include="Shaders\rayCasting.frag" />

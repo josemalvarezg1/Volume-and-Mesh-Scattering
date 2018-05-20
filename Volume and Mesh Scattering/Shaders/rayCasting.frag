@@ -73,28 +73,6 @@ vec4 illuminate(vec3 position, vec4 actual_color, float index)
 	return actual_color;
 }
 
-float shadowing(vec3 position) {
-	vec3 light_dir, ray_step;
-	float lenght_in_out, density, alpha_color, actual_color, i;
-	for (int l = 0; l < num_of_lights; l++) {
-		light_dir = normalize(light_pos[l] - position);
-		ray_step = light_dir * step_size;
-		lenght_in_out = length(light_dir);
-		alpha_color = 1.0f;
-		for (i = 0.0f; i < lenght_in_out; i += step_size)
-		{
-			density = texture(volume_text, position).x;
-			actual_color = texture(transfer_function_text, density).a;
-			actual_color = 1.0 - exp(-0.5 * actual_color);
-			alpha_color *= (1.0 - actual_color);
-			if (1.0 - alpha_color > 0.95) return alpha_color;
-			position += ray_step;
-		}
-	}
-	return 0.0;
-}
-
-
 vec4 ray_casting(vec3 direction, float lenght_in_out)
 {
 	vec4 accumulated_color, actual_color;
@@ -105,7 +83,6 @@ vec4 ray_casting(vec3 direction, float lenght_in_out)
 	position = in_coord;
 	for(i = 0.0f; i < lenght_in_out; i += step_size)
 	{
-		//shadow = shadowing(position);
 		density = texture(volume_text, position).x;
 		actual_color = texture(transfer_function_text, density);
 		//actual_color = illuminate(position, actual_color, i);
