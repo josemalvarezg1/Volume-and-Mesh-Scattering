@@ -67,7 +67,7 @@ vec3 diffuse_part_prime(vec3 x, vec3 w12, vec3 r, vec3 no)
 	x_dot_w12 = dot(x, w12);
     w12_dot_no = dot(w12, no);
     x_dot_no = dot(x, no);
-	factor_1 = (1 / (4 * c_phi_2)) * 0.02533 * (exp(-effec_r) / pow(r, vec3(3.0f)));
+	factor_1 = (1 / (4 * c_phi_2)) * 2.3 * (exp(-effec_r) / pow(r, vec3(3.0f)));
 	factor_2 = c_phi_1 * ((r * r) / D + 3 * one_effec_r * x_dot_w12);
 	factor_3 = 3 * D * one_effec_r * w12_dot_no;
 	factor_4 = (one_effec_r + 3 * D * (3 * one_effec_r + effec_r * effec_r) / (r * r) * x_dot_w12) * x_dot_no;
@@ -128,8 +128,8 @@ void main()
 			offset.xyz = offset.xyz * 0.5 + 0.5;
 			offset.xy += samples[i].xy;
 			theta = 2 * PI * radius;
-			rotation_samples_matrix = mat2(vec2(cos(theta), sin(theta)), vec2(-sin(theta), cos(theta)));
-			offset.xy = rotation_samples_matrix * offset.xy;
+			//rotation_samples_matrix = mat2(vec2(cos(theta), sin(theta)), vec2(-sin(theta), cos(theta)));
+			//offset.xy = rotation_samples_matrix * offset.xy;
 
 			xi = texture(g_position, vec3(offset.xy, l)).xyz;
 			ni = texture(g_normal, vec3(offset.xy, l)).xyz;
@@ -182,6 +182,4 @@ void main()
 
 	color = vec4(Lo * diffuse_reflectance, 1.0f);
 	// Corrección Gamma
-
-	color = pow(color, vec4(1.0f / 1.8f));
 }

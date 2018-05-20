@@ -118,7 +118,7 @@ void reshape(GLFWwindow *window, int width, int height)
 
 	scene_model->change_values = true;
 
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
 	scattered_maps->update_scattered_map(g_width, g_height, num_of_ortho_cameras);
 	glViewport(0, 0, g_width, g_height);
 }
