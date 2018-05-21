@@ -13,12 +13,13 @@ glm::mat4 projection, view, model;
 std::vector<light*> scene_lights;
 camera *scene_camera;
 mesh *scene_model;
+std::vector<mesh*> scene_cornell;
 light_buffer *light_buffers;
 materials_set *materials;
 interface_function *transfer_funtion;
 volume_render *volumes;
 
-CGLSLProgram glsl_g_buffer, glsl_g_buffer_plane, glsl_scattered_map, glsl_blending, glsl_test;
+CGLSLProgram glsl_g_buffer, glsl_g_buffer_plane, glsl_scattered_map, glsl_blending, glsl_test, glsl_cornell;
 int selected_model = -1;
 GLuint quad_vao, quad_vbo, texture_vao, texture_vbo;
 
@@ -337,7 +338,7 @@ bool init_glfw()
 	if (!glfwInit())
 		return false;
 
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
 	glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
@@ -393,12 +394,15 @@ bool init_glew()
 		glsl_blending.loadShader("Shaders/blending.frag", CGLSLProgram::FRAGMENT);
 		glsl_test.loadShader("Shaders/test.vert", CGLSLProgram::VERTEX);
 		glsl_test.loadShader("Shaders/test.frag", CGLSLProgram::FRAGMENT);
+		glsl_cornell.loadShader("Shaders/cornell.vert", CGLSLProgram::VERTEX);
+		glsl_cornell.loadShader("Shaders/cornell.frag", CGLSLProgram::FRAGMENT);
 
 		glsl_g_buffer.create_link();
 		glsl_g_buffer_plane.create_link();
 		glsl_scattered_map.create_link();
 		glsl_blending.create_link();
 		glsl_test.create_link();
+		glsl_cornell.create_link();
 
 		glsl_g_buffer.enable();
 		glsl_g_buffer.addAttribute("position");
@@ -494,6 +498,15 @@ bool init_glew()
 		glsl_test.addUniform("vp_matrix");
 		glsl_test.disable();
 
+		glsl_cornell.enable();
+		glsl_cornell.addAttribute("position");
+		glsl_cornell.addAttribute("normal");
+		glsl_cornell.addUniform("MVP");
+		glsl_cornell.addUniform("index");
+		glsl_cornell.addUniform("light_pos");
+		glsl_cornell.addUniform("model_matrix");
+		glsl_cornell.disable();
+
 		return true;
 	}
 }
@@ -515,6 +528,8 @@ bool init_scene()
 	num_of_samples_per_frag = 3 * num_of_ortho_cameras;
 
 	scene_model = new mesh();
+	for (int i = 0; i < 4; i++)
+		scene_cornell.push_back(new mesh());
 	halton_generator = new halton();
 	materials = new materials_set();
 	light_buffers = new light_buffer(g_width, g_height, num_of_lights);
@@ -548,6 +563,21 @@ bool init_scene()
 	scattered_maps = new scattered_map(g_width, g_height, num_of_ortho_cameras);
 	scene_camera = new camera(glm::vec3(0.0f, 0.0f, 16.0f));
 	scene_model->load("Models/obj/bunny.obj");
+	for (int i = 0; i < 4; i++) {
+		scene_cornell[i]->load("Models/obj/wall.obj");
+		scene_cornell[i]->scale = 15.0f;
+	}
+
+	// Se asigna la rotación / traslación de cada pared
+	scene_cornell[0]->translation = glm::vec3(0.0f, 0.0f, -10.25f);
+	scene_cornell[1]->translation = glm::vec3(0.0f, 0.0f, 20.0f);
+	scene_cornell[2]->scale = 15.55f;
+	scene_cornell[2]->translation = glm::vec3(9.90f, 0.0f, 0.0f);
+	scene_cornell[2]->rotation = glm::quat(0.0f, -0.70f, 0.0f, 0.70f);
+	scene_cornell[3]->scale = 15.55f;
+	scene_cornell[3]->translation = glm::vec3(-10.25f, 0.0f, 0.0f);
+	scene_cornell[3]->rotation = glm::quat(0.0f, -0.70f, 0.0f, 0.70f);
+
 	const char** paths = new const char*[1];
 	paths[0] = "Models\\raw\\bucky_32x32x32_8.raw";
 	volumes->drop_path(1, paths);
@@ -603,12 +633,12 @@ void display()
 	glEnable(GL_STENCIL_TEST);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
-	/*glsl_scattered_map.enable();
+	glsl_scattered_map.enable();
 	if (scene_model->change_values || change_light)
 	{
 		glBindFramebuffer(GL_FRAMEBUFFER, scattered_maps->buffer);
 		glStencilFunc(GL_ALWAYS, 1, -1);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glClear(GL_DEPTH_BUFFER_BIT);
 
 		materials->materials[scene_model->current_material]->precalculate_values(scene_model->asymmetry_param_g);
 		sigma_tr = materials->materials[scene_model->current_material]->effective_transport_coeff;
@@ -680,13 +710,13 @@ void display()
 
 		scene_model->change_values = false;
 	}
-	glsl_scattered_map.disable();*/
+	glsl_scattered_map.disable();
 
 	glEnable(GL_STENCIL_TEST);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-	/*glsl_blending.enable();
+	glsl_blending.enable();
 	glStencilFunc(GL_ALWAYS, 1, -1);
 	glUniform3f(glsl_blending.getLocation("camera_pos"), scene_camera->position[0], scene_camera->position[1], scene_camera->position[2]);
 
@@ -728,7 +758,7 @@ void display()
 	glBindVertexArray(scene_model->vao);
 	glDrawArrays(GL_TRIANGLES, 0, scene_model->vertices.size());
 	glBindVertexArray(0);
-	glsl_blending.disable();*/
+	glsl_blending.disable();
 
 	for (int l = 0; l < num_of_lights; l++) {
 		glStencilFunc(GL_ALWAYS, 2 + l, -1);
@@ -810,12 +840,29 @@ void display()
 	}
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glsl_test.disable();
-
 	glDisable(GL_BLEND);
+
+	glsl_cornell.enable();
+	for (int i = 0; i < scene_cornell.size(); i++) {
+		model_mat = glm::mat4(1.0f);
+		model_mat = glm::translate(model_mat, scene_cornell[i]->translation);
+		model_mat = model_mat * glm::toMat4(scene_cornell[i]->rotation);
+		model_mat = glm::scale(model_mat, glm::vec3(scene_cornell[i]->scale));
+
+		glUniformMatrix4fv(glsl_cornell.getLocation("MVP"), 1, GL_FALSE, glm::value_ptr(projection * view * model_mat));
+		glUniformMatrix4fv(glsl_cornell.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(projection * view * model_mat));
+		glUniform3fv(glsl_cornell.getLocation("light_pos"), 1, glm::value_ptr(scene_lights[0]->translation));
+		glUniform1i(glsl_cornell.getLocation("index"), i);
+
+		glBindVertexArray(scene_cornell[i]->vao);
+		glDrawArrays(GL_TRIANGLES, 0, scene_cornell[i]->vertices.size());
+		glBindVertexArray(0);
+	}
+	glsl_cornell.disable();
 
 	glDisable(GL_DEPTH_TEST);
 
-	glsl_g_buffer_plane.enable();
+	/*glsl_g_buffer_plane.enable();
 	model_mat = glm::mat4(1.0f);
 	model_mat = glm::translate(model_mat, glm::vec3(0.7, -0.7, -1.0));
 	model_mat = glm::scale(model_mat, glm::vec3(0.3f));
@@ -823,10 +870,10 @@ void display()
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, g_out);
 	render_quad();
-	glsl_g_buffer_plane.disable();
+	glsl_g_buffer_plane.disable();*/
 
-	volumes->display(projection * view, scene_camera->position, scene_lights[0]);
-	transfer_funtion->display();
+	//volumes->display(projection * view, scene_camera->position, scene_lights[0]);
+	//transfer_funtion->display();
 }
 
 void destroy()

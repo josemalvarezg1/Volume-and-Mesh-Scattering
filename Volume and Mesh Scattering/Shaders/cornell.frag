@@ -1,28 +1,28 @@
 #version 330
 
-in vec3 frag_pos;
+uniform int index;
+uniform vec3 light_pos;
+
 in vec3 frag_normal;
-in vec3 frag_light_pos;
+in vec3 frag_pos;
 
 out vec4 color;
 
 void main()
 {
-	//Refleccion Difusa
-	vec3 norm = normalize(frag_normal);
-	vec3 light_dir = normalize(frag_light_pos - frag_pos);
+	vec3 light_dir, normal;
+	float diffuse;
 
-	vec4 diffuse = vec4(0.0, 0.0, 0.0, 0.0);
+	if (index == 0 || index == 1) 
+		color = vec4(0.958824f, 0.958824f, 0.639216f, 1.0f);
+	else if (index == 2)
+		color = vec4(0.196078f, 0.8f, 0.196078f, 1.0f);
+	else if (index == 3)
+		color = vec4(1.0f, 0.25f, 0.0f, 1.0f);
 
-	float diff = max(dot(norm, light_dir), 0.0);
-	diffuse = vec4(diff, diff, diff, 1.0);
-
-	//Blinn-Phong
-	vec4 specular = vec4(0.0, 0.0, 0.0, 0.0);
-	vec3 viewDir = normalize(vec3(0.0, 0.0, 3.0) - frag_pos);
-	vec3 halfwayDir = normalize(light_dir + viewDir);
-	float spec = pow(max(dot(norm, halfwayDir), 0.0), 64.0f);
-	specular = vec4(spec, spec, spec, 1.0);
-
-	color = vec4(1.0f, 0.0f, 1.0f, 1.0f) + diffuse + specular;
+	light_dir = normalize(light_pos - frag_pos);
+	normal = normalize(frag_normal);
+	diffuse = max(dot(normal, light_dir), 0.0);
+	color *= vec4(diffuse, diffuse, diffuse, 1.0);
 }
+   

@@ -164,6 +164,8 @@
     <None Include="Shaders\backFace.vert" />
     <None Include="Shaders\blending.frag" />
     <None Include="Shaders\blending.vert" />
+    <None Include="Shaders\cornell.frag" />
+    <None Include="Shaders\cornell.vert" />
     <None Include="Shaders\function.frag" />
     <None Include="Shaders\function.vert" />
     <None Include="Shaders\gBuffer.frag" />
