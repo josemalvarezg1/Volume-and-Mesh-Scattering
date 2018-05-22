@@ -12,7 +12,7 @@ out vec3 frag_normal;
 void main()
 {
 	float normal_sign;
-	if (index == 1 || index == 3)
+	if (index == 1 || index == 3 || index == 4)
 		normal_sign = -1.0f;
 	else
 		normal_sign = 1.0f;

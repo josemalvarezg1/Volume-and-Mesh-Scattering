@@ -528,7 +528,7 @@ bool init_scene()
 	num_of_samples_per_frag = 3 * num_of_ortho_cameras;
 
 	scene_model = new mesh();
-	for (int i = 0; i < 4; i++)
+	for (int i = 0; i < 6; i++)
 		scene_cornell.push_back(new mesh());
 	halton_generator = new halton();
 	materials = new materials_set();
@@ -561,22 +561,28 @@ bool init_scene()
 	materials->materials.push_back(none);
 
 	scattered_maps = new scattered_map(g_width, g_height, num_of_ortho_cameras);
-	scene_camera = new camera(glm::vec3(0.0f, 0.0f, 16.0f));
+	scene_camera = new camera(glm::vec3(0.0f, 0.0f, 15.0f));
 	scene_model->load("Models/obj/bunny.obj");
-	for (int i = 0; i < 4; i++) {
+	for (int i = 0; i < 2; i++) {
 		scene_cornell[i]->load("Models/obj/wall.obj");
 		scene_cornell[i]->scale = 15.0f;
 	}
+	scene_cornell[2]->load("Models/obj/wall1.obj");
+	scene_cornell[2]->scale = 15.0f;
+	scene_cornell[3]->load("Models/obj/wall1.obj");
+	scene_cornell[3]->scale = 15.0f;
+	scene_cornell[4]->load("Models/obj/roof.obj");
+	scene_cornell[4]->scale = 15.0f;
+	scene_cornell[5]->load("Models/obj/roof.obj");
+	scene_cornell[5]->scale = 15.0f;
 
-	// Se asigna la rotación / traslación de cada pared
-	scene_cornell[0]->translation = glm::vec3(0.0f, 0.0f, -10.25f);
-	scene_cornell[1]->translation = glm::vec3(0.0f, 0.0f, 20.0f);
-	scene_cornell[2]->scale = 15.55f;
-	scene_cornell[2]->translation = glm::vec3(9.90f, 0.0f, 0.0f);
-	scene_cornell[2]->rotation = glm::quat(0.0f, -0.70f, 0.0f, 0.70f);
-	scene_cornell[3]->scale = 15.55f;
-	scene_cornell[3]->translation = glm::vec3(-10.25f, 0.0f, 0.0f);
-	scene_cornell[3]->rotation = glm::quat(0.0f, -0.70f, 0.0f, 0.70f);
+	// Se asigna la traslación de cada pared
+	scene_cornell[0]->translation = glm::vec3(0.0f, 0.0f, -15.0f);
+	scene_cornell[1]->translation = glm::vec3(0.0f, 0.0f, 15.0f);
+	scene_cornell[2]->translation = glm::vec3(15.0f, 0.0f, 0.0f);
+	scene_cornell[3]->translation = glm::vec3(-15.0f, 0.0f, 0.0f);
+	scene_cornell[4]->translation = glm::vec3(0.0f, 15.0f, 0.0f);
+	scene_cornell[5]->translation = glm::vec3(0.0f, -15.0f, 0.0f);
 
 	const char** paths = new const char*[1];
 	paths[0] = "Models\\raw\\bucky_32x32x32_8.raw";
@@ -862,7 +868,7 @@ void display()
 
 	glDisable(GL_DEPTH_TEST);
 
-	/*glsl_g_buffer_plane.enable();
+	glsl_g_buffer_plane.enable();
 	model_mat = glm::mat4(1.0f);
 	model_mat = glm::translate(model_mat, glm::vec3(0.7, -0.7, -1.0));
 	model_mat = glm::scale(model_mat, glm::vec3(0.3f));
@@ -870,10 +876,10 @@ void display()
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, g_out);
 	render_quad();
-	glsl_g_buffer_plane.disable();*/
+	glsl_g_buffer_plane.disable();
 
-	//volumes->display(projection * view, scene_camera->position, scene_lights[0]);
-	//transfer_funtion->display();
+	volumes->display(projection * view, scene_camera->position, scene_lights[0]);
+	transfer_funtion->display();
 }
 
 void destroy()

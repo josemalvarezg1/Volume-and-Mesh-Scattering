@@ -83,7 +83,7 @@ volume::volume(std::string path, GLuint width, GLuint height, GLuint depth, GLui
 	this->change_values = true;
 	this->current_index = -1;
 	this->rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
-	this->translation = glm::vec3(0.0f);
+	this->translation = glm::vec3(2.25f, 0.0f, 0.0f);
 	this->escalation = 4.0f;
 	this->asymmetry_param_g = 0.77f;
 	this->radius = 0.5f;
