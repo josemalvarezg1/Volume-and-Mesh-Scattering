@@ -24,7 +24,7 @@ void main()
 
 	light_dir = normalize(light_pos - frag_pos);
 	normal = normalize(frag_normal);
-	diffuse = max(dot(normal, light_dir), 0.0);
-	color *= vec4(diffuse, diffuse, diffuse, 1.0);
+	diffuse = max(dot(normal, light_dir), 0.0f);
+	color *= vec4(diffuse, diffuse, diffuse, 1.0f);
 }
    

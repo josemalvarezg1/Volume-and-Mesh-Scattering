@@ -85,6 +85,6 @@ void main(void)
 
 	color /= max(div, 1.0);
 	color *= clamp(fresnel, 0.0f, 1.0f);
-	color = pow(vec4(1) - exp(-color), vec4(1.0/gamma));
+	//color = pow(vec4(1) - exp(-color), vec4(1.0/gamma));
 	color = pow(color, vec4(1.0f / gamma));
 }

@@ -23,14 +23,14 @@ CGLSLProgram glsl_g_buffer, glsl_g_buffer_plane, glsl_scattered_map, glsl_blendi
 int selected_model = -1;
 GLuint quad_vao, quad_vbo, texture_vao, texture_vbo;
 
-unsigned int g_buffer;
+unsigned int g_buffer[2];
 unsigned int g_out, g_out_prev, vol_ilum;
-unsigned int attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+unsigned int attachments[1] = { GL_COLOR_ATTACHMENT0 };
 
 void create_gbuffer()
 {
-	glGenFramebuffers(1, &g_buffer);
-	glBindFramebuffer(GL_FRAMEBUFFER, g_buffer);
+	glGenFramebuffers(2, &g_buffer[0]);
+	glBindFramebuffer(GL_FRAMEBUFFER, g_buffer[0]);
 
 	glGenTextures(1, &g_out);
 	glBindTexture(GL_TEXTURE_2D, g_out);
@@ -39,21 +39,25 @@ void create_gbuffer()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_out, 0);
 
+	glDrawBuffers(1, attachments);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, g_buffer[1]);
+
 	glGenTextures(1, &g_out_prev);
 	glBindTexture(GL_TEXTURE_2D, g_out_prev);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, g_width, g_height, 0, GL_RGBA, GL_FLOAT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, g_out_prev, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_out_prev, 0);
 
-	glDrawBuffers(2, attachments);
+	glDrawBuffers(1, attachments);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	glGenTextures(1, &vol_ilum);
 	glBindTexture(GL_TEXTURE_3D, vol_ilum);
 	glTexStorage3D(GL_TEXTURE_3D, 1, GL_RGBA16F, volumes->volumes[0]->width, volumes->volumes[0]->height, volumes->volumes[0]->depth);
 	glBindTexture(GL_TEXTURE_3D, 0);
-
 }
 
 void create_quad_light_volume()
@@ -542,7 +546,7 @@ bool init_scene()
 	{
 		scene_lights.push_back(new light());
 	}
-	//scene_lights[1]->translation = glm::vec3(3.0, 5.0f, 0.0f);
+	scene_lights[0]->translation = glm::vec3(3.0, 3.0f, 5.0f);
 	//scene_lights[2]->translation = glm::vec3(0.0f, 0.0f, 5.0f);
 	selected_light = 0;
 
@@ -599,6 +603,7 @@ void display()
 {
 	glEnable(GL_DEPTH_TEST);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
 	glm::mat4 projection_ortho, view_ortho, view_proj_ortho_light, view_proj_ortho_random, model_mat;
 	glm::vec3 sigma_tr;
 
@@ -797,16 +802,18 @@ void display()
 		start_texture = 0.0f;
 
 	glsl_test.enable();
-	glBindFramebuffer(GL_FRAMEBUFFER, g_buffer);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	lenght_in_out = glm::length(glm::vec3(dir_max.x, dir_max.y, dir_max.z));
-	for (float i = 0.0f; i < step_size; i += step_size)
+	for (float i = 0.0f; i < lenght_in_out; i += step_size)
 	{
 		if (actual_texture == 1)
 			actual_texture = 0;
 		else
 			actual_texture = 1;
+
+		glBindFramebuffer(GL_FRAMEBUFFER, g_buffer[actual_texture]);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+
 		glUniformMatrix4fv(glsl_test.getLocation("MVP"), 1, GL_FALSE, glm::value_ptr(projection * view * model));
 		glUniformMatrix4fv(glsl_test.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model));
 		glUniform1i(glsl_test.getLocation("axis"), dir_max.w);
@@ -828,24 +835,23 @@ void display()
 		{
 			glActiveTexture(GL_TEXTURE2);
 			if (actual_texture == 0)
-			{
-				//glGetTexImage(GL_TEXTURE_2D, 1, GL_RGBA16F, GL_FLOAT, img);
 				glBindTexture(GL_TEXTURE_2D, g_out_prev);
-			}
 			else
 				glBindTexture(GL_TEXTURE_2D, g_out);
 			glUniform1i(glsl_test.getLocation("previous_text"), 2);
 		}
-		//glBindImageTexture(4, vol_ilum, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+		glBindImageTexture(4, vol_ilum, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+
 		glBindVertexArray(texture_vao);
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		glBindVertexArray(0);
 
 		position += ray_step;
 		start_texture += texture_step;
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glsl_test.disable();
+
 	glDisable(GL_BLEND);
 
 	glsl_cornell.enable();
