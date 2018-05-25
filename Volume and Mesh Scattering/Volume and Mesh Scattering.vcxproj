@@ -184,8 +184,6 @@
     <None Include="Shaders\scatteredMap.frag" />
     <None Include="Shaders\scatteredMap.geom" />
     <None Include="Shaders\scatteredMap.vert" />
-    <None Include="Shaders\test.frag" />
-    <None Include="Shaders\test.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

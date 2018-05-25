@@ -19,67 +19,9 @@ materials_set *materials;
 interface_function *transfer_funtion;
 volume_render *volumes;
 
-CGLSLProgram glsl_g_buffer, glsl_g_buffer_plane, glsl_scattered_map, glsl_blending, glsl_test, glsl_cornell;
+CGLSLProgram glsl_g_buffer, glsl_g_buffer_plane, glsl_scattered_map, glsl_blending, glsl_cornell;
 int selected_model = -1;
-GLuint quad_vao, quad_vbo, texture_vao, texture_vbo;
-
-unsigned int g_buffer[2];
-unsigned int g_out, g_out_prev, vol_ilum;
-unsigned int attachments[1] = { GL_COLOR_ATTACHMENT0 };
-
-void create_gbuffer()
-{
-	glGenFramebuffers(2, &g_buffer[0]);
-	glBindFramebuffer(GL_FRAMEBUFFER, g_buffer[0]);
-
-	glGenTextures(1, &g_out);
-	glBindTexture(GL_TEXTURE_2D, g_out);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, g_width, g_height, 0, GL_RGBA, GL_FLOAT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_out, 0);
-
-	glDrawBuffers(1, attachments);
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-	glBindFramebuffer(GL_FRAMEBUFFER, g_buffer[1]);
-
-	glGenTextures(1, &g_out_prev);
-	glBindTexture(GL_TEXTURE_2D, g_out_prev);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, g_width, g_height, 0, GL_RGBA, GL_FLOAT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_out_prev, 0);
-
-	glDrawBuffers(1, attachments);
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-	glGenTextures(1, &vol_ilum);
-	glBindTexture(GL_TEXTURE_3D, vol_ilum);
-	glTexStorage3D(GL_TEXTURE_3D, 1, GL_RGBA16F, volumes->volumes[0]->width, volumes->volumes[0]->height, volumes->volumes[0]->depth);
-	glBindTexture(GL_TEXTURE_3D, 0);
-}
-
-void create_quad_light_volume()
-{
-	GLfloat quad_data[] = {
-		-0.5f,  0.5f,  0.0f, 1.0f,
-		-0.5f, -0.5f,  0.0f, 0.0f,
-		0.5f,  0.5f,  1.0f, 1.0f,
-		0.5f, -0.5f,  1.0f, 0.0f,
-	};
-	glGenVertexArrays(1, &texture_vao);
-	glGenBuffers(1, &texture_vbo);
-	glBindVertexArray(texture_vao);
-	glBindBuffer(GL_ARRAY_BUFFER, texture_vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(quad_data), &quad_data, GL_STATIC_DRAW);
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)0);
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)(2 * sizeof(GLfloat)));
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
-}
+GLuint quad_vao, quad_vbo;
 
 void render_quad()
 {
@@ -315,7 +257,7 @@ void char_input(GLFWwindow* window, unsigned int scan_char)
 
 void drop_path(GLFWwindow* window, int count, const char** paths)
 {
-	volumes->drop_path(count, paths);
+	volumes->drop_path(count, paths, g_width, g_height);
 }
 
 void movement()
@@ -396,8 +338,6 @@ bool init_glew()
 		glsl_scattered_map.loadShader("Shaders/scatteredMap.geom", CGLSLProgram::GEOMETRY);
 		glsl_blending.loadShader("Shaders/blending.vert", CGLSLProgram::VERTEX);
 		glsl_blending.loadShader("Shaders/blending.frag", CGLSLProgram::FRAGMENT);
-		glsl_test.loadShader("Shaders/test.vert", CGLSLProgram::VERTEX);
-		glsl_test.loadShader("Shaders/test.frag", CGLSLProgram::FRAGMENT);
 		glsl_cornell.loadShader("Shaders/cornell.vert", CGLSLProgram::VERTEX);
 		glsl_cornell.loadShader("Shaders/cornell.frag", CGLSLProgram::FRAGMENT);
 
@@ -405,7 +345,6 @@ bool init_glew()
 		glsl_g_buffer_plane.create_link();
 		glsl_scattered_map.create_link();
 		glsl_blending.create_link();
-		glsl_test.create_link();
 		glsl_cornell.create_link();
 
 		glsl_g_buffer.enable();
@@ -481,26 +420,6 @@ bool init_glew()
 		glsl_blending.addUniform("g_width");
 		glsl_blending.addUniform("g_height");
 		glsl_blending.disable();
-
-
-		glsl_test.enable();
-		glsl_test.addAttribute("vertex_coords");
-		glsl_test.addAttribute("volume_coords");
-		glsl_test.addUniform("MVP");
-		glsl_test.addUniform("model_matrix");
-		glsl_test.addUniform("axis");
-		glsl_test.addUniform("start_texture");
-		glsl_test.addUniform("position");
-		glsl_test.addUniform("transfer_function_text");
-		glsl_test.addUniform("volume_text");
-		glsl_test.addUniform("previous_text");
-		glsl_test.addUniform("iteration");
-		glsl_test.addUniform("actual_texture");
-		glsl_test.addUniform("light_pos");
-		glsl_test.addUniform("normal");
-		glsl_test.addUniform("volume_size");
-		glsl_test.addUniform("vp_matrix");
-		glsl_test.disable();
 
 		glsl_cornell.enable();
 		glsl_cornell.addAttribute("position");
@@ -590,11 +509,8 @@ bool init_scene()
 
 	const char** paths = new const char*[1];
 	paths[0] = "Models\\raw\\bucky_32x32x32_8.raw";
-	volumes->drop_path(1, paths);
+	volumes->drop_path(1, paths, g_width, g_height);
 	halton_generator->generate_orthographic_cameras(num_of_ortho_cameras);
-
-	create_gbuffer();
-	create_quad_light_volume();
 
 	return true;
 }
@@ -644,7 +560,7 @@ void display()
 	glEnable(GL_STENCIL_TEST);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
-	glsl_scattered_map.enable();
+	/*glsl_scattered_map.enable();
 	if (scene_model->change_values || change_light)
 	{
 		glBindFramebuffer(GL_FRAMEBUFFER, scattered_maps->buffer);
@@ -721,13 +637,13 @@ void display()
 
 		scene_model->change_values = false;
 	}
-	glsl_scattered_map.disable();
+	glsl_scattered_map.disable();*/
 
 	glEnable(GL_STENCIL_TEST);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-	glsl_blending.enable();
+	/*glsl_blending.enable();
 	glStencilFunc(GL_ALWAYS, 1, -1);
 	glUniform3f(glsl_blending.getLocation("camera_pos"), scene_camera->position[0], scene_camera->position[1], scene_camera->position[2]);
 
@@ -769,7 +685,7 @@ void display()
 	glBindVertexArray(scene_model->vao);
 	glDrawArrays(GL_TRIANGLES, 0, scene_model->vertices.size());
 	glBindVertexArray(0);
-	glsl_blending.disable();
+	glsl_blending.disable();*/
 
 	for (int l = 0; l < num_of_lights; l++) {
 		glStencilFunc(GL_ALWAYS, 2 + l, -1);
@@ -779,83 +695,9 @@ void display()
 	glDisable(GL_STENCIL_TEST);
 
 
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-	int actual_texture;
-	glm::vec4 position_sign, dir_max;
-	glm::vec3 ray_step, position;
-	float distance, lenght_in_out, step_size, texture_step, start_texture;
-	GLvoid *img;
-
-	actual_texture = 1;
-	model = glm::translate(glm::mat4(1.0f), volumes->volumes[0]->translation) * glm::mat4_cast(volumes->volumes[0]->rotation) * glm::scale(glm::mat4(1.0f), glm::vec3(volumes->volumes[0]->escalation));
-	dir_max = volumes->calculate_dir_max(scene_lights[0]->translation, model);
-	step_size = volumes->volumes[0]->step_light_volume;
-	position_sign = volumes->get_position(volumes->volumes[0]->current_index);
-	ray_step = (glm::vec3(dir_max.x, dir_max.y, dir_max.z) * step_size) * position_sign.w;
-	texture_step = (step_size) * position_sign.w;
-	position = glm::vec3(position_sign.x, position_sign.y, position_sign.z);
-
-	if (position_sign.w == -1.0f)
-		start_texture = 1.0f;
-	else
-		start_texture = 0.0f;
-
-	glsl_test.enable();
-	lenght_in_out = glm::length(glm::vec3(dir_max.x, dir_max.y, dir_max.z));
-	for (float i = 0.0f; i < lenght_in_out; i += step_size)
-	{
-		if (actual_texture == 1)
-			actual_texture = 0;
-		else
-			actual_texture = 1;
-
-		glBindFramebuffer(GL_FRAMEBUFFER, g_buffer[actual_texture]);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-
-		glUniformMatrix4fv(glsl_test.getLocation("MVP"), 1, GL_FALSE, glm::value_ptr(projection * view * model));
-		glUniformMatrix4fv(glsl_test.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model));
-		glUniform1i(glsl_test.getLocation("axis"), dir_max.w);
-		glUniform1f(glsl_test.getLocation("start_texture"), start_texture);
-		glUniform3fv(glsl_test.getLocation("position"), 1, &position[0]);
-		glUniform1f(glsl_test.getLocation("iteration"), i);
-		glUniform1i(glsl_test.getLocation("actual_texture"), actual_texture);
-		glUniform3fv(glsl_test.getLocation("light_pos"), 1, glm::value_ptr(scene_lights[0]->translation));
-		glUniform3fv(glsl_test.getLocation("normal"), 1, glm::value_ptr(-glm::vec3(dir_max.x, dir_max.y, dir_max.z)));
-		glUniform3iv(glsl_test.getLocation("volume_size"), 1, glm::value_ptr(glm::ivec3(volumes->volumes[0]->width, volumes->volumes[0]->height, volumes->volumes[0]->depth)));
-		glUniformMatrix4fv(glsl_test.getLocation("vp_matrix"), 1, GL_FALSE, glm::value_ptr(projection * view));
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_1D, volumes->transfer_function_text);
-		glUniform1i(glsl_test.getLocation("transfer_function_text"), 0);
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_3D, volumes->volumes[0]->volume_text);
-		glUniform1i(glsl_test.getLocation("volume_text"), 1);
-		if (i > 0.0f)
-		{
-			glActiveTexture(GL_TEXTURE2);
-			if (actual_texture == 0)
-				glBindTexture(GL_TEXTURE_2D, g_out_prev);
-			else
-				glBindTexture(GL_TEXTURE_2D, g_out);
-			glUniform1i(glsl_test.getLocation("previous_text"), 2);
-		}
-		glBindImageTexture(4, vol_ilum, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
-
-		glBindVertexArray(texture_vao);
-		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-		glBindVertexArray(0);
-
-		position += ray_step;
-		start_texture += texture_step;
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	}
-	glsl_test.disable();
-
-	glDisable(GL_BLEND);
-
 	glsl_cornell.enable();
-	for (int i = 0; i < scene_cornell.size(); i++) {
+	for (int i = 0; i < scene_cornell.size(); i++) 
+	{
 		model_mat = glm::mat4(1.0f);
 		model_mat = glm::translate(model_mat, scene_cornell[i]->translation);
 		model_mat = model_mat * glm::toMat4(scene_cornell[i]->rotation);
@@ -880,7 +722,7 @@ void display()
 	model_mat = glm::scale(model_mat, glm::vec3(0.3f));
 	glUniformMatrix4fv(glsl_g_buffer_plane.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, g_out);
+	glBindTexture(GL_TEXTURE_2D, volumes->volumes[0]->previous_texture);
 	render_quad();
 	glsl_g_buffer_plane.disable();
 

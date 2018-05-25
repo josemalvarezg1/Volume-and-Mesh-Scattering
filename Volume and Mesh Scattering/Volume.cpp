@@ -1,5 +1,7 @@
 #include "Volume.h"
 
+//Faltan condiciones en render_light_cube
+
 std::vector<std::string> split(const std::string &s, char delim)
 {
 	std::stringstream ss(s);
@@ -67,7 +69,7 @@ void cube::display()
 	glBindVertexArray(0);
 }
 
-volume::volume(std::string path, GLuint width, GLuint height, GLuint depth, GLuint bits)
+volume::volume(std::string path, GLuint width, GLuint height, GLuint depth, GLuint bits, GLuint g_width, GLuint g_height)
 {
 	std::ifstream file(path, std::ios::binary);
 	size_t length;
@@ -109,33 +111,22 @@ volume::volume(std::string path, GLuint width, GLuint height, GLuint depth, GLui
 			glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_REPEAT);
 			glTexImage3D(GL_TEXTURE_3D, 0, GL_RED, this->width, this->height, this->depth, 0, GL_RED, GL_UNSIGNED_BYTE, texture_data);
 			glBindTexture(GL_TEXTURE_3D, 0);
-
-			GLuint attachments[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
 			
 			glGenVertexArrays(1, &texture_vao);
 			glGenBuffers(1, &texture_vbo);
-			glGenFramebuffers(1, &this->volume_buffer);
-			this->create_quad_light_volume();
 
+			glGenFramebuffers(2, &this->volume_buffer[0]);
 			glGenTextures(1, &this->render_texture);
 			glGenTextures(1, &this->previous_texture);
+			glGenTextures(1, &this->light_volume_text);
 
-			glBindFramebuffer(GL_FRAMEBUFFER, this->volume_buffer);
 			
-			glBindTexture(GL_TEXTURE_2D, this->render_texture);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, this->width, this->height, 0, GL_RGBA, GL_FLOAT, NULL);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->render_texture, 0);
-			
-			glBindTexture(GL_TEXTURE_2D, this->previous_texture);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, this->width, this->height, 0, GL_RGBA, GL_FLOAT, NULL);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, this->previous_texture, 0);
-			
-			glDrawBuffers(2, attachments);
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			glBindTexture(GL_TEXTURE_3D, this->light_volume_text);
+			glTexStorage3D(GL_TEXTURE_3D, 1, GL_RGBA16F, this->width, this->height, this->depth);
+			glBindTexture(GL_TEXTURE_3D, 0);
+
+			this->create_quad_light_volume();
+			this->update_light_volume_textures(g_width, g_height);
 			delete[] texture_data;
 		}
 		else
@@ -168,6 +159,29 @@ volume::volume(std::string path, GLuint width, GLuint height, GLuint depth, GLui
 		}
 }
 
+void volume::update_light_volume_textures(GLuint g_width, GLuint g_height)
+{
+	GLuint attachments[] = { GL_COLOR_ATTACHMENT0 };
+
+	glBindFramebuffer(GL_FRAMEBUFFER, this->volume_buffer[0]);
+	glBindTexture(GL_TEXTURE_2D, this->render_texture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, g_width, g_height, 0, GL_RGBA, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->render_texture, 0);
+	glDrawBuffers(1, attachments);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, this->volume_buffer[1]);
+	glBindTexture(GL_TEXTURE_2D, this->previous_texture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, g_width, g_height, 0, GL_RGBA, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->previous_texture, 0);
+	glDrawBuffers(1, attachments);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
 void volume::create_quad_light_volume()
 {
 	GLfloat quad_data[] = {
@@ -177,8 +191,8 @@ void volume::create_quad_light_volume()
 		0.5f, -0.5f,  0.0f, 1.0f,
 	};
 
-	glBindVertexArray(this->texture_vao);
-	glBindBuffer(GL_ARRAY_BUFFER, this->texture_vbo);
+	glBindVertexArray(texture_vao);
+	glBindBuffer(GL_ARRAY_BUFFER, texture_vbo);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(quad_data), &quad_data, GL_STATIC_DRAW);
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)0);
@@ -220,7 +234,7 @@ volume_render::~volume_render()
 	for (unsigned int i = 0; i < this->volumes.size(); ++i) this->volumes[i]->~volume();
 }
 
-void volume_render::drop_path(int count, const char** paths)
+void volume_render::drop_path(int count, const char** paths, GLuint g_width, GLuint g_height)
 {
 	glm::uvec4 parameters;
 	for (int i = 0; i < count; i++)
@@ -231,7 +245,7 @@ void volume_render::drop_path(int count, const char** paths)
 			parameters = this->get_parameters(path);
 			if (parameters != glm::uvec4(0))
 			{
-				volume *new_volume = new volume(path, parameters[0], parameters[1], parameters[2], parameters[3]);
+				volume *new_volume = new volume(path, parameters[0], parameters[1], parameters[2], parameters[3], g_width, g_height);
 				this->volumes.push_back(new_volume);
 				this->index_select = this->volumes.size() - 1;
 			}
@@ -314,17 +328,18 @@ void volume_render::init_shaders()
 	this->lightcube.addAttribute("volume_coords");
 	this->lightcube.addUniform("MVP");
 	this->lightcube.addUniform("model_matrix");
-	this->lightcube.addUniform("vp_matrix");
-	this->lightcube.addUniform("light_pos");
 	this->lightcube.addUniform("axis");
 	this->lightcube.addUniform("start_texture");
 	this->lightcube.addUniform("position");
-	this->lightcube.addUniform("iteration");
-	this->lightcube.addUniform("actual_texture");
+	this->lightcube.addUniform("transfer_function_text");
 	this->lightcube.addUniform("volume_text");
 	this->lightcube.addUniform("previous_text");
-	this->lightcube.addUniform("transfer_function_text");
-	//Aqui falta normal
+	this->lightcube.addUniform("iteration");
+	this->lightcube.addUniform("actual_texture");
+	this->lightcube.addUniform("light_pos");
+	this->lightcube.addUniform("normal");
+	this->lightcube.addUniform("volume_size");
+	this->lightcube.addUniform("vp_matrix");
 	this->lightcube.disable();
 }
 
@@ -622,6 +637,83 @@ void volume_render::render_cube(glm::mat4 &MVP)
 	this->backface.disable();
 }
 
+void volume_render::render_light_cube(glm::mat4 &MVP, glm::mat4 &model, glm::vec3 view_pos, light* scene_lights, glm::mat4 view_projection)
+{
+	int actual_texture;
+	glm::vec4 position_sign, dir_max;
+	glm::vec3 ray_step, position;
+	float distance, lenght_in_out, step_size, texture_step, start_texture;
+	
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+
+	actual_texture = 1;
+	dir_max = calculate_dir_max(scene_lights->translation, model);
+	step_size = this->volumes[this->index_select]->step_light_volume;
+	position_sign = this->get_position(this->volumes[this->index_select]->current_index);
+	ray_step = glm::vec3(dir_max.x, dir_max.y, dir_max.z) * step_size * position_sign.w;
+	texture_step = step_size * position_sign.w;
+	position = glm::vec3(position_sign.x, position_sign.y, position_sign.z);
+
+	if (position_sign.w == -1.0f)
+		start_texture = 1.0f;
+	else
+		start_texture = 0.0f;
+
+	this->lightcube.enable();
+	lenght_in_out = glm::length(glm::vec3(dir_max.x, dir_max.y, dir_max.z));
+	for (float i = 0.0f; i < lenght_in_out; i += step_size)
+	{
+		if (actual_texture == 1)
+			actual_texture = 0;
+		else
+			actual_texture = 1;
+
+		glBindFramebuffer(GL_FRAMEBUFFER, this->volumes[this->index_select]->volume_buffer[actual_texture]);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+
+		glUniformMatrix4fv(this->lightcube.getLocation("MVP"), 1, GL_FALSE, glm::value_ptr(MVP));
+		glUniformMatrix4fv(this->lightcube.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model));
+		glUniform1i(this->lightcube.getLocation("axis"), dir_max.w);
+		glUniform1f(this->lightcube.getLocation("start_texture"), start_texture);
+		glUniform3fv(this->lightcube.getLocation("position"), 1, &position[0]);
+		glUniform1f(this->lightcube.getLocation("iteration"), i);
+		glUniform1i(this->lightcube.getLocation("actual_texture"), actual_texture);
+		glUniform3fv(this->lightcube.getLocation("light_pos"), 1, glm::value_ptr(scene_lights->translation));
+		glUniform3fv(this->lightcube.getLocation("normal"), 1, glm::value_ptr(-glm::vec3(dir_max.x, dir_max.y, dir_max.z)));
+		glUniform3iv(this->lightcube.getLocation("volume_size"), 1, glm::value_ptr(glm::ivec3(this->volumes[this->index_select]->width, this->volumes[this->index_select]->height, this->volumes[this->index_select]->depth)));
+		glUniformMatrix4fv(this->lightcube.getLocation("vp_matrix"), 1, GL_FALSE, glm::value_ptr(view_projection));
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_1D, this->transfer_function_text);
+		glUniform1i(this->lightcube.getLocation("transfer_function_text"), 0);
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_3D, this->volumes[this->index_select]->volume_text);
+		glUniform1i(this->lightcube.getLocation("volume_text"), 1);
+		if (i > 0.0f)
+		{
+			glActiveTexture(GL_TEXTURE2);
+			if (actual_texture == 0)
+				glBindTexture(GL_TEXTURE_2D, this->volumes[this->index_select]->previous_texture);
+			else
+				glBindTexture(GL_TEXTURE_2D, this->volumes[this->index_select]->render_texture);
+			glUniform1i(this->lightcube.getLocation("previous_text"), 2);
+		}
+		glBindImageTexture(4, this->volumes[this->index_select]->light_volume_text, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+
+		glBindVertexArray(this->volumes[this->index_select]->texture_vao);
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+		glBindVertexArray(0);
+
+		position += ray_step;
+		start_texture += texture_step;
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	}
+	this->lightcube.disable();
+
+	glDisable(GL_BLEND);
+}
+
 void volume_render::render_cube_raycast(glm::mat4 &MVP, glm::mat4 &model, glm::vec3 view_pos, light* scene_lights, glm::mat4 view_projection)
 {
 	this->raycasting.enable();
@@ -671,6 +763,7 @@ void volume_render::display(glm::mat4 &view_projection, glm::vec3 view_pos, ligh
 		glCullFace(GL_BACK);
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+		this->render_light_cube(MVP, model, view_pos, scene_lights, view_projection);
 		this->render_cube_raycast(MVP, model, view_pos, scene_lights, view_projection);
 		glDisable(GL_BLEND);
 		glDisable(GL_DEPTH_TEST);
@@ -702,6 +795,7 @@ void volume_render::resize_screen(const glm::vec2 screen)
 	this->g_height = (int)screen.y;
 	this->create_backface_text();
 	this->create_frame_buffer();
+	this->volumes[this->index_select]->update_light_volume_textures((GLuint)screen.x, (GLuint)screen.y);
 }
 
 void volume_render::update_interface()

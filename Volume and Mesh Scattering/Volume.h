@@ -26,15 +26,16 @@ class volume
 {
 public:
 	std::string name;
-	GLuint width, height, depth, bits, volume_text, volume_buffer, render_texture, previous_texture, texture_vao, texture_vbo, current_index;
+	GLuint width, height, depth, bits, volume_text, light_volume_text, volume_buffer[2], render_texture, previous_texture, texture_vao, texture_vbo, current_index;
 	glm::quat rotation;
 	glm::vec3 translation, scattering_coeff, extinction_coeff;
 	GLfloat escalation, step, asymmetry_param_g, radius, step_light_volume;
 	glm::vec4 back_radiance;
 	bool change_values;
 
-	volume(std::string path, GLuint width, GLuint height, GLuint depth, GLuint bits);
+	volume(std::string path, GLuint width, GLuint height, GLuint depth, GLuint bits, GLuint g_width, GLuint g_height);
 	void create_quad_light_volume();
+	void update_light_volume_textures(GLuint g_width, GLuint g_height);
 	~volume();
 };
 
@@ -54,7 +55,7 @@ public:
 
 	volume_render(int g_width, int g_height);
 	~volume_render();
-	void drop_path(int count, const char** paths);
+	void drop_path(int count, const char** paths, GLuint g_width, GLuint g_height);
 	bool process_path(std::string path);
 	glm::uvec4 get_parameters(std::string path);
 	void init_shaders();
@@ -70,6 +71,7 @@ public:
 	void create_backface_text();
 	bool create_frame_buffer();
 	void render_cube(glm::mat4 &MVP);
+	void render_light_cube(glm::mat4 &MVP, glm::mat4 &model, glm::vec3 view_pos, light* scene_lights, glm::mat4 view_projection);
 	void render_cube_raycast(glm::mat4 &MVP, glm::mat4 &model, glm::vec3 view_pos, light* scene_lights, glm::mat4 view_projection);
 	void display(glm::mat4 &view_projection, glm::vec3 view_pos, light* scene_lights);
 	void change_volume(int type);
