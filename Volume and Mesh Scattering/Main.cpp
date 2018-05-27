@@ -484,20 +484,15 @@ bool init_scene()
 	materials->materials.push_back(none);
 
 	scattered_maps = new scattered_map(g_width, g_height, num_of_ortho_cameras);
-	scene_camera = new camera(glm::vec3(0.0f, 0.0f, 15.0f));
+	scene_camera = new camera(glm::vec3(0.0f, 0.0f, 19.5f));
 	scene_model->load("Models/obj/bunny.obj");
-	for (int i = 0; i < 2; i++) {
+
+	for (int i = 0; i < 2; i++) 
 		scene_cornell[i]->load("Models/obj/wall.obj");
-		scene_cornell[i]->scale = 15.0f;
-	}
 	scene_cornell[2]->load("Models/obj/wall1.obj");
-	scene_cornell[2]->scale = 15.0f;
 	scene_cornell[3]->load("Models/obj/wall1.obj");
-	scene_cornell[3]->scale = 15.0f;
 	scene_cornell[4]->load("Models/obj/roof.obj");
-	scene_cornell[4]->scale = 15.0f;
 	scene_cornell[5]->load("Models/obj/roof.obj");
-	scene_cornell[5]->scale = 15.0f;
 
 	// Se asigna la traslación de cada pared
 	scene_cornell[0]->translation = glm::vec3(0.0f, 0.0f, -15.0f);
@@ -506,6 +501,11 @@ bool init_scene()
 	scene_cornell[3]->translation = glm::vec3(-15.0f, 0.0f, 0.0f);
 	scene_cornell[4]->translation = glm::vec3(0.0f, 15.0f, 0.0f);
 	scene_cornell[5]->translation = glm::vec3(0.0f, -15.0f, 0.0f);
+
+	for (int i = 0; i < scene_cornell.size(); i++) {
+		scene_cornell[i]->scale = 15.0f;
+		scene_cornell[i]->translation.z += 5.0f;
+	}
 
 	const char** paths = new const char*[1];
 	paths[0] = "Models\\raw\\bucky_32x32x32_8.raw";
@@ -525,7 +525,7 @@ void display()
 
 	view = scene_camera->get_view_matrix();
 	projection = glm::perspective(scene_camera->zoom, (float)g_width / (float)g_height, 0.1f, 100.0f);
-	projection_ortho = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.01f, 20.0f);
+	projection_ortho = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.01f, 30.0f);
 
 	for (int i = 0; i < 2; i++) {
 		glBindFramebuffer(GL_FRAMEBUFFER, light_buffers->g_buffer[i]);
@@ -560,13 +560,13 @@ void display()
 	glEnable(GL_STENCIL_TEST);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
-	/*glsl_scattered_map.enable();
+	glsl_scattered_map.enable();
 	if (scene_model->change_values || change_light)
 	{
 		glBindFramebuffer(GL_FRAMEBUFFER, scattered_maps->buffer);
 		glStencilFunc(GL_ALWAYS, 1, -1);
-		glClear(GL_DEPTH_BUFFER_BIT);
-
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
 		materials->materials[scene_model->current_material]->precalculate_values(scene_model->asymmetry_param_g);
 		sigma_tr = materials->materials[scene_model->current_material]->effective_transport_coeff;
 		halton_generator->generate_samples(min(sigma_tr.x, sigma_tr.y, sigma_tr.z) / scene_model->q, scene_model->radius, num_of_samples_per_frag);
@@ -637,13 +637,13 @@ void display()
 
 		scene_model->change_values = false;
 	}
-	glsl_scattered_map.disable();*/
+	glsl_scattered_map.disable();
 
 	glEnable(GL_STENCIL_TEST);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-	/*glsl_blending.enable();
+	glsl_blending.enable();
 	glStencilFunc(GL_ALWAYS, 1, -1);
 	glUniform3f(glsl_blending.getLocation("camera_pos"), scene_camera->position[0], scene_camera->position[1], scene_camera->position[2]);
 
@@ -685,7 +685,7 @@ void display()
 	glBindVertexArray(scene_model->vao);
 	glDrawArrays(GL_TRIANGLES, 0, scene_model->vertices.size());
 	glBindVertexArray(0);
-	glsl_blending.disable();*/
+	glsl_blending.disable();
 
 	for (int l = 0; l < num_of_lights; l++) {
 		glStencilFunc(GL_ALWAYS, 2 + l, -1);
@@ -704,7 +704,7 @@ void display()
 		model_mat = glm::scale(model_mat, glm::vec3(scene_cornell[i]->scale));
 
 		glUniformMatrix4fv(glsl_cornell.getLocation("MVP"), 1, GL_FALSE, glm::value_ptr(projection * view * model_mat));
-		glUniformMatrix4fv(glsl_cornell.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(projection * view * model_mat));
+		glUniformMatrix4fv(glsl_cornell.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
 		glUniform3fv(glsl_cornell.getLocation("light_pos"), 1, glm::value_ptr(scene_lights[0]->translation));
 		glUniform1i(glsl_cornell.getLocation("index"), i);
 
@@ -722,12 +722,12 @@ void display()
 	model_mat = glm::scale(model_mat, glm::vec3(0.3f));
 	glUniformMatrix4fv(glsl_g_buffer_plane.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, volumes->volumes[0]->previous_texture);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, scattered_maps->array_texture);
 	render_quad();
 	glsl_g_buffer_plane.disable();
 
-	volumes->display(projection * view, scene_camera->position, scene_lights[0]);
-	transfer_funtion->display();
+	/*volumes->display(projection * view, scene_camera->position, scene_lights[0]);
+	transfer_funtion->display();*/
 }
 
 void destroy()
