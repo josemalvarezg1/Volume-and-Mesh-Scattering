@@ -13,7 +13,7 @@ glm::mat4 projection, view, model;
 std::vector<light*> scene_lights;
 camera *scene_camera;
 mesh *scene_model;
-std::vector<mesh*> scene_cornell;
+mesh* scene_cornell;
 light_buffer *light_buffers;
 materials_set *materials;
 interface_function *transfer_funtion;
@@ -425,7 +425,6 @@ bool init_glew()
 		glsl_cornell.addAttribute("position");
 		glsl_cornell.addAttribute("normal");
 		glsl_cornell.addUniform("MVP");
-		glsl_cornell.addUniform("index");
 		glsl_cornell.addUniform("light_pos");
 		glsl_cornell.addUniform("model_matrix");
 		glsl_cornell.disable();
@@ -451,8 +450,7 @@ bool init_scene()
 	num_of_samples_per_frag = 3 * num_of_ortho_cameras;
 
 	scene_model = new mesh();
-	for (int i = 0; i < 6; i++)
-		scene_cornell.push_back(new mesh());
+	scene_cornell = new mesh();
 	halton_generator = new halton();
 	materials = new materials_set();
 	light_buffers = new light_buffer(g_width, g_height, num_of_lights);
@@ -462,9 +460,7 @@ bool init_scene()
 	transfer_funtion->hide = true;
 
 	for (size_t i = 0; i < num_of_lights; i++)
-	{
 		scene_lights.push_back(new light());
-	}
 	scene_lights[0]->translation = glm::vec3(3.0, 3.0f, 5.0f);
 	//scene_lights[2]->translation = glm::vec3(0.0f, 0.0f, 5.0f);
 	selected_light = 0;
@@ -487,25 +483,8 @@ bool init_scene()
 	scene_camera = new camera(glm::vec3(0.0f, 0.0f, 19.5f));
 	scene_model->load("Models/obj/bunny.obj");
 
-	for (int i = 0; i < 2; i++) 
-		scene_cornell[i]->load("Models/obj/wall.obj");
-	scene_cornell[2]->load("Models/obj/wall1.obj");
-	scene_cornell[3]->load("Models/obj/wall1.obj");
-	scene_cornell[4]->load("Models/obj/roof.obj");
-	scene_cornell[5]->load("Models/obj/roof.obj");
-
-	// Se asigna la traslación de cada pared
-	scene_cornell[0]->translation = glm::vec3(0.0f, 0.0f, -15.0f);
-	scene_cornell[1]->translation = glm::vec3(0.0f, 0.0f, 15.0f);
-	scene_cornell[2]->translation = glm::vec3(15.0f, 0.0f, 0.0f);
-	scene_cornell[3]->translation = glm::vec3(-15.0f, 0.0f, 0.0f);
-	scene_cornell[4]->translation = glm::vec3(0.0f, 15.0f, 0.0f);
-	scene_cornell[5]->translation = glm::vec3(0.0f, -15.0f, 0.0f);
-
-	for (int i = 0; i < scene_cornell.size(); i++) {
-		scene_cornell[i]->scale = 15.0f;
-		scene_cornell[i]->translation.z += 5.0f;
-	}
+	scene_cornell->load("Models/obj/cornell.obj");
+	scene_cornell->scale = 20.0f;
 
 	const char** paths = new const char*[1];
 	paths[0] = "Models\\raw\\bucky_32x32x32_8.raw";
@@ -696,23 +675,20 @@ void display()
 
 
 	glsl_cornell.enable();
-	for (int i = 0; i < scene_cornell.size(); i++) 
-	{
-		model_mat = glm::mat4(1.0f);
-		model_mat = glm::translate(model_mat, scene_cornell[i]->translation);
-		model_mat = model_mat * glm::toMat4(scene_cornell[i]->rotation);
-		model_mat = glm::scale(model_mat, glm::vec3(scene_cornell[i]->scale));
+	model_mat = glm::mat4(1.0f);
+	model_mat = glm::translate(model_mat, scene_cornell->translation);
+	model_mat = model_mat * glm::toMat4(scene_cornell->rotation);
+	model_mat = glm::scale(model_mat, glm::vec3(scene_cornell->scale));
 
-		glUniformMatrix4fv(glsl_cornell.getLocation("MVP"), 1, GL_FALSE, glm::value_ptr(projection * view * model_mat));
-		glUniformMatrix4fv(glsl_cornell.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
-		glUniform3fv(glsl_cornell.getLocation("light_pos"), 1, glm::value_ptr(scene_lights[0]->translation));
-		glUniform1i(glsl_cornell.getLocation("index"), i);
+	glUniformMatrix4fv(glsl_cornell.getLocation("MVP"), 1, GL_FALSE, glm::value_ptr(projection * view * model_mat));
+	glUniformMatrix4fv(glsl_cornell.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
+	glUniform3fv(glsl_cornell.getLocation("light_pos"), 1, glm::value_ptr(scene_lights[0]->translation));
 
-		glBindVertexArray(scene_cornell[i]->vao);
-		glDrawArrays(GL_TRIANGLES, 0, scene_cornell[i]->vertices.size());
-		glBindVertexArray(0);
-	}
+	glBindVertexArray(scene_cornell->vao);
+	glDrawArrays(GL_TRIANGLES, 0, scene_cornell->vertices.size());
+	glBindVertexArray(0);
 	glsl_cornell.disable();
+
 
 	glDisable(GL_DEPTH_TEST);
 
