@@ -373,6 +373,7 @@ bool init_glew()
 		glsl_scattered_map.addUniform("cameras_matrix");
 		glsl_scattered_map.addUniform("vp_light");
 		glsl_scattered_map.addUniform("model_matrix");
+		glsl_scattered_map.addUniform("model_center");
 
 		glsl_scattered_map.addUniform("asymmetry_param_g");
 		glsl_scattered_map.addUniform("light_pos");
@@ -581,6 +582,7 @@ void display()
 		glUniform1i(glsl_scattered_map.getLocation("g_normal"), 1);
 		glUniform1i(glsl_scattered_map.getLocation("g_depth"), 2);
 		glUniform1f(glsl_scattered_map.getLocation("radius"), scene_model->radius);
+		glUniform3fv(glsl_scattered_map.getLocation("model_center"), 1, glm::value_ptr(scene_model->center));
 		glUniform1i(glsl_scattered_map.getLocation("n_samples"), num_of_samples_per_frag);
 		glUniform1i(glsl_scattered_map.getLocation("num_of_lights"), num_of_lights);
 		glUniform2fv(glsl_scattered_map.getLocation("samples"), num_of_samples_per_frag, glm::value_ptr(halton_generator->samples[0]));

@@ -210,7 +210,9 @@ void mesh::update_interface()
 	{
 		if (this->translation != this->model_interface->translation)
 		{
+			this->center -= this->translation;
 			this->translation = this->model_interface->translation;
+			this->center += this->model_interface->translation;
 			this->change_values = true;
 		}
 		if (this->rotation != this->model_interface->rotation)

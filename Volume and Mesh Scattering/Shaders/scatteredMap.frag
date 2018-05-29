@@ -54,9 +54,9 @@ vec3 calculate_ni_ast(vec3 xo, vec3 xi, vec3 ni)
 vec3 calculate_dr_pow(vec3 r, vec3 D, float miu_0, vec3 de, vec3 cos_beta, vec3 attenuation_coeff)
 {
 	if(miu_0 > 0.0f)
-		return pow(r, vec3(2.0f)) + D * miu_0 * (D * miu_0 - 2.0f * de * cos_beta);
+		return pow(r, vec3(2.0f)) + D * miu_0 * (D * miu_0 - 2 * de * cos_beta);
 	else
-		return pow(r, vec3(2.0f)) + 1.0f / (pow(3.0f * attenuation_coeff, vec3(2.0f)));
+		return pow(r, vec3(2.0f)) + 1 / (pow(3 * attenuation_coeff, vec3(2.0f)));
 }
 
 vec3 diffuse_part_prime(vec3 x, vec3 w12, vec3 r, vec3 no) 
@@ -68,11 +68,10 @@ vec3 diffuse_part_prime(vec3 x, vec3 w12, vec3 r, vec3 no)
 	x_dot_w12 = dot(x, w12);
     w12_dot_no = dot(w12, no);
     x_dot_no = dot(x, no);
-	factor_1 = (1.0f / (4.0f * c_phi_2)) * 2.4674f * (exp(-effec_r) / pow(r, vec3(3.0f)));
-	//factor_1 = (1.0f / (4.0f * c_phi_2)) * 0.02533 * (exp(-effec_r) / pow(r, vec3(3.0f)));
+	factor_1 = (1 / (4 * c_phi_2)) * 2.4674 * (exp(-effec_r) / pow(r, vec3(3.0f)));
 	factor_2 = c_phi_1 * ((r * r) / D + 3 * one_effec_r * x_dot_w12);
-	factor_3 = 3.0f * D * one_effec_r * w12_dot_no;
-	factor_4 = (one_effec_r + 3.0f * D * (3.0f * one_effec_r + effec_r * effec_r) / (r * r) * x_dot_w12) * x_dot_no;
+	factor_3 = 3 * D * one_effec_r * w12_dot_no;
+	factor_4 = (one_effec_r + 3 * D * (3 * one_effec_r + effec_r * effec_r) / (r * r) * x_dot_w12) * x_dot_no;
 	return factor_1 * (factor_2 - c_e * (factor_3 - factor_4));
 }
 
@@ -91,7 +90,7 @@ float fresnel_t(vec3 inv, vec3 n, float n_1)
     cos_t = sqrt(max(0.0f, 1.0f - sin_t * sin_t));
 
     const_t = eta * (cos_t / cos_i);
-	cos_i_2 = (2.0f * cos_i);
+	cos_i_2 = (2 * cos_i);
 	factor_1 = cos_i_2 / ((eta * cos_i) + cos_t);
 	factor_2 = cos_i_2 / ((eta * cos_t) + cos_i);
 
@@ -114,11 +113,11 @@ void main()
 	wo = normalize(camera_pos - frag_pos);
 
 	Lo = vec3(0.0f);
-	Ll = light_diff.xyz;
+	Ll = light_diff.xyz; 		/*Hasta ahora una sola luz por la parte que vamos en el paper*/
 
 	for (int l = 0; l < num_of_lights; l++) 
 	{
-		wi = normalize(light_pos[l]);
+		wi = normalize(light_pos[l] - model_center);
 		/* Inicio: Generación de muestras */
 		for (int i = 0; i < n_samples; i++)
 		{
@@ -137,7 +136,7 @@ void main()
 			ni = texture(g_normal, vec3(offset.xy, l)).xyz;
 
 			visibility = 1.0f;
-			bias = 0.005f * tan(acos(dot(no, wi)));
+			bias = 0.005 * tan(acos(dot(no, wi)));
 			bias = clamp(bias, 0.0f, 0.01f);
 			
 			if (texture(g_depth, vec3(offset.xy, l)).r < offset.z - bias)
@@ -147,15 +146,15 @@ void main()
 			{
 				x = xo - xi;
 				r = vec3(length(x));
-				w12 = refract(wi, ni, 1.0f / refractive_index);
+				w12 = refract(-wi, ni, refractive_index);
 
 				/* Inicio: Parte Difusa */
 
 				ni_ast = calculate_ni_ast(xo, xi, ni);
 
-				xv = xi + (2.0f * A * de * ni_ast);
+				xv = xi + (2 * A * de * ni_ast);
 				dv = vec3(length(xo - xv));
-				wv = w12 - (2.0f * (dot(w12, ni_ast)) * ni_ast);
+				wv = w12 - (2 * (dot(w12, ni_ast)) * ni_ast);
 
 				cos_beta = -sqrt((pow(r, vec3(2.0f)) - pow(dot(x, w12), 2)) / (pow(r, vec3(2.0f)) + pow(de, vec3(2.0f))));
 				miu_0 = dot(-no, w12);
@@ -166,8 +165,8 @@ void main()
 				diffuse_part_prime_2 = diffuse_part_prime(xo - xv, wv, dv, no);
 				diffuse_part_d = diffuse_part_prime_1 - diffuse_part_prime_2;
 
-				Ti = fresnel_t(wi, ni, 1.0f / refractive_index);
-				To = fresnel_t(wo, no, 1.0f / refractive_index);
+				Ti = fresnel_t(wi, ni, refractive_index);
+				To = fresnel_t(wo, no, refractive_index);
 
 				diffuse_part = (Ti * diffuse_part_d * dot(ni, wi));
 

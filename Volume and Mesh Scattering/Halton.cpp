@@ -43,9 +43,9 @@ void halton::generate_orthographic_cameras(int num_of_orto_cameras)
 	double x_pos, y_pos, z_pos;
 	for (size_t i = 0; i < num_of_orto_cameras; i++)
 	{
-		x_pos = this->halton_sequence(i, 2) + (10.0f * this->negative_positive());
-		y_pos = this->halton_sequence(i, 3) + (10.0f * this->negative_positive());
-		z_pos = this->halton_sequence(i, 7) + (10.0f * this->negative_positive());
+		x_pos = this->halton_sequence(i, 2) + (3.0f * this->negative_positive());
+		y_pos = this->halton_sequence(i, 3) + (3.0f * this->negative_positive());
+		z_pos = this->halton_sequence(i, 7) + (3.0f * this->negative_positive());
 		this->camera_positions.push_back(glm::vec3(x_pos, y_pos, z_pos));
 	}
 }
