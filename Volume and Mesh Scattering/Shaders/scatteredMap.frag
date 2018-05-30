@@ -117,7 +117,7 @@ void main()
 
 	for (int l = 0; l < num_of_lights; l++) 
 	{
-		wi = normalize(light_pos[l] - model_center);
+		wi = normalize(light_pos[l]);
 		/* Inicio: Generación de muestras */
 		for (int i = 0; i < n_samples; i++)
 		{
@@ -146,7 +146,7 @@ void main()
 			{
 				x = xo - xi;
 				r = vec3(length(x));
-				w12 = refract(-wi, ni, refractive_index);
+				w12 = refract(wi, ni, 1.0f / refractive_index);
 
 				/* Inicio: Parte Difusa */
 

@@ -447,7 +447,7 @@ bool init_scene()
 	material *potato, *marble, *skin, *milk, *cream, *none;
 
 	num_of_lights = 1;
-	num_of_ortho_cameras = 6;
+	num_of_ortho_cameras = 8;
 	num_of_samples_per_frag = 3 * num_of_ortho_cameras;
 
 	scene_model = new mesh();
@@ -481,11 +481,12 @@ bool init_scene()
 	materials->materials.push_back(none);
 
 	scattered_maps = new scattered_map(g_width, g_height, num_of_ortho_cameras);
-	scene_camera = new camera(glm::vec3(0.0f, 0.0f, 19.5f));
+	scene_camera = new camera(glm::vec3(0.0f, 0.0f, 14.5f));
 	scene_model->load("Models/obj/bunny.obj");
 
 	scene_cornell->load("Models/obj/cornell.obj");
-	scene_cornell->scale = 20.0f;
+	scene_cornell->scale = 15.0f;
+	scene_cornell->translation.x = 0.5f;
 
 	const char** paths = new const char*[1];
 	paths[0] = "Models\\raw\\bucky_32x32x32_8.raw";
@@ -501,28 +502,30 @@ void display()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
 	glm::mat4 projection_ortho, view_ortho, view_proj_ortho_light, view_proj_ortho_random, model_mat;
-	glm::vec3 sigma_tr;
+	glm::vec3 sigma_tr, center_model;
 
 	view = scene_camera->get_view_matrix();
 	projection = glm::perspective(scene_camera->zoom, (float)g_width / (float)g_height, 0.1f, 100.0f);
-	projection_ortho = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.01f, 30.0f);
+	projection_ortho = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.01f, 40.0f);
+
+	model_mat = glm::mat4(1.0f);
+	model_mat = glm::translate(model_mat, scene_model->translation);
+	model_mat = model_mat * glm::toMat4(scene_model->rotation);
+	model_mat = glm::scale(model_mat, glm::vec3(scene_model->scale));
+	center_model = glm::vec3(model_mat * glm::vec4(scene_model->center, 1.0f));
 
 	for (int i = 0; i < 2; i++) {
 		glBindFramebuffer(GL_FRAMEBUFFER, light_buffers->g_buffer[i]);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		glsl_g_buffer.enable();
-		std::vector<glm::mat4> vp_light_set;
+		std::vector<glm::mat4> vp_light_set;		
 
 		for (size_t j = 0; j < num_of_lights; j++) {
-			view_ortho = glm::lookAt(scene_lights[j]->translation, scene_model->center, glm::vec3(0.0f, 1.0f, 0.0f));
+			view_ortho = glm::lookAt(scene_lights[j]->translation, center_model, glm::vec3(0.0f, 1.0f, 0.0f));
 			view_proj_ortho_light = projection_ortho * view_ortho;
 			vp_light_set.push_back(view_proj_ortho_light);
 		}
-		model_mat = glm::mat4(1.0f);
-		model_mat = glm::translate(model_mat, scene_model->translation);
-		model_mat = model_mat * glm::toMat4(scene_model->rotation);
-		model_mat = glm::scale(model_mat, glm::vec3(scene_model->scale));
 
 		glUniformMatrix4fv(glsl_g_buffer.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
 		glUniformMatrix4fv(glsl_g_buffer.getLocation("vp_light"), num_of_lights, GL_FALSE, glm::value_ptr(vp_light_set[0]));
@@ -553,14 +556,9 @@ void display()
 
 		std::vector<glm::mat4> view_proj_ortho_randoms, vp_light_set;
 
-		model_mat = glm::mat4(1.0f);
-		model_mat = glm::translate(model_mat, scene_model->translation);
-		model_mat = model_mat * glm::toMat4(scene_model->rotation);
-		model_mat = glm::scale(model_mat, glm::vec3(scene_model->scale));
-
 		for (size_t j = 0; j < num_of_ortho_cameras; j++)
 		{
-			view_ortho = glm::lookAt(halton_generator->camera_positions[j], scene_model->center, glm::vec3(0.0f, 1.0f, 0.0f));
+			view_ortho = glm::lookAt(halton_generator->camera_positions[j], center_model, glm::vec3(0.0f, 1.0f, 0.0f));
 			view_proj_ortho_random = projection_ortho * view_ortho;
 			view_proj_ortho_randoms.push_back(view_proj_ortho_random);
 		}
@@ -569,7 +567,7 @@ void display()
 
 		for (size_t j = 0; j < num_of_lights; j++) {
 			light_pos_set.push_back(scene_lights[j]->translation);
-			view_ortho = glm::lookAt(scene_lights[j]->translation, scene_model->center, glm::vec3(0.0f, 1.0f, 0.0f));
+			view_ortho = glm::lookAt(scene_lights[j]->translation, center_model, glm::vec3(0.0f, 1.0f, 0.0f));
 			view_proj_ortho_light = projection_ortho * view_ortho;
 			vp_light_set.push_back(view_proj_ortho_light);
 		}
@@ -582,7 +580,7 @@ void display()
 		glUniform1i(glsl_scattered_map.getLocation("g_normal"), 1);
 		glUniform1i(glsl_scattered_map.getLocation("g_depth"), 2);
 		glUniform1f(glsl_scattered_map.getLocation("radius"), scene_model->radius);
-		glUniform3fv(glsl_scattered_map.getLocation("model_center"), 1, glm::value_ptr(scene_model->center));
+		glUniform3fv(glsl_scattered_map.getLocation("model_center"), 1, glm::value_ptr(center_model));
 		glUniform1i(glsl_scattered_map.getLocation("n_samples"), num_of_samples_per_frag);
 		glUniform1i(glsl_scattered_map.getLocation("num_of_lights"), num_of_lights);
 		glUniform2fv(glsl_scattered_map.getLocation("samples"), num_of_samples_per_frag, glm::value_ptr(halton_generator->samples[0]));
@@ -631,14 +629,9 @@ void display()
 	std::vector<glm::mat4> view_proj_ortho_randoms;
 	std::vector<glm::vec3> cameras_dirs;
 
-	model_mat = glm::mat4(1.0f);
-	model_mat = glm::translate(model_mat, scene_model->translation);
-	model_mat = model_mat * glm::toMat4(scene_model->rotation);
-	model_mat = glm::scale(model_mat, glm::vec3(scene_model->scale));
-
 	for (size_t j = 0; j < num_of_ortho_cameras; j++)
 	{
-		view_ortho = glm::lookAt(halton_generator->camera_positions[j], scene_model->center, glm::vec3(0.0f, 1.0f, 0.0f));
+		view_ortho = glm::lookAt(halton_generator->camera_positions[j], center_model, glm::vec3(0.0f, 1.0f, 0.0f));
 		view_proj_ortho_random = projection_ortho * view_ortho;
 		view_proj_ortho_randoms.push_back(view_proj_ortho_random);
 		cameras_dirs.push_back(halton_generator->camera_positions[j]);
@@ -690,7 +683,6 @@ void display()
 	glDrawArrays(GL_TRIANGLES, 0, scene_cornell->vertices.size());
 	glBindVertexArray(0);
 	glsl_cornell.disable();
-
 
 	glDisable(GL_DEPTH_TEST);
 

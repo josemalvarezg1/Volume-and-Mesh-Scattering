@@ -4,7 +4,7 @@ mesh::mesh()
 {
 	this->translation = glm::vec3(-3.0f, 0.0f, 0.0f);
 	this->rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
-	this->scale = 5.0f;
+	this->scale = 4.0f;
 	this->ambient_comp = glm::vec3(0.15f, 0.15f, 0.15f);
 	this->diffuse_comp = glm::vec3(1.0f, 1.0f, 1.0f);
 	this->specular_comp = glm::vec3(1.0f, 1.0f, 1.0f);
@@ -210,9 +210,7 @@ void mesh::update_interface()
 	{
 		if (this->translation != this->model_interface->translation)
 		{
-			this->center -= this->translation;
 			this->translation = this->model_interface->translation;
-			this->center += this->model_interface->translation;
 			this->change_values = true;
 		}
 		if (this->rotation != this->model_interface->rotation)
