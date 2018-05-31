@@ -12,7 +12,7 @@ mesh::mesh()
 	this->refractive_index = 1.3f;
 	this->current_material = Patata;
 	this->q = 1.0f;
-	this->radius = 0.5f;
+	this->radius = 0.00001f;
 	this->epsilon = 0.04f;
 	this->gamma = 2.0f;
 	this->change_values = true;
@@ -71,7 +71,7 @@ void mesh::load(std::string path)
 		glm::uvec3 vertex_aux_index, normal_aux_index;
 		bool vertex_normals;
 		GLfloat x, y, z;
-		
+
 		while (!file.eof())
 		{
 			file >> buffer;
@@ -169,7 +169,7 @@ void mesh::create_vbo()
 	glGenBuffers(1, &this->vbo);
 	glBindVertexArray(this->vao);
 	glBindBuffer(GL_ARRAY_BUFFER, this->vbo);
-	
+
 	glBufferData(GL_ARRAY_BUFFER, (this->vertices.size() + this->normals.size()) * sizeof(glm::vec3), NULL, GL_STATIC_DRAW);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, this->vertices.size() * sizeof(glm::vec3), &this->vertices[0]);
 	glBufferSubData(GL_ARRAY_BUFFER, this->vertices.size() * sizeof(glm::vec3), this->normals.size() * sizeof(glm::vec3), &this->normals[0]);
@@ -178,7 +178,7 @@ void mesh::create_vbo()
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(this->vertices.size() * sizeof(glm::vec3)));
-	
+
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 }

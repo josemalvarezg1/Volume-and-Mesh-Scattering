@@ -2,9 +2,10 @@
 out vec4 color;
 in vec2 frag_tex_coords;
 
-uniform sampler2DArray position_tex;
+uniform sampler2DArray quad_texture;
+uniform int camera_select;
 
-void main() 
+void main()
 {
-    color = texture(position_tex, vec3(frag_tex_coords, 0.0));
+	color = texture(quad_texture, vec3(frag_tex_coords, camera_select));
 }

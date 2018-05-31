@@ -31,11 +31,11 @@ interface_model::interface_model()
 	TwAddSeparator(this->model_interface, NULL, "");
 	TwAddVarRW(this->model_interface, "Asimetría g", TW_TYPE_FLOAT, &this->asymmetry_param_g, "group='Parámetros de Dispersión' min=-1.0 max=0.99 step=0.01");
 	{
-		TwEnumVal material_type[6] = { { Patata, "Patata" }, { Mármol, "Mármol" }, { Piel, "Piel" }, { Leche, "Leche" }, { Crema, "Crema" }, { Ninguno, "Ninguno" } };
+		TwEnumVal material_type[6] = { { Patata, "Patata" },{ Mármol, "Mármol" },{ Piel, "Piel" },{ Leche, "Leche" },{ Crema, "Crema" },{ Ninguno, "Ninguno" } };
 		TwType light = TwDefineEnum("material_type", material_type, 6);
 		TwAddVarRW(this->model_interface, "Material", light, &this->current_material, "group='Parámetros de Dispersión'");
 	}
-	TwAddVarRW(this->model_interface, "Radio", TW_TYPE_FLOAT, &this->radius, "group='Parámetros de Dispersión' min=0.0000000001 max=2.0 step=0.000001");
+	TwAddVarRW(this->model_interface, "Radio", TW_TYPE_FLOAT, &this->radius, "group='Parámetros de Dispersión' min=0.000001 max=1.0 step=0.000001");
 	TwAddVarRW(this->model_interface, "Gamma", TW_TYPE_FLOAT, &this->gamma, "group='Parámetros de Dispersión' min=0.001 max=20.0 step=0.001");
 	TwAddVarRW(this->model_interface, "Epsilon", TW_TYPE_FLOAT, &this->epsilon, "group='Parámetros de Dispersión' min=-1.0 max=1.0 step=0.0001");
 }

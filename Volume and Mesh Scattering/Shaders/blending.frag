@@ -26,7 +26,7 @@ vec4 sample_color_map(vec3 coord)
 float fresnel_t(vec3 inv, vec3 n, float n_1)
 {
 	float cos_i, n_2, eta, sin_t;
-	cos_i = clamp(-1.0f, 1.0f, dot(inv, n));
+	cos_i = clamp(dot(inv, n), -1.0f, 1.0f);
 	n_2 = 1.0f;
 	eta = n_1 / n_2;
 
@@ -38,7 +38,7 @@ float fresnel_t(vec3 inv, vec3 n, float n_1)
 	cos_t = sqrt(max(0.0f, 1.0f - sin_t * sin_t));
 
 	const_t = eta * (cos_t / cos_i);
-	cos_i_2 = (2 * cos_i);
+	cos_i_2 = (2.0f * cos_i);
 	factor_1 = cos_i_2 / ((eta * cos_i) + cos_t);
 	factor_2 = cos_i_2 / ((eta * cos_t) + cos_i);
 
@@ -51,40 +51,40 @@ float fresnel_t(vec3 inv, vec3 n, float n_1)
 void main(void)
 {
 	vec3 xo, no, wo, pos, offset, dir;
-	float div, vi, visibility, bias, fresnel;
-	vec4 texture_pos, sample_color_map;
+	float div, vi, visibility, bias, fresnel, cos_theta;
+	vec4 texture_pos, color_map;
 
 	xo = frag_pos;
 	no = normalize(frag_normal);
 	wo = normalize(camera_pos - xo);
 	fresnel = fresnel_t(wo, no, 1.0f / refractive_index);
-	
+
 	div = 0.0f;
 	color = vec4(0.0f);
 
-	for (int i = 0; i < n_cameras; i++)
+	for (int i = 3; i < n_cameras; i++)
 	{
-		dir = cameras_dirs[i];
-		offset = epsilon * (no - dir * dot(no, dir));
+		dir = normalize(cameras_dirs[i] - xo);
+		cos_theta = clamp(dot(no, dir), 0.0f, 1.0f);
+		offset = epsilon * (no - dir * cos_theta);
 		pos = xo - offset;
 		texture_pos = cameras_matrix[i] * vec4(pos, 1.0f);
 		texture_pos.xyz /= texture_pos.w;
-		texture_pos = texture_pos * 0.5 + 0.5;
-		
+		texture_pos = texture_pos * 0.5f + 0.5f;
+
 		visibility = 1.0f;
-		bias = 0.005 * tan(acos(dot(no, dir)));
-		bias = clamp(bias, 0.01f, 0.02f);
+		bias = 0.005 * tan(acos(cos_theta));
+		bias = clamp(bias, 0.0f, 0.01f);
 
 		if (texture(depth_map, vec3(texture_pos.xy, i)).z  <  texture_pos.z - bias)
 			visibility = 0.0f;
 
-		sample_color_map = sample_color_map(vec3(texture_pos.xy, i));
-		color += (sample_color_map / max(sample_color_map.a, 1.0f)) * visibility;
+		color_map = sample_color_map(vec3(texture_pos.xy, i));
+		color += (color_map / max(color_map.a, 1.0f)) * visibility;
 		div += visibility;
 	}
 
-	color /= max(div, 1.0);
-	color *= clamp(fresnel, 0.0f, 1.0f);
-	//color = pow(vec4(1) - exp(-color), vec4(1.0/gamma));
+	color /= max(div, 1.0f);
+	//color *= clamp(fresnel, 0.0f, 1.0f);
 	color = pow(color, vec4(1.0f / gamma));
 }

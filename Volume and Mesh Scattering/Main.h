@@ -16,6 +16,7 @@
 #include <random>
 #include "GLSLProgram.h"
 #include "Light.h"
+#include "InterfaceMenu.h"
 #include "G-Buffer.h"
 #include "Material.h"
 #include "Model.h"

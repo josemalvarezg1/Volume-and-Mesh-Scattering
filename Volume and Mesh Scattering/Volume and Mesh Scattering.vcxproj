@@ -131,6 +131,7 @@
     <ClCompile Include="GLSLProgram.cpp" />
     <ClCompile Include="Halton.cpp" />
     <ClCompile Include="InterfaceLight.cpp" />
+    <ClCompile Include="InterfaceMenu.cpp" />
     <ClCompile Include="InterfaceModel.cpp" />
     <ClCompile Include="InterfaceVolume.cpp" />
     <ClCompile Include="Light.cpp" />
@@ -148,6 +149,7 @@
     <ClInclude Include="GLSLProgram.h" />
     <ClInclude Include="Halton.h" />
     <ClInclude Include="InterfaceLight.h" />
+    <ClInclude Include="InterfaceMenu.h" />
     <ClInclude Include="InterfaceModel.h" />
     <ClInclude Include="InterfaceVolume.h" />
     <ClInclude Include="Light.h" />

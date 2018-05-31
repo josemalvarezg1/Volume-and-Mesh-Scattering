@@ -2,7 +2,7 @@
 
 GLFWwindow *g_window;
 int g_width, g_height;
-GLuint num_of_lights, num_of_ortho_cameras, num_of_samples_per_frag, selected_light;
+GLuint num_of_lights, num_of_ortho_cameras, num_of_samples_per_frag, selected_light, selected_camera;
 GLfloat delta_time = 0.0f, last_frame = 0.0f, current_frame;
 GLdouble last_x = 600.0, last_y = 340.0;
 bool keys[1024], keys_pressed[1024], selecting_model = false, selecting_light = false, first_mouse = true, activate_camera = false, change_light = false, selecting_volume = false;
@@ -14,6 +14,7 @@ std::vector<light*> scene_lights;
 camera *scene_camera;
 mesh *scene_model;
 mesh* scene_cornell;
+interface_menu *scene_interface;
 light_buffer *light_buffers;
 materials_set *materials;
 interface_function *transfer_funtion;
@@ -22,6 +23,20 @@ volume_render *volumes;
 CGLSLProgram glsl_g_buffer, glsl_g_buffer_plane, glsl_scattered_map, glsl_blending, glsl_cornell;
 int selected_model = -1;
 GLuint quad_vao, quad_vbo;
+
+
+void update_interface_menu()
+{
+	num_of_ortho_cameras = scene_interface->num_of_cameras;
+	selected_camera = scene_interface->camera_selected;
+}
+
+void click_interface_menu()
+{
+	scene_interface->show();
+	scene_interface->num_of_cameras = num_of_ortho_cameras;
+	scene_interface->camera_selected = selected_camera;
+}
 
 void render_quad()
 {
@@ -65,7 +80,7 @@ void reshape(GLFWwindow *window, int width, int height)
 
 	scene_model->change_values = true;
 
-	glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	scattered_maps->update_scattered_map(g_width, g_height, num_of_ortho_cameras);
 	glViewport(0, 0, g_width, g_height);
 }
@@ -246,7 +261,7 @@ void pos_cursor(GLFWwindow* window, double x, double y)
 		return;
 	}
 	/*if (volumes->poscursorVolume(x, y))
-		return;*/
+	return;*/
 }
 
 void char_input(GLFWwindow* window, unsigned int scan_char)
@@ -362,7 +377,8 @@ bool init_glew()
 		glsl_g_buffer_plane.addAttribute("tex_coords");
 
 		glsl_g_buffer_plane.addUniform("model_matrix");
-		glsl_g_buffer_plane.addUniform("position_tex");
+		glsl_g_buffer_plane.addUniform("texture");
+		glsl_g_buffer_plane.addUniform("camera_select");
 		glsl_g_buffer_plane.disable();
 
 		glsl_scattered_map.enable();
@@ -400,7 +416,7 @@ bool init_glew()
 		glsl_scattered_map.addUniform("zr");
 		glsl_scattered_map.disable();
 
-		
+
 		glsl_blending.enable();
 		glsl_blending.addAttribute("position");
 		glsl_blending.addAttribute("normal");
@@ -448,7 +464,11 @@ bool init_scene()
 
 	num_of_lights = 1;
 	num_of_ortho_cameras = 8;
+	selected_camera = 0;
 	num_of_samples_per_frag = 3 * num_of_ortho_cameras;
+
+	scene_interface = interface_menu::instance();
+	click_interface_menu();
 
 	scene_model = new mesh();
 	scene_cornell = new mesh();
@@ -500,7 +520,6 @@ void display()
 {
 	glEnable(GL_DEPTH_TEST);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
 	glm::mat4 projection_ortho, view_ortho, view_proj_ortho_light, view_proj_ortho_random, model_mat;
 	glm::vec3 sigma_tr, center_model;
 
@@ -519,7 +538,7 @@ void display()
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		glsl_g_buffer.enable();
-		std::vector<glm::mat4> vp_light_set;		
+		std::vector<glm::mat4> vp_light_set;
 
 		for (size_t j = 0; j < num_of_lights; j++) {
 			view_ortho = glm::lookAt(scene_lights[j]->translation, center_model, glm::vec3(0.0f, 1.0f, 0.0f));
@@ -549,7 +568,6 @@ void display()
 		glBindFramebuffer(GL_FRAMEBUFFER, scattered_maps->buffer);
 		glStencilFunc(GL_ALWAYS, 1, -1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
 		materials->materials[scene_model->current_material]->precalculate_values(scene_model->asymmetry_param_g);
 		sigma_tr = materials->materials[scene_model->current_material]->effective_transport_coeff;
 		halton_generator->generate_samples(min(sigma_tr.x, sigma_tr.y, sigma_tr.z) / scene_model->q, scene_model->radius, num_of_samples_per_frag);
@@ -691,6 +709,8 @@ void display()
 	model_mat = glm::translate(model_mat, glm::vec3(0.7, -0.7, -1.0));
 	model_mat = glm::scale(model_mat, glm::vec3(0.3f));
 	glUniformMatrix4fv(glsl_g_buffer_plane.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
+	glUniform1i(glsl_g_buffer_plane.getLocation("camera_select"), selected_camera);
+	glUniform1i(glsl_g_buffer_plane.getLocation("quad_texture"), 0);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D_ARRAY, scattered_maps->array_texture);
 	render_quad();
@@ -728,6 +748,7 @@ int main()
 		change_light = scene_lights[selected_light]->update_interface();
 		scene_model->update_interface();
 		volumes->update_interface();
+		update_interface_menu();
 		glfwSwapBuffers(g_window);
 	}
 
