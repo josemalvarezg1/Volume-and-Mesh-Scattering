@@ -4,7 +4,7 @@ in vec3 frag_normal;
 
 uniform vec3 camera_pos;
 
-uniform vec3 light_pos[3];
+uniform vec3 light_pos;
 uniform vec4 light_diff;
 uniform vec4 light_spec;
 uniform vec4 light_amb;
@@ -12,10 +12,9 @@ uniform vec4 light_amb;
 uniform float asymmetry_param_g;
 uniform float refractive_index;
 uniform vec3 diffuse_reflectance;
-uniform mat4 vp_light[3];
+uniform mat4 vp_light;
 
 uniform int n_samples;
-uniform int num_of_lights;
 uniform vec2 samples[64];
 uniform mat4 model_matrix;
 uniform sampler2DArray g_position;
@@ -115,70 +114,67 @@ void main()
 	Lo = vec3(0.0f);
 	Ll = light_diff.xyz; 		/*Hasta ahora una sola luz por la parte que vamos en el paper*/
 
-	for (int l = 0; l < num_of_lights; l++)
+	wi = normalize(light_pos - model_center);
+	/* Inicio: Generación de muestras */
+	for (int i = 0; i < n_samples; i++)
 	{
-		wi = normalize(light_pos[l] - model_center);
-		/* Inicio: Generación de muestras */
-		for (int i = 0; i < n_samples; i++)
+		vec4 offset = vec4(frag_pos, 1.0f);
+		// De espacio de vista a espacio de clipping
+		offset = vp_light * offset;
+		offset.xyz /= offset.w;
+		// El offset estará en un rango [0:1]     
+		offset.xyz = offset.xyz * 0.5f + 0.5f;
+		offset.xy += samples[i].xy;
+		theta = 2.0f * PI * radius;
+		rotation_samples_matrix = mat2(vec2(cos(theta), sin(theta)), vec2(-sin(theta), cos(theta)));
+		offset.xy = rotation_samples_matrix * offset.xy;
+
+		xi = texture(g_position, vec3(offset.xy, 0)).xyz;
+		ni = texture(g_normal, vec3(offset.xy, 0)).xyz;
+
+		visibility = 1.0f;
+		bias = 0.005f * tan(acos(clamp(dot(no, wi), 0.0f, 1.0f)));
+		bias = clamp(bias, 0.0f, 0.01f);
+
+		if (texture(g_depth, vec3(offset.xy, 0)).r < offset.z - bias)
+			visibility = 0.0f;
+
+		if (visibility > 0.0f)
 		{
-			vec4 offset = vec4(frag_pos, 1.0f);
-			// De espacio de vista a espacio de clipping
-			offset = vp_light[l] * offset;
-			offset.xyz /= offset.w;
-			// El offset estará en un rango [0:1]     
-			offset.xyz = offset.xyz * 0.5f + 0.5f;
-			offset.xy += samples[i].xy;
-			theta = 2.0f * PI * radius;
-			rotation_samples_matrix = mat2(vec2(cos(theta), sin(theta)), vec2(-sin(theta), cos(theta)));
-			offset.xy = rotation_samples_matrix * offset.xy;
+			x = xo - xi;
+			r = vec3(length(x));
+			w12 = refract(wi, ni, 1.0f / refractive_index);
 
-			xi = texture(g_position, vec3(offset.xy, l)).xyz;
-			ni = texture(g_normal, vec3(offset.xy, l)).xyz;
+			/* Inicio: Parte Difusa */
 
-			visibility = 1.0f;
-			bias = 0.005f * tan(acos(clamp(dot(no, wi), 0.0f, 1.0f)));
-			bias = clamp(bias, 0.0f, 0.01f);
+			ni_ast = calculate_ni_ast(xo, xi, ni);
 
-			if (texture(g_depth, vec3(offset.xy, l)).r < offset.z - bias)
-				visibility = 0.0f;
+			xv = xi + (2.0f * A * de * ni_ast);
+			dv = vec3(length(xo - xv));
+			wv = w12 - (2.0f * (dot(w12, ni_ast)) * ni_ast);
 
-			if (visibility > 0.0f)
-			{
-				x = xo - xi;
-				r = vec3(length(x));
-				w12 = refract(wi, ni, 1.0f / refractive_index);
+			cos_beta = -sqrt((pow(r, vec3(2.0f)) - pow(dot(x, w12), 2)) / (pow(r, vec3(2.0f)) + pow(de, vec3(2.0f))));
+			miu_0 = dot(-no, w12);
+			dr_pow = calculate_dr_pow(r, D, miu_0, de, cos_beta, attenuation_coeff);
+			dr = sqrt(dr_pow);
 
-				/* Inicio: Parte Difusa */
+			diffuse_part_prime_1 = diffuse_part_prime(x, w12, dr, no);
+			diffuse_part_prime_2 = diffuse_part_prime(xo - xv, wv, dv, no);
+			diffuse_part_d = diffuse_part_prime_1 - diffuse_part_prime_2;
 
-				ni_ast = calculate_ni_ast(xo, xi, ni);
+			Ti = fresnel_t(wi, ni, 1.0f / refractive_index);
+			To = fresnel_t(wo, no, 1.0f / refractive_index);
 
-				xv = xi + (2.0f * A * de * ni_ast);
-				dv = vec3(length(xo - xv));
-				wv = w12 - (2.0f * (dot(w12, ni_ast)) * ni_ast);
+			//diffuse_part = (Ti * diffuse_part_d * dot(ni, wi));
+			diffuse_part = (diffuse_part_d * dot(ni, wi));
 
-				cos_beta = -sqrt((pow(r, vec3(2.0f)) - pow(dot(x, w12), 2)) / (pow(r, vec3(2.0f)) + pow(de, vec3(2.0f))));
-				miu_0 = dot(-no, w12);
-				dr_pow = calculate_dr_pow(r, D, miu_0, de, cos_beta, attenuation_coeff);
-				dr = sqrt(dr_pow);
+			Lo += diffuse_part;
 
-				diffuse_part_prime_1 = diffuse_part_prime(x, w12, dr, no);
-				diffuse_part_prime_2 = diffuse_part_prime(xo - xv, wv, dv, no);
-				diffuse_part_d = diffuse_part_prime_1 - diffuse_part_prime_2;
-
-				Ti = fresnel_t(wi, ni, 1.0f / refractive_index);
-				To = fresnel_t(wo, no, 1.0f / refractive_index);
-
-				//diffuse_part = (Ti * diffuse_part_d * dot(ni, wi));
-				diffuse_part = (diffuse_part_d * dot(ni, wi));
-
-				Lo += diffuse_part;
-
-				/* Fin: Parte Difusa */
-			}
+			/* Fin: Parte Difusa */
 		}
-
-		Lo *= ((PI * Ll) / n_samples);
 	}
+
+	Lo *= ((PI * Ll) / n_samples);
 
 	/* Fin: Generación de muestras */
 

@@ -2,7 +2,7 @@
 
 GLFWwindow *g_window;
 int g_width, g_height;
-GLuint num_of_lights, num_of_ortho_cameras, num_of_samples_per_frag, selected_light, selected_camera;
+GLuint num_of_ortho_cameras, num_of_samples_per_frag, selected_camera;
 GLfloat delta_time = 0.0f, last_frame = 0.0f, current_frame;
 GLdouble last_x = 600.0, last_y = 340.0;
 bool keys[1024], keys_pressed[1024], selecting_model = false, selecting_light = false, first_mouse = true, activate_camera = false, change_light = false, selecting_volume = false;
@@ -10,7 +10,7 @@ scattered_map *scattered_maps;
 halton *halton_generator;
 glm::mat4 projection, view, model;
 
-std::vector<light*> scene_lights;
+light* scene_light;
 camera *scene_camera;
 mesh *scene_model;
 mesh* scene_cornell;
@@ -77,10 +77,8 @@ void reshape(GLFWwindow *window, int width, int height)
 	scene_model->model_interface->reshape(g_width, g_height);
 	scene_interface->update_width(g_width);
 
-	for (size_t i = 0; i < num_of_lights; i++) {
-		light_buffers->update_g_buffer(g_width, g_height, num_of_lights);
-		scene_lights[i]->light_interface->reshape(g_width, g_height);
-	}
+	light_buffers->update_g_buffer(g_width, g_height, 1);
+	scene_light->light_interface->reshape(g_width, g_height);
 
 	scene_model->change_values = true;
 
@@ -115,10 +113,8 @@ void key_input(GLFWwindow *window, int key, int scan_code, int action, int mods)
 				scene_interface->hide();
 				if (selecting_model)
 					scene_model->not_click_model();
-				if (selecting_light) {
-					for (int i = 0; i < num_of_lights; i++)
-						scene_lights[i]->not_click_light();
-				}
+				if (selecting_light)
+					scene_light->not_click_light();
 				if (selecting_volume) {
 					transfer_funtion->hide = true;
 					volumes->volume_interface->hide();
@@ -130,7 +126,7 @@ void key_input(GLFWwindow *window, int key, int scan_code, int action, int mods)
 				if (selecting_model)
 					scene_model->click_model();
 				if (selecting_light)
-					scene_lights[selected_light]->click_light();
+					scene_light->click_light();
 				if (selecting_volume) {
 					transfer_funtion->hide = false;
 					volumes->volume_interface->show();
@@ -165,8 +161,7 @@ void click(GLFWwindow* window, int button, int action, int mods)
 			{
 				if (index <= 1)
 				{
-					for (int i = 0; i < num_of_lights; i++)
-						scene_lights[i]->not_click_light();
+					scene_light->not_click_light();
 					volumes->volume_interface->hide();
 					selected_model = index - 1;
 					scene_model->click_model();
@@ -179,10 +174,9 @@ void click(GLFWwindow* window, int button, int action, int mods)
 				{
 					scene_model->not_click_model();
 					volumes->volume_interface->hide();
-					scene_lights[index - 2]->click_light();
+					scene_light->click_light();
 					selecting_model = false;
 					selected_model = -1;
-					selected_light = index - 2;
 					selecting_light = true;
 					selecting_volume = false;
 					transfer_funtion->hide = true;
@@ -192,8 +186,7 @@ void click(GLFWwindow* window, int button, int action, int mods)
 				selecting_model = false;
 				selected_model = -1;
 				scene_model->not_click_model();
-				for (int i = 0; i < num_of_lights; i++)
-					scene_lights[i]->not_click_light();
+				scene_light->not_click_light();
 				selecting_light = false;
 			}
 			if (transfer_funtion->click_transfer_f(x, y, g_width, g_height))
@@ -206,8 +199,7 @@ void click(GLFWwindow* window, int button, int action, int mods)
 				transfer_funtion->hide = false;
 				volumes->volume_interface->show();
 				scene_model->not_click_model();
-				for (int i = 0; i < num_of_lights; i++)
-					scene_lights[i]->not_click_light();
+				scene_light->not_click_light();
 				return;
 			}
 		}
@@ -374,7 +366,6 @@ bool init_glew()
 
 		glsl_g_buffer.addUniform("model_matrix");
 		glsl_g_buffer.addUniform("vp_light");
-		glsl_g_buffer.addUniform("num_of_lights");
 		glsl_g_buffer.addUniform("num_of_buffer");
 		glsl_g_buffer.disable();
 
@@ -401,7 +392,6 @@ bool init_glew()
 		glsl_scattered_map.addUniform("light_pos");
 		glsl_scattered_map.addUniform("light_diff");
 		glsl_scattered_map.addUniform("n_samples");
-		glsl_scattered_map.addUniform("num_of_lights");
 		glsl_scattered_map.addUniform("samples");
 		glsl_scattered_map.addUniform("g_position");
 		glsl_scattered_map.addUniform("g_normal");
@@ -468,7 +458,6 @@ bool init_scene()
 	light_buffer *g_buffer;
 	material *potato, *marble, *skin, *milk, *cream, *none;
 
-	num_of_lights = 1;
 	num_of_ortho_cameras = 8;
 	selected_camera = 0;
 	num_of_samples_per_frag = 3 * num_of_ortho_cameras;
@@ -480,17 +469,14 @@ bool init_scene()
 	scene_cornell = new mesh();
 	halton_generator = new halton();
 	materials = new materials_set();
-	light_buffers = new light_buffer(g_width, g_height, num_of_lights);
+	light_buffers = new light_buffer(g_width, g_height, 1);
 	transfer_funtion = new interface_function();
 	volumes = new volume_render(g_width, g_height);
 	volumes->update_transfer_function(transfer_funtion->get_color_points());
 	transfer_funtion->hide = true;
 
-	for (size_t i = 0; i < num_of_lights; i++)
-		scene_lights.push_back(new light());
-	scene_lights[0]->translation = glm::vec3(3.0, 3.0f, 5.0f);
-	//scene_lights[2]->translation = glm::vec3(0.0f, 0.0f, 5.0f);
-	selected_light = 0;
+	scene_light = new light();
+	scene_light->translation = glm::vec3(3.0, 3.0f, 5.0f);
 
 	potato = new material(glm::vec3(0.68f, 0.70f, 0.55f), glm::vec3(0.0024f, 0.0090f, 0.12f), glm::vec3(0.77f, 0.62f, 0.21f), 1.3f);
 	marble = new material(glm::vec3(2.19f, 2.62f, 3.00f), glm::vec3(0.0021f, 0.0041f, 0.0071f), glm::vec3(0.83f, 0.79f, 0.75f), 1.5f);
@@ -544,17 +530,12 @@ void display()
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		glsl_g_buffer.enable();
-		std::vector<glm::mat4> vp_light_set;
 
-		for (size_t j = 0; j < num_of_lights; j++) {
-			view_ortho = glm::lookAt(scene_lights[j]->translation, center_model, glm::vec3(0.0f, 1.0f, 0.0f));
-			view_proj_ortho_light = projection_ortho * view_ortho;
-			vp_light_set.push_back(view_proj_ortho_light);
-		}
+		view_ortho = glm::lookAt(scene_light->translation, center_model, glm::vec3(0.0f, 1.0f, 0.0f));
+		view_proj_ortho_light = projection_ortho * view_ortho;
 
 		glUniformMatrix4fv(glsl_g_buffer.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
-		glUniformMatrix4fv(glsl_g_buffer.getLocation("vp_light"), num_of_lights, GL_FALSE, glm::value_ptr(vp_light_set[0]));
-		glUniform1i(glsl_g_buffer.getLocation("num_of_lights"), num_of_lights);
+		glUniformMatrix4fv(glsl_g_buffer.getLocation("vp_light"), 1, GL_FALSE, glm::value_ptr(view_proj_ortho_light));
 		glUniform1i(glsl_g_buffer.getLocation("num_of_buffer"), i);
 
 		glBindVertexArray(scene_model->vao);
@@ -578,7 +559,7 @@ void display()
 		sigma_tr = materials->materials[scene_model->current_material]->effective_transport_coeff;
 		halton_generator->generate_samples(min(sigma_tr.x, sigma_tr.y, sigma_tr.z) / scene_model->q, scene_model->radius, num_of_samples_per_frag);
 
-		std::vector<glm::mat4> view_proj_ortho_randoms, vp_light_set;
+		std::vector<glm::mat4> view_proj_ortho_randoms;
 
 		for (size_t j = 0; j < num_of_ortho_cameras; j++)
 		{
@@ -587,31 +568,24 @@ void display()
 			view_proj_ortho_randoms.push_back(view_proj_ortho_random);
 		}
 
-		std::vector<glm::vec3> light_pos_set;
-
-		for (size_t j = 0; j < num_of_lights; j++) {
-			light_pos_set.push_back(scene_lights[j]->translation);
-			view_ortho = glm::lookAt(scene_lights[j]->translation, center_model, glm::vec3(0.0f, 1.0f, 0.0f));
-			view_proj_ortho_light = projection_ortho * view_ortho;
-			vp_light_set.push_back(view_proj_ortho_light);
-		}
+		view_ortho = glm::lookAt(scene_light->translation, center_model, glm::vec3(0.0f, 1.0f, 0.0f));
+		view_proj_ortho_light = projection_ortho * view_ortho;
 
 		glUniformMatrix4fv(glsl_scattered_map.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
 		glUniform1i(glsl_scattered_map.getLocation("n_cameras"), num_of_ortho_cameras);
 		glUniformMatrix4fv(glsl_scattered_map.getLocation("cameras_matrix"), num_of_ortho_cameras, GL_FALSE, glm::value_ptr(view_proj_ortho_randoms[0]));
-		glUniformMatrix4fv(glsl_scattered_map.getLocation("vp_light"), num_of_lights, GL_FALSE, glm::value_ptr(vp_light_set[0]));
+		glUniformMatrix4fv(glsl_scattered_map.getLocation("vp_light"), 1, GL_FALSE, glm::value_ptr(view_proj_ortho_light));
 		glUniform1i(glsl_scattered_map.getLocation("g_position"), 0);
 		glUniform1i(glsl_scattered_map.getLocation("g_normal"), 1);
 		glUniform1i(glsl_scattered_map.getLocation("g_depth"), 2);
 		glUniform1f(glsl_scattered_map.getLocation("radius"), scene_model->radius);
 		glUniform3fv(glsl_scattered_map.getLocation("model_center"), 1, glm::value_ptr(center_model));
 		glUniform1i(glsl_scattered_map.getLocation("n_samples"), num_of_samples_per_frag);
-		glUniform1i(glsl_scattered_map.getLocation("num_of_lights"), num_of_lights);
 		glUniform2fv(glsl_scattered_map.getLocation("samples"), num_of_samples_per_frag, glm::value_ptr(halton_generator->samples[0]));
 		glUniform1f(glsl_scattered_map.getLocation("asymmetry_param_g"), scene_model->asymmetry_param_g);
 		glUniform1f(glsl_scattered_map.getLocation("refractive_index"), scene_model->refractive_index);
 		glUniform3fv(glsl_scattered_map.getLocation("diffuse_reflectance"), 1, glm::value_ptr(materials->materials[scene_model->current_material]->diffuse_reflectance));
-		glUniform3fv(glsl_scattered_map.getLocation("light_pos"), num_of_lights, glm::value_ptr(light_pos_set[0]));
+		glUniform3fv(glsl_scattered_map.getLocation("light_pos"), 1, glm::value_ptr(scene_light->translation));
 		glUniform4f(glsl_scattered_map.getLocation("light_diff"), 1.0f, 1.0f, 1.0f, 1.0f);
 
 		// Valores pre-calculados
@@ -685,10 +659,8 @@ void display()
 	glBindVertexArray(0);
 	glsl_blending.disable();
 
-	for (int l = 0; l < num_of_lights; l++) {
-		glStencilFunc(GL_ALWAYS, 2 + l, -1);
-		scene_lights[l]->display(projection * view);
-	}
+	glStencilFunc(GL_ALWAYS, 2, -1);
+	scene_light->display(projection * view);
 
 	glDisable(GL_STENCIL_TEST);
 
@@ -701,7 +673,7 @@ void display()
 
 	glUniformMatrix4fv(glsl_cornell.getLocation("MVP"), 1, GL_FALSE, glm::value_ptr(projection * view * model_mat));
 	glUniformMatrix4fv(glsl_cornell.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
-	glUniform3fv(glsl_cornell.getLocation("light_pos"), 1, glm::value_ptr(scene_lights[0]->translation));
+	glUniform3fv(glsl_cornell.getLocation("light_pos"), 1, glm::value_ptr(scene_light->translation));
 
 	glBindVertexArray(scene_cornell->vao);
 	glDrawArrays(GL_TRIANGLES, 0, scene_cornell->vertices.size());
@@ -751,7 +723,7 @@ int main()
 		transfer_funtion->update_coords();
 		display();
 		TwDraw();
-		change_light = scene_lights[selected_light]->update_interface();
+		change_light = scene_light->update_interface();
 		scene_model->update_interface();
 		volumes->update_interface();
 		update_interface_menu();
