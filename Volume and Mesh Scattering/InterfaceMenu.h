@@ -19,6 +19,8 @@ public:
 	~interface_menu();
 
 	void reshape(int g_width, int g_height);
+	void update_width(int g_width);
+	void set_max_values(int num_of_cameras);
 	void show();
 	void hide();
 };

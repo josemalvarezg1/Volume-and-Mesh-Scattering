@@ -11,7 +11,7 @@ enum camera_movement
 	LEFT,
 	RIGHT,
 	UP,
-	DONW
+	DOWN
 };
 
 const GLfloat YAW = -90.0f;
@@ -35,6 +35,7 @@ public:
 	GLfloat zoom;
 
 	camera(glm::vec3 position);
+	bool check_position(glm::vec3 position);
 	void process_keyboard(camera_movement direction, GLfloat delta_time);
 	void process_mouse_movement(GLfloat x_offset, GLfloat y_offset);
 	void process_mouse_scroll(GLfloat y_offset);

@@ -12,20 +12,27 @@ camera::camera(glm::vec3 position)
 	this->update_camera_vectors();
 }
 
+bool camera::check_position(glm::vec3 position) {
+	GLfloat bound = 14.5f;
+	return ((position.x >= -bound + 0.5f && position.x <= bound + 0.5f) &&
+			(position.y >= -bound && position.y <= bound) &&
+			(position.z >= -bound && position.z <= bound));			
+}
+
 void camera::process_keyboard(camera_movement direction, GLfloat delta_time)
 {
 	GLfloat velocity = this->movement_speed * delta_time;
-	if (direction == FORWARD)
+	if (direction == FORWARD && check_position(this->position + this->front * velocity))
 		this->position += this->front * velocity;
-	if (direction == BACKWARD)
+	if (direction == BACKWARD && check_position(this->position - this->front * velocity))
 		this->position -= this->front * velocity;
-	if (direction == LEFT)
+	if (direction == LEFT && check_position(this->position - this->right * velocity))
 		this->position -= this->right * velocity;
-	if (direction == RIGHT)
+	if (direction == RIGHT && check_position(this->position + this->right * velocity))
 		this->position += this->right * velocity;
-	if (direction == DONW)
+	if (direction == DOWN && check_position(this->position - this->up * velocity))
 		this->position -= this->up * velocity;
-	if (direction == UP)
+	if (direction == UP && check_position(this->position + this->up * velocity))
 		this->position += this->up * velocity;
 }
 

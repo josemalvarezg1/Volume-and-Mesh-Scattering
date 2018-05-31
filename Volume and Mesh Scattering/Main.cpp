@@ -27,8 +27,11 @@ GLuint quad_vao, quad_vbo;
 
 void update_interface_menu()
 {
+	if (num_of_ortho_cameras != scene_interface->num_of_cameras)
+		scene_interface->camera_selected = 0;
 	num_of_ortho_cameras = scene_interface->num_of_cameras;
-	selected_camera = scene_interface->camera_selected;
+	scene_interface->set_max_values(num_of_ortho_cameras - 1);
+	selected_camera = scene_interface->camera_selected;	
 }
 
 void click_interface_menu()
@@ -72,6 +75,7 @@ void reshape(GLFWwindow *window, int width, int height)
 
 	volumes->resize_screen(glm::vec2(g_width, g_height));
 	scene_model->model_interface->reshape(g_width, g_height);
+	scene_interface->update_width(g_width);
 
 	for (size_t i = 0; i < num_of_lights; i++) {
 		light_buffers->update_g_buffer(g_width, g_height, num_of_lights);
@@ -108,6 +112,7 @@ void key_input(GLFWwindow *window, int key, int scan_code, int action, int mods)
 			if (activate_camera)
 			{
 				glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+				scene_interface->hide();
 				if (selecting_model)
 					scene_model->not_click_model();
 				if (selecting_light) {
@@ -121,6 +126,7 @@ void key_input(GLFWwindow *window, int key, int scan_code, int action, int mods)
 			}
 			else {
 				glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+				scene_interface->show();
 				if (selecting_model)
 					scene_model->click_model();
 				if (selecting_light)
@@ -288,7 +294,7 @@ void movement()
 	if (keys[GLFW_KEY_Z])
 		scene_camera->process_keyboard(UP, delta_time);
 	if (keys[GLFW_KEY_C])
-		scene_camera->process_keyboard(DONW, delta_time);
+		scene_camera->process_keyboard(DOWN, delta_time);
 }
 
 bool init_glfw()
