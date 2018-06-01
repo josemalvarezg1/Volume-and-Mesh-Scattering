@@ -52,6 +52,15 @@ void interface_menu::set_max_values(int num_of_cameras)
 	TwSetParam(this->menu_interface, "actual_cam", "max", TW_PARAM_INT32, 1, &num_of_cameras);
 }
 
+void interface_menu::update_position()
+{
+	int window_position[2];
+
+	window_position[0] = 20;
+	window_position[1] = 440;
+	TwSetParam(this->menu_interface, NULL, "position", TW_PARAM_INT32, 2, window_position);
+}
+
 void interface_menu::show()
 {
 	TwDefine("Menú visible = true");

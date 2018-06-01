@@ -24,11 +24,16 @@ CGLSLProgram glsl_g_buffer, glsl_g_buffer_plane, glsl_scattered_map, glsl_blendi
 int selected_model = -1;
 GLuint quad_vao, quad_vbo;
 
-
 void update_interface_menu()
 {
-	if (num_of_ortho_cameras != scene_interface->num_of_cameras)
+	if (selecting_volume)
+		scene_interface->update_position();
+	else
+		scene_interface->update_width(g_width);
+	if (num_of_ortho_cameras != scene_interface->num_of_cameras) {
+		scene_model->change_values = true;
 		scene_interface->camera_selected = 0;
+	}
 	num_of_ortho_cameras = scene_interface->num_of_cameras;
 	scene_interface->set_max_values(num_of_ortho_cameras - 1);
 	selected_camera = scene_interface->camera_selected;	
@@ -476,7 +481,7 @@ bool init_scene()
 	transfer_funtion->hide = true;
 
 	scene_light = new light();
-	scene_light->translation = glm::vec3(3.0, 3.0f, 5.0f);
+	scene_light->translation = glm::vec3(0.0, 6.0f, 5.0f);
 
 	potato = new material(glm::vec3(0.68f, 0.70f, 0.55f), glm::vec3(0.0024f, 0.0090f, 0.12f), glm::vec3(0.77f, 0.62f, 0.21f), 1.3f);
 	marble = new material(glm::vec3(2.19f, 2.62f, 3.00f), glm::vec3(0.0021f, 0.0041f, 0.0071f), glm::vec3(0.83f, 0.79f, 0.75f), 1.5f);
@@ -682,20 +687,22 @@ void display()
 
 	glDisable(GL_DEPTH_TEST);
 
-	glsl_g_buffer_plane.enable();
-	model_mat = glm::mat4(1.0f);
-	model_mat = glm::translate(model_mat, glm::vec3(0.7, -0.7, -1.0));
-	model_mat = glm::scale(model_mat, glm::vec3(0.3f));
-	glUniformMatrix4fv(glsl_g_buffer_plane.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
-	glUniform1i(glsl_g_buffer_plane.getLocation("camera_select"), selected_camera);
-	glUniform1i(glsl_g_buffer_plane.getLocation("quad_texture"), 0);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D_ARRAY, scattered_maps->array_texture);
-	render_quad();
-	glsl_g_buffer_plane.disable();
+	if (!selecting_volume) {
+		glsl_g_buffer_plane.enable();
+		model_mat = glm::mat4(1.0f);
+		model_mat = glm::translate(model_mat, glm::vec3(0.7, -0.7, -1.0));
+		model_mat = glm::scale(model_mat, glm::vec3(0.3f));
+		glUniformMatrix4fv(glsl_g_buffer_plane.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
+		glUniform1i(glsl_g_buffer_plane.getLocation("camera_select"), selected_camera);
+		glUniform1i(glsl_g_buffer_plane.getLocation("quad_texture"), 0);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D_ARRAY, scattered_maps->array_texture);
+		render_quad();
+		glsl_g_buffer_plane.disable();
+	}
 
-	/*volumes->display(projection * view, scene_camera->position, scene_lights[0]);
-	transfer_funtion->display();*/
+	volumes->display(projection * view, scene_camera->position, scene_light);
+	transfer_funtion->display();
 }
 
 void destroy()

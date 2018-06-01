@@ -9,8 +9,8 @@ uniform vec3 camera_pos;
 uniform float epsilon;
 uniform float refractive_index;
 uniform int n_cameras;
-uniform mat4 cameras_matrix[16];
-uniform vec3 cameras_dirs[16];
+uniform mat4 cameras_matrix[32];
+uniform vec3 cameras_dirs[32];
 uniform float gamma;
 uniform int current_frame;
 uniform int g_width;
@@ -51,8 +51,9 @@ float fresnel_t(vec3 inv, vec3 n, float n_1)
 void main(void)
 {
 	vec3 xo, no, wo, pos, offset, dir;
-	float div, vi, visibility, bias, fresnel, cos_theta;
+	float div, vi, visibility, bias, fresnel, cos_theta, pcf_depth;
 	vec4 texture_pos, color_map;
+	vec2 texel_size;
 
 	xo = frag_pos;
 	no = normalize(frag_normal);
@@ -62,7 +63,7 @@ void main(void)
 	div = 0.0f;
 	color = vec4(0.0f);
 
-	for (int i = 3; i < n_cameras; i++)
+	for (int i = 0; i < n_cameras; i++)
 	{
 		dir = normalize(cameras_dirs[i] - xo);
 		cos_theta = clamp(dot(no, dir), 0.0f, 1.0f);
@@ -75,9 +76,19 @@ void main(void)
 		visibility = 1.0f;
 		bias = 0.005 * tan(acos(cos_theta));
 		bias = clamp(bias, 0.0f, 0.01f);
+		bias = 0.005f;
 
-		if (texture(depth_map, vec3(texture_pos.xy, i)).z  <  texture_pos.z - bias)
-			visibility = 0.0f;
+		for (int k = -1; k <= 1; k++) {
+			for (int j = -1; j <= 1; j++) {
+				texel_size = 1.0f / vec2(g_width, g_height);
+				pcf_depth = texture(depth_map, vec3(texture_pos.xy + vec2(k, j) * texel_size, i)).r;
+				if (pcf_depth < texture_pos.z - bias)
+					visibility -= 1.0f / 9.0f;
+			}
+		}
+
+		/*if (texture(depth_map, vec3(texture_pos.xy, i)).z  <  texture_pos.z - bias)
+			visibility = 0.0f;*/
 
 		color_map = sample_color_map(vec3(texture_pos.xy, i));
 		color += (color_map / max(color_map.a, 1.0f)) * visibility;
@@ -85,6 +96,6 @@ void main(void)
 	}
 
 	color /= max(div, 1.0f);
-	//color *= clamp(fresnel, 0.0f, 1.0f);
+	color *= clamp(fresnel, 0.0f, 1.0f);
 	color = pow(color, vec4(1.0f / gamma));
 }

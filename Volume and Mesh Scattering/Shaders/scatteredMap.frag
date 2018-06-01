@@ -15,7 +15,7 @@ uniform vec3 diffuse_reflectance;
 uniform mat4 vp_light;
 
 uniform int n_samples;
-uniform vec2 samples[64];
+uniform vec2 samples[96];
 uniform mat4 model_matrix;
 uniform sampler2DArray g_position;
 uniform sampler2DArray g_normal;
@@ -135,6 +135,7 @@ void main()
 		visibility = 1.0f;
 		bias = 0.005f * tan(acos(clamp(dot(no, wi), 0.0f, 1.0f)));
 		bias = clamp(bias, 0.0f, 0.01f);
+		bias = 0.005f;
 
 		if (texture(g_depth, vec3(offset.xy, 0)).r < offset.z - bias)
 			visibility = 0.0f;
@@ -165,8 +166,8 @@ void main()
 			Ti = fresnel_t(wi, ni, 1.0f / refractive_index);
 			To = fresnel_t(wo, no, 1.0f / refractive_index);
 
-			//diffuse_part = (Ti * diffuse_part_d * dot(ni, wi));
-			diffuse_part = (diffuse_part_d * dot(ni, wi));
+			diffuse_part = (Ti * diffuse_part_d * dot(ni, wi));
+			//diffuse_part = (diffuse_part_d * dot(ni, wi));
 
 			Lo += diffuse_part;
 
