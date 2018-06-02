@@ -3,6 +3,7 @@
 #include <GL/glew.h>
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include <iostream>
 #include <iterator>
@@ -21,7 +22,7 @@ public:
 	glm::quat rotation;
 	GLboolean change_values;
 	GLfloat scale, max_value, asymmetry_param_g, refractive_index, q, radius, epsilon, gamma;
-	std::vector<glm::vec3> vertices, normals;
+	std::vector<glm::vec3> vertices, normals, bounding_box;
 	glm::vec3 max_vertex, min_vertex, center, translation, ambient_comp, diffuse_comp, specular_comp;
 	material_m current_material;
 	interface_model *model_interface;
@@ -38,5 +39,6 @@ public:
 	void click_model();
 	void not_click_model();
 	void update_interface();
+	bool no_collision(glm::mat4 &model);
 };
 

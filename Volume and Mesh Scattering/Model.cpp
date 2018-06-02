@@ -17,6 +17,8 @@ mesh::mesh()
 	this->gamma = 2.0f;
 	this->change_values = true;
 	this->visible_interface = false;
+	this->min_vertex = glm::vec3(1000);
+	this->max_vertex = glm::vec3(-1000);
 	this->model_interface = interface_model::instance();
 }
 
@@ -159,6 +161,15 @@ void mesh::load(std::string path)
 		this->max_vertex = (this->max_vertex - this->center) / this->max_value;
 		this->min_vertex = (this->min_vertex - this->center) / this->max_value;
 
+		this->bounding_box.push_back(this->max_vertex);
+		this->bounding_box.push_back(this->min_vertex);
+		this->bounding_box.push_back(glm::vec3(this->min_vertex.x, this->min_vertex.y, this->max_vertex.z));
+		this->bounding_box.push_back(glm::vec3(this->min_vertex.x, this->max_vertex.y, this->max_vertex.z));
+		this->bounding_box.push_back(glm::vec3(this->max_vertex.x, this->max_vertex.y, this->min_vertex.z));
+		this->bounding_box.push_back(glm::vec3(this->min_vertex.x, this->max_vertex.y, this->min_vertex.z));
+		this->bounding_box.push_back(glm::vec3(this->max_vertex.x, this->min_vertex.y, this->min_vertex.z));
+		this->bounding_box.push_back(glm::vec3(this->max_vertex.x, this->min_vertex.y, this->max_vertex.z));
+
 		this->create_vbo();
 	}
 }
@@ -208,20 +219,48 @@ void mesh::update_interface()
 {
 	if (visible_interface)
 	{
+		glm::mat4 model_mat;
 		if (this->translation != this->model_interface->translation)
 		{
-			this->translation = this->model_interface->translation;
-			this->change_values = true;
+			model_mat = glm::mat4(1.0f);
+			model_mat = glm::translate(model_mat, this->model_interface->translation);
+			model_mat = model_mat * glm::toMat4(this->rotation);
+			model_mat = glm::scale(model_mat, glm::vec3(this->scale));
+			if (this->no_collision(model_mat))
+			{
+				this->translation = this->model_interface->translation;
+				this->change_values = true;
+			}
+			else
+				this->model_interface->translation = this->translation;
 		}
 		if (this->rotation != this->model_interface->rotation)
 		{
-			this->rotation = this->model_interface->rotation;
-			this->change_values = true;
+			model_mat = glm::mat4(1.0f);
+			model_mat = glm::translate(model_mat, this->translation);
+			model_mat = model_mat * glm::toMat4(this->model_interface->rotation);
+			model_mat = glm::scale(model_mat, glm::vec3(this->scale));
+			if (this->no_collision(model_mat))
+			{
+				this->rotation = this->model_interface->rotation;
+				this->change_values = true;
+			}
+			else
+				this->model_interface->rotation = this->rotation;
 		}
 		if (this->scale != this->model_interface->scale)
 		{
-			this->scale = this->model_interface->scale;
-			this->change_values = true;
+			model_mat = glm::mat4(1.0f);
+			model_mat = glm::translate(model_mat, this->translation);
+			model_mat = model_mat * glm::toMat4(this->rotation);
+			model_mat = glm::scale(model_mat, glm::vec3(this->model_interface->scale));
+			if (this->no_collision(model_mat))
+			{
+				this->scale = this->model_interface->scale;
+				this->change_values = true;
+			}
+			else
+				this->model_interface->scale = this->scale;
 		}
 		if (this->asymmetry_param_g != this->model_interface->asymmetry_param_g)
 		{
@@ -249,4 +288,24 @@ void mesh::update_interface()
 			this->change_values = true;
 		}
 	}
+}
+
+bool mesh::no_collision(glm::mat4 &model)
+{
+	GLfloat bound = 15.0f;
+	glm::vec3 aux, new_max, new_min;
+
+	new_min = glm::vec3(1000);
+	new_max = glm::vec3(-1000);
+	
+	for (size_t i = 0; i < this->bounding_box.size(); i++)
+	{
+		aux = glm::vec3(model * glm::vec4(this->bounding_box[i], 1.0f));
+		if (aux.x > new_max.x) new_max.x = aux.x; if (aux.y > new_max.y) new_max.y = aux.y; if (aux.z > new_max.z) new_max.z = aux.z;
+		if (aux.x < new_min.x) new_min.x = aux.x; if (aux.y < new_min.y) new_min.y = aux.y; if (aux.z < new_min.z) new_min.z = aux.z;
+	}
+	
+	return ((new_min.x >= -bound + 0.5f && new_max.x <= bound + 0.5f) &&
+		(new_min.y >= -bound && new_max.y <= bound) &&
+		(new_min.z >= -bound && new_max.z <= bound));
 }
