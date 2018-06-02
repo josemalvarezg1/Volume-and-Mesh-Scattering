@@ -92,6 +92,16 @@ volume::volume(std::string path, GLuint width, GLuint height, GLuint depth, GLui
 	this->extinction_coeff = glm::vec3(0.0002f, 0.0028f, 0.016f);
 	this->back_radiance = glm::vec4(1.0f);
 	this->step = (GLfloat)(1.0f / sqrt((this->width * this->width) + (this->height * this->height) + (this->depth * this->depth)));
+	
+	this->bounding_box.push_back(glm::vec3(0.5f, 0.5f, 0.5f));
+	this->bounding_box.push_back(glm::vec3(-0.5f, 0.5f, 0.5f));
+	this->bounding_box.push_back(glm::vec3(0.5f, 0.5f, -0.5f));
+	this->bounding_box.push_back(glm::vec3(-0.5f, 0.5f, -0.5f));
+	this->bounding_box.push_back(glm::vec3(0.5f, -0.5f, 0.5f));
+	this->bounding_box.push_back(glm::vec3(-0.5f, -0.5f, 0.5f));
+	this->bounding_box.push_back(glm::vec3(-0.5f, -0.5f, -0.5f));
+	this->bounding_box.push_back(glm::vec3(0.5f, -0.5f, -0.5f));
+	
 	if (this->bits == 8u)
 		if (length == this->width * this->height * this->depth)
 		{
@@ -819,20 +829,48 @@ void volume_render::update_interface()
 {
 	if (visible_interface)
 	{
+		glm::mat4 model_mat;
 		if (this->volumes[this->index_select]->translation != this->volume_interface->translation)
 		{
-			this->volumes[this->index_select]->translation = this->volume_interface->translation;
-			this->volumes[this->index_select]->change_values = true;
+			model_mat = glm::mat4(1.0f);
+			model_mat = glm::translate(model_mat, this->volume_interface->translation);
+			model_mat = model_mat * glm::toMat4(this->volumes[this->index_select]->rotation);
+			model_mat = glm::scale(model_mat, glm::vec3(this->volumes[this->index_select]->escalation));
+			if (this->no_collision(model_mat))
+			{
+				this->volumes[this->index_select]->translation = this->volume_interface->translation;
+				this->volumes[this->index_select]->change_values = true;
+			}
+			else
+				this->volume_interface->translation = this->volumes[this->index_select]->translation;
 		}
 		if (this->volumes[this->index_select]->rotation != this->volume_interface->rotation)
 		{
-			this->volumes[this->index_select]->rotation = this->volume_interface->rotation;
-			this->volumes[this->index_select]->change_values = true;
+			model_mat = glm::mat4(1.0f);
+			model_mat = glm::translate(model_mat, this->volumes[this->index_select]->translation);
+			model_mat = model_mat * glm::toMat4(this->volume_interface->rotation);
+			model_mat = glm::scale(model_mat, glm::vec3(this->volumes[this->index_select]->escalation));
+			if (this->no_collision(model_mat))
+			{
+				this->volumes[this->index_select]->rotation = this->volume_interface->rotation;
+				this->volumes[this->index_select]->change_values = true;
+			}
+			else
+				this->volume_interface->rotation = this->volumes[this->index_select]->rotation;
 		}
 		if (this->volumes[this->index_select]->escalation != this->volume_interface->scale)
 		{
-			this->volumes[this->index_select]->escalation = this->volume_interface->scale;
-			this->volumes[this->index_select]->change_values = true;
+			model_mat = glm::mat4(1.0f);
+			model_mat = glm::translate(model_mat, this->volumes[this->index_select]->translation);
+			model_mat = model_mat * glm::toMat4(this->volumes[this->index_select]->rotation);
+			model_mat = glm::scale(model_mat, glm::vec3(this->volume_interface->scale));
+			if (this->no_collision(model_mat))
+			{
+				this->volumes[this->index_select]->escalation = this->volume_interface->scale;
+				this->volumes[this->index_select]->change_values = true;
+			}
+			else
+				this->volume_interface->scale = this->volumes[this->index_select]->escalation;
 		}
 		if (this->volumes[this->index_select]->asymmetry_param_g != this->volume_interface->asymmetry_param_g)
 		{
@@ -860,4 +898,24 @@ void volume_render::update_interface()
 			this->volumes[this->index_select]->change_values = true;
 		}
 	}
+}
+
+bool volume_render::no_collision(glm::mat4 &model)
+{
+	GLfloat bound = 15.0f;
+	glm::vec3 aux, new_max, new_min;
+
+	new_min = glm::vec3(1000);
+	new_max = glm::vec3(-1000);
+
+	for (size_t i = 0; i < this->volumes[this->index_select]->bounding_box.size(); i++)
+	{
+		aux = glm::vec3(model * glm::vec4(this->volumes[this->index_select]->bounding_box[i], 1.0f));
+		if (aux.x > new_max.x) new_max.x = aux.x; if (aux.y > new_max.y) new_max.y = aux.y; if (aux.z > new_max.z) new_max.z = aux.z;
+		if (aux.x < new_min.x) new_min.x = aux.x; if (aux.y < new_min.y) new_min.y = aux.y; if (aux.z < new_min.z) new_min.z = aux.z;
+	}
+
+	return ((new_min.x >= -bound + 0.5f && new_max.x <= bound + 0.5f) &&
+		(new_min.y >= -bound && new_max.y <= bound) &&
+		(new_min.z >= -bound && new_max.z <= bound));
 }

@@ -38,6 +38,7 @@ public:
 	glm::vec3 translation, scattering_coeff, extinction_coeff;
 	GLfloat escalation, step, asymmetry_param_g, radius;
 	std::vector<GLfloat> step_light_volume;
+	std::vector<glm::vec3> bounding_box;
 	glm::vec4 back_radiance;
 	bool change_values;
 
@@ -85,6 +86,6 @@ public:
 	void display(glm::mat4 &view_projection, glm::vec3 view_pos, light* scene_lights);
 	void change_volume(int type);
 	void resize_screen(const glm::vec2 screen);
-
 	void update_interface();
+	bool no_collision(glm::mat4 &model);
 };

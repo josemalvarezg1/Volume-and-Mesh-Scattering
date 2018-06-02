@@ -26,9 +26,9 @@ interface_light::interface_light()
 
 	TwAddVarRW(this->light_interface, "onOff", TW_TYPE_BOOLCPP, &this->on, "label = 'Encendida'");
 	TwAddSeparator(this->light_interface, NULL, "");
-	TwAddVarRW(this->light_interface, "Posición X", TW_TYPE_FLOAT, &this->translation[0], "group = 'Transformaciones' step = 0.01");
-	TwAddVarRW(this->light_interface, "Posición Y", TW_TYPE_FLOAT, &this->translation[1], "group = 'Transformaciones' step = 0.01");
-	TwAddVarRW(this->light_interface, "Posición Z", TW_TYPE_FLOAT, &this->translation[2], "group = 'Transformaciones' step = 0.01");
+	TwAddVarRW(this->light_interface, "Posición X", TW_TYPE_FLOAT, &this->translation[0], "group = 'Transformaciones' max=15 min=-14.25 step = 0.01");
+	TwAddVarRW(this->light_interface, "Posición Y", TW_TYPE_FLOAT, &this->translation[1], "group = 'Transformaciones' max=14.5 min=-14.5 step = 0.01");
+	TwAddVarRW(this->light_interface, "Posición Z", TW_TYPE_FLOAT, &this->translation[2], "group = 'Transformaciones' max=14.5 min=-14.5 step = 0.01");
 
 	TwAddSeparator(this->light_interface, NULL, "");
 	TwAddVarRW(this->light_interface, "c1M", TW_TYPE_COLOR3F, &this->ambient_comp, "group='Componentes' label = 'Ambiental'");
