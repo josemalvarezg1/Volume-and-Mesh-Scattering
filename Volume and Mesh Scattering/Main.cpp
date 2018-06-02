@@ -30,7 +30,8 @@ void update_interface_menu()
 		scene_interface->update_position();
 	else
 		scene_interface->update_width(g_width);
-	if (num_of_ortho_cameras != scene_interface->num_of_cameras) {
+	if (num_of_ortho_cameras != scene_interface->num_of_cameras) 
+	{
 		scene_model->change_values = true;
 		scene_interface->camera_selected = 0;
 	}

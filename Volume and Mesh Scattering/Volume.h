@@ -13,6 +13,12 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+struct face
+{
+	float value;
+	unsigned int index;
+};
+
 class cube
 {
 public:
@@ -26,10 +32,12 @@ class volume
 {
 public:
 	std::string name;
-	GLuint width, height, depth, bits, volume_text, light_volume_text, volume_buffer[2], render_texture, previous_texture, texture_vao, texture_vbo, current_index;
+	GLuint width, height, depth, bits, volume_text, light_volume_text, volume_buffer[2], render_texture, previous_texture, texture_vao, texture_vbo;
+	std::vector<GLuint> current_index;
 	glm::quat rotation;
 	glm::vec3 translation, scattering_coeff, extinction_coeff;
-	GLfloat escalation, step, asymmetry_param_g, radius, step_light_volume;
+	GLfloat escalation, step, asymmetry_param_g, radius;
+	std::vector<GLfloat> step_light_volume;
 	glm::vec4 back_radiance;
 	bool change_values;
 
@@ -63,7 +71,8 @@ public:
 	bool click_volume(double x, double y, glm::mat4 &projection, glm::mat4 &view, glm::vec3 camera_position, bool type);
 	bool pos_cursor_volume(double x, double y);
 	void disable_select();
-	glm::vec4 calculate_dir_max(glm::vec3 light_pos, glm::mat4 model);
+	std::vector<glm::vec4> calculate_dir_max(glm::vec3 light_pos, glm::mat4 model);
+	unsigned int get_axis(unsigned value);
 	glm::vec4 get_position(int index);
 	bool intersection(double x, double y, glm::mat4 &projection, glm::mat4 &view, glm::vec3 camera_position);
 	void load_transfer_func_t(GLfloat data[][4]);
