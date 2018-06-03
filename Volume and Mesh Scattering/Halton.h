@@ -18,4 +18,5 @@ public:
 	int negative_positive();
 	void generate_orthographic_cameras(int num_of_orto_cameras);
 	void generate_samples(float sigma_tr, float radius, int num_of_samples_per_frag);
+	void add_new_camera(int index);
 };

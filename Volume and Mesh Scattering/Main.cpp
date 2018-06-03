@@ -1,11 +1,13 @@
 #include "Main.h"
 
+// Falta: Agregar cámaras dinámicamente
+
 GLFWwindow *g_window;
 int g_width, g_height;
 GLuint num_of_ortho_cameras, num_of_samples_per_frag, selected_camera;
 GLfloat delta_time = 0.0f, last_frame = 0.0f, current_frame;
 GLdouble last_x = 600.0, last_y = 340.0;
-bool keys[1024], keys_pressed[1024], selecting_model = false, selecting_light = false, first_mouse = true, activate_camera = false, change_light = false, selecting_volume = false;
+bool keys[1024], keys_pressed[1024], selecting_model = false, selecting_light = false, first_mouse = true, activate_camera = false, change_light = false, selecting_volume = false, scattering_model = true, scattering_volume = true;
 scattered_map *scattered_maps;
 halton *halton_generator;
 glm::mat4 projection, view, model;
@@ -20,7 +22,7 @@ materials_set *materials;
 interface_function *transfer_funtion;
 volume_render *volumes;
 
-CGLSLProgram glsl_g_buffer, glsl_g_buffer_plane, glsl_scattered_map, glsl_blending, glsl_cornell;
+CGLSLProgram glsl_g_buffer, glsl_g_buffer_plane, glsl_scattered_map, glsl_blending, glsl_phong, glsl_cornell;
 int selected_model = -1;
 GLuint quad_vao, quad_vbo;
 
@@ -30,14 +32,18 @@ void update_interface_menu()
 		scene_interface->update_position();
 	else
 		scene_interface->update_width(g_width);
-	if (num_of_ortho_cameras != scene_interface->num_of_cameras) 
+	if (num_of_ortho_cameras != scene_interface->num_of_cameras)
 	{
 		scene_model->change_values = true;
 		scene_interface->camera_selected = 0;
+		if (scene_interface->num_of_cameras > halton_generator->camera_positions.size()) {
+			halton_generator->add_new_camera(halton_generator->camera_positions.size());
+			scattered_maps->update_scattered_map(g_width, g_height, scene_interface->num_of_cameras);
+		}
 	}
 	num_of_ortho_cameras = scene_interface->num_of_cameras;
 	scene_interface->set_max_values(num_of_ortho_cameras - 1);
-	selected_camera = scene_interface->camera_selected;	
+	selected_camera = scene_interface->camera_selected;
 }
 
 void click_interface_menu()
@@ -359,11 +365,14 @@ bool init_glew()
 		glsl_blending.loadShader("Shaders/blending.frag", CGLSLProgram::FRAGMENT);
 		glsl_cornell.loadShader("Shaders/cornell.vert", CGLSLProgram::VERTEX);
 		glsl_cornell.loadShader("Shaders/cornell.frag", CGLSLProgram::FRAGMENT);
+		glsl_phong.loadShader("Shaders/blinnPhong.vert", CGLSLProgram::VERTEX);
+		glsl_phong.loadShader("Shaders/blinnPhong.frag", CGLSLProgram::FRAGMENT);
 
 		glsl_g_buffer.create_link();
 		glsl_g_buffer_plane.create_link();
 		glsl_scattered_map.create_link();
 		glsl_blending.create_link();
+		glsl_phong.create_link();
 		glsl_cornell.create_link();
 
 		glsl_g_buffer.enable();
@@ -396,7 +405,6 @@ bool init_glew()
 
 		glsl_scattered_map.addUniform("asymmetry_param_g");
 		glsl_scattered_map.addUniform("light_pos");
-		glsl_scattered_map.addUniform("light_diff");
 		glsl_scattered_map.addUniform("n_samples");
 		glsl_scattered_map.addUniform("samples");
 		glsl_scattered_map.addUniform("g_position");
@@ -405,6 +413,7 @@ bool init_glew()
 		glsl_scattered_map.addUniform("radius");
 		glsl_scattered_map.addUniform("refractive_index");
 		glsl_scattered_map.addUniform("diffuse_reflectance");
+		glsl_scattered_map.addUniform("light_diffuse_color");
 
 		// Valores pre-calculados
 		glsl_scattered_map.addUniform("attenuation_coeff");
@@ -440,6 +449,19 @@ bool init_glew()
 		glsl_blending.addUniform("g_height");
 		glsl_blending.disable();
 
+		glsl_phong.enable();
+		glsl_phong.addAttribute("position");
+		glsl_phong.addAttribute("normal");
+		glsl_phong.addUniform("MVP");
+		glsl_phong.addUniform("light_pos");
+		glsl_phong.addUniform("model_matrix");
+		glsl_phong.addUniform("diffuse_reflectance");
+		glsl_phong.addUniform("view_pos");
+		glsl_phong.addUniform("light_ambient_color");
+		glsl_phong.addUniform("light_diffuse_color");
+		glsl_phong.addUniform("light_specular_color");
+		glsl_phong.disable();
+
 		glsl_cornell.enable();
 		glsl_cornell.addAttribute("position");
 		glsl_cornell.addAttribute("normal");
@@ -464,7 +486,7 @@ bool init_scene()
 	light_buffer *g_buffer;
 	material *potato, *marble, *skin, *milk, *cream, *none;
 
-	num_of_ortho_cameras = 8;
+	num_of_ortho_cameras = 6;
 	selected_camera = 0;
 	num_of_samples_per_frag = 3 * num_of_ortho_cameras;
 
@@ -555,115 +577,138 @@ void display()
 	glEnable(GL_STENCIL_TEST);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
-	glsl_scattered_map.enable();
-	if (scene_model->change_values || change_light)
-	{
-		glBindFramebuffer(GL_FRAMEBUFFER, scattered_maps->buffer);
-		glStencilFunc(GL_ALWAYS, 1, -1);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		materials->materials[scene_model->current_material]->precalculate_values(scene_model->asymmetry_param_g);
-		sigma_tr = materials->materials[scene_model->current_material]->effective_transport_coeff;
-		halton_generator->generate_samples(min(sigma_tr.x, sigma_tr.y, sigma_tr.z) / scene_model->q, scene_model->radius, num_of_samples_per_frag);
+	if (scattering_model) {
+		glsl_scattered_map.enable();
+		if (scene_model->change_values || change_light)
+		{
+			glBindFramebuffer(GL_FRAMEBUFFER, scattered_maps->buffer);
+			glStencilFunc(GL_ALWAYS, 1, -1);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+			materials->materials[scene_model->current_material]->precalculate_values(scene_model->asymmetry_param_g);
+			sigma_tr = materials->materials[scene_model->current_material]->effective_transport_coeff;
+			halton_generator->generate_samples(min(sigma_tr.x, sigma_tr.y, sigma_tr.z) / scene_model->q, scene_model->radius, num_of_samples_per_frag);
+
+			std::vector<glm::mat4> view_proj_ortho_randoms;
+
+			for (size_t j = 0; j < num_of_ortho_cameras; j++)
+			{
+				view_ortho = glm::lookAt(halton_generator->camera_positions[j], center_model, glm::vec3(0.0f, 1.0f, 0.0f));
+				view_proj_ortho_random = projection_ortho * view_ortho;
+				view_proj_ortho_randoms.push_back(view_proj_ortho_random);
+			}
+
+			view_ortho = glm::lookAt(scene_light->translation, center_model, glm::vec3(0.0f, 1.0f, 0.0f));
+			view_proj_ortho_light = projection_ortho * view_ortho;
+
+			glUniformMatrix4fv(glsl_scattered_map.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
+			glUniform1i(glsl_scattered_map.getLocation("n_cameras"), num_of_ortho_cameras);
+			glUniformMatrix4fv(glsl_scattered_map.getLocation("cameras_matrix"), num_of_ortho_cameras, GL_FALSE, glm::value_ptr(view_proj_ortho_randoms[0]));
+			glUniformMatrix4fv(glsl_scattered_map.getLocation("vp_light"), 1, GL_FALSE, glm::value_ptr(view_proj_ortho_light));
+			glUniform1i(glsl_scattered_map.getLocation("g_position"), 0);
+			glUniform1i(glsl_scattered_map.getLocation("g_normal"), 1);
+			glUniform1i(glsl_scattered_map.getLocation("g_depth"), 2);
+			glUniform1f(glsl_scattered_map.getLocation("radius"), scene_model->radius);
+			glUniform3fv(glsl_scattered_map.getLocation("model_center"), 1, glm::value_ptr(center_model));
+			glUniform1i(glsl_scattered_map.getLocation("n_samples"), num_of_samples_per_frag);
+			glUniform2fv(glsl_scattered_map.getLocation("samples"), num_of_samples_per_frag, glm::value_ptr(halton_generator->samples[0]));
+			glUniform1f(glsl_scattered_map.getLocation("asymmetry_param_g"), scene_model->asymmetry_param_g);
+			glUniform1f(glsl_scattered_map.getLocation("refractive_index"), scene_model->refractive_index);
+			glUniform3fv(glsl_scattered_map.getLocation("diffuse_reflectance"), 1, glm::value_ptr(materials->materials[scene_model->current_material]->diffuse_reflectance));
+			glUniform3fv(glsl_scattered_map.getLocation("light_pos"), 1, glm::value_ptr(scene_light->translation));
+			glUniform3fv(glsl_scattered_map.getLocation("light_diffuse_color"), 1, glm::value_ptr(scene_light->diffuse_comp));
+
+			// Valores pre-calculados
+			glUniform3fv(glsl_scattered_map.getLocation("attenuation_coeff"), 1, glm::value_ptr(materials->materials[scene_model->current_material]->attenuation_coeff));
+			glUniform3fv(glsl_scattered_map.getLocation("D"), 1, glm::value_ptr(materials->materials[scene_model->current_material]->D));
+			glUniform3fv(glsl_scattered_map.getLocation("effective_transport_coeff"), 1, glm::value_ptr(materials->materials[scene_model->current_material]->effective_transport_coeff));
+			glUniform1f(glsl_scattered_map.getLocation("c_phi_1"), materials->materials[scene_model->current_material]->c_phi_1);
+			glUniform1f(glsl_scattered_map.getLocation("c_phi_2"), materials->materials[scene_model->current_material]->c_phi_2);
+			glUniform1f(glsl_scattered_map.getLocation("c_e"), materials->materials[scene_model->current_material]->c_e);
+			glUniform1f(glsl_scattered_map.getLocation("A"), materials->materials[scene_model->current_material]->A);
+			glUniform3fv(glsl_scattered_map.getLocation("de"), 1, glm::value_ptr(materials->materials[scene_model->current_material]->de));
+			glUniform3fv(glsl_scattered_map.getLocation("zr"), 1, glm::value_ptr(materials->materials[scene_model->current_material]->zr));
+
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D_ARRAY, light_buffers->g_position);
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D_ARRAY, light_buffers->g_normal);
+			glActiveTexture(GL_TEXTURE2);
+			glBindTexture(GL_TEXTURE_2D_ARRAY, light_buffers->g_depth);
+
+			glBindVertexArray(scene_model->vao);
+			glDrawArrays(GL_TRIANGLES, 0, scene_model->vertices.size());
+			glBindVertexArray(0);
+
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+			scene_model->change_values = false;
+		}
+		glsl_scattered_map.disable();
+	}
+
+	glEnable(GL_STENCIL_TEST);
+	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+	glStencilFunc(GL_ALWAYS, 1, -1);
+	if (scattering_model) {
+		glsl_blending.enable();
+
+		glUniform3f(glsl_blending.getLocation("camera_pos"), scene_camera->position[0], scene_camera->position[1], scene_camera->position[2]);
 
 		std::vector<glm::mat4> view_proj_ortho_randoms;
+		std::vector<glm::vec3> cameras_dirs;
 
 		for (size_t j = 0; j < num_of_ortho_cameras; j++)
 		{
 			view_ortho = glm::lookAt(halton_generator->camera_positions[j], center_model, glm::vec3(0.0f, 1.0f, 0.0f));
 			view_proj_ortho_random = projection_ortho * view_ortho;
 			view_proj_ortho_randoms.push_back(view_proj_ortho_random);
+			cameras_dirs.push_back(halton_generator->camera_positions[j]);
 		}
 
-		view_ortho = glm::lookAt(scene_light->translation, center_model, glm::vec3(0.0f, 1.0f, 0.0f));
-		view_proj_ortho_light = projection_ortho * view_ortho;
-
-		glUniformMatrix4fv(glsl_scattered_map.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
-		glUniform1i(glsl_scattered_map.getLocation("n_cameras"), num_of_ortho_cameras);
-		glUniformMatrix4fv(glsl_scattered_map.getLocation("cameras_matrix"), num_of_ortho_cameras, GL_FALSE, glm::value_ptr(view_proj_ortho_randoms[0]));
-		glUniformMatrix4fv(glsl_scattered_map.getLocation("vp_light"), 1, GL_FALSE, glm::value_ptr(view_proj_ortho_light));
-		glUniform1i(glsl_scattered_map.getLocation("g_position"), 0);
-		glUniform1i(glsl_scattered_map.getLocation("g_normal"), 1);
-		glUniform1i(glsl_scattered_map.getLocation("g_depth"), 2);
-		glUniform1f(glsl_scattered_map.getLocation("radius"), scene_model->radius);
-		glUniform3fv(glsl_scattered_map.getLocation("model_center"), 1, glm::value_ptr(center_model));
-		glUniform1i(glsl_scattered_map.getLocation("n_samples"), num_of_samples_per_frag);
-		glUniform2fv(glsl_scattered_map.getLocation("samples"), num_of_samples_per_frag, glm::value_ptr(halton_generator->samples[0]));
-		glUniform1f(glsl_scattered_map.getLocation("asymmetry_param_g"), scene_model->asymmetry_param_g);
-		glUniform1f(glsl_scattered_map.getLocation("refractive_index"), scene_model->refractive_index);
-		glUniform3fv(glsl_scattered_map.getLocation("diffuse_reflectance"), 1, glm::value_ptr(materials->materials[scene_model->current_material]->diffuse_reflectance));
-		glUniform3fv(glsl_scattered_map.getLocation("light_pos"), 1, glm::value_ptr(scene_light->translation));
-		glUniform4f(glsl_scattered_map.getLocation("light_diff"), 1.0f, 1.0f, 1.0f, 1.0f);
-
-		// Valores pre-calculados
-		glUniform3fv(glsl_scattered_map.getLocation("attenuation_coeff"), 1, glm::value_ptr(materials->materials[scene_model->current_material]->attenuation_coeff));
-		glUniform3fv(glsl_scattered_map.getLocation("D"), 1, glm::value_ptr(materials->materials[scene_model->current_material]->D));
-		glUniform3fv(glsl_scattered_map.getLocation("effective_transport_coeff"), 1, glm::value_ptr(materials->materials[scene_model->current_material]->effective_transport_coeff));
-		glUniform1f(glsl_scattered_map.getLocation("c_phi_1"), materials->materials[scene_model->current_material]->c_phi_1);
-		glUniform1f(glsl_scattered_map.getLocation("c_phi_2"), materials->materials[scene_model->current_material]->c_phi_2);
-		glUniform1f(glsl_scattered_map.getLocation("c_e"), materials->materials[scene_model->current_material]->c_e);
-		glUniform1f(glsl_scattered_map.getLocation("A"), materials->materials[scene_model->current_material]->A);
-		glUniform3fv(glsl_scattered_map.getLocation("de"), 1, glm::value_ptr(materials->materials[scene_model->current_material]->de));
-		glUniform3fv(glsl_scattered_map.getLocation("zr"), 1, glm::value_ptr(materials->materials[scene_model->current_material]->zr));
+		glUniformMatrix4fv(glsl_blending.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
+		glUniformMatrix4fv(glsl_blending.getLocation("MVP"), 1, GL_FALSE, glm::value_ptr(projection * view * model_mat));
+		glUniform1i(glsl_blending.getLocation("scattered_map"), 0);
+		glUniform1i(glsl_blending.getLocation("depth_map"), 1);
+		glUniform1f(glsl_blending.getLocation("epsilon"), scene_model->epsilon);
+		glUniform1f(glsl_blending.getLocation("refractive_index"), scene_model->refractive_index);
+		glUniform1i(glsl_blending.getLocation("n_cameras"), num_of_ortho_cameras);
+		glUniformMatrix4fv(glsl_blending.getLocation("cameras_matrix"), num_of_ortho_cameras, GL_FALSE, glm::value_ptr(view_proj_ortho_randoms[0]));
+		glUniformMatrix4fv(glsl_blending.getLocation("cameras_dirs"), num_of_ortho_cameras, GL_FALSE, glm::value_ptr(cameras_dirs[0]));
+		glUniform1f(glsl_blending.getLocation("gamma"), scene_model->gamma);
+		glUniform1i(glsl_blending.getLocation("current_frame"), 1);
+		glUniform1i(glsl_blending.getLocation("g_width"), g_width);
+		glUniform1i(glsl_blending.getLocation("g_height"), g_height);
 
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D_ARRAY, light_buffers->g_position);
+		glBindTexture(GL_TEXTURE_2D_ARRAY, scattered_maps->array_texture);
 		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D_ARRAY, light_buffers->g_normal);
-		glActiveTexture(GL_TEXTURE2);
-		glBindTexture(GL_TEXTURE_2D_ARRAY, light_buffers->g_depth);
+		glBindTexture(GL_TEXTURE_2D_ARRAY, scattered_maps->depth_texture);
 
 		glBindVertexArray(scene_model->vao);
 		glDrawArrays(GL_TRIANGLES, 0, scene_model->vertices.size());
 		glBindVertexArray(0);
-
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-		scene_model->change_values = false;
+		glsl_blending.disable();
 	}
-	glsl_scattered_map.disable();
+	else {
+		glsl_phong.enable();
 
-	glEnable(GL_STENCIL_TEST);
-	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+		glUniformMatrix4fv(glsl_phong.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
+		glUniformMatrix4fv(glsl_phong.getLocation("MVP"), 1, GL_FALSE, glm::value_ptr(projection * view * model_mat));
+		glUniform3fv(glsl_phong.getLocation("diffuse_reflectance"), 1, glm::value_ptr(materials->materials[scene_model->current_material]->diffuse_reflectance));
+		glUniform3fv(glsl_phong.getLocation("light_pos"), 1, glm::value_ptr(scene_light->translation));
+		glUniform3fv(glsl_phong.getLocation("view_pos"), 1, glm::value_ptr(scene_camera->position));
+		glUniform3fv(glsl_phong.getLocation("light_ambient_color"), 1, glm::value_ptr(scene_light->ambient_comp));
+		glUniform3fv(glsl_phong.getLocation("light_diffuse_color"), 1, glm::value_ptr(scene_light->diffuse_comp));
+		glUniform3fv(glsl_phong.getLocation("light_specular_color"), 1, glm::value_ptr(scene_light->specular_comp));
 
-	glsl_blending.enable();
-	glStencilFunc(GL_ALWAYS, 1, -1);
-	glUniform3f(glsl_blending.getLocation("camera_pos"), scene_camera->position[0], scene_camera->position[1], scene_camera->position[2]);
-
-	std::vector<glm::mat4> view_proj_ortho_randoms;
-	std::vector<glm::vec3> cameras_dirs;
-
-	for (size_t j = 0; j < num_of_ortho_cameras; j++)
-	{
-		view_ortho = glm::lookAt(halton_generator->camera_positions[j], center_model, glm::vec3(0.0f, 1.0f, 0.0f));
-		view_proj_ortho_random = projection_ortho * view_ortho;
-		view_proj_ortho_randoms.push_back(view_proj_ortho_random);
-		cameras_dirs.push_back(halton_generator->camera_positions[j]);
+		glBindVertexArray(scene_model->vao);
+		glDrawArrays(GL_TRIANGLES, 0, scene_model->vertices.size());
+		glBindVertexArray(0);
+		glsl_phong.disable();
 	}
-
-	glUniformMatrix4fv(glsl_blending.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
-	glUniformMatrix4fv(glsl_blending.getLocation("MVP"), 1, GL_FALSE, glm::value_ptr(projection * view * model_mat));
-	glUniform1i(glsl_blending.getLocation("scattered_map"), 0);
-	glUniform1i(glsl_blending.getLocation("depth_map"), 1);
-	glUniform1f(glsl_blending.getLocation("epsilon"), scene_model->epsilon);
-	glUniform1f(glsl_blending.getLocation("refractive_index"), scene_model->refractive_index);
-	glUniform1i(glsl_blending.getLocation("n_cameras"), num_of_ortho_cameras);
-	glUniformMatrix4fv(glsl_blending.getLocation("cameras_matrix"), num_of_ortho_cameras, GL_FALSE, glm::value_ptr(view_proj_ortho_randoms[0]));
-	glUniformMatrix4fv(glsl_blending.getLocation("cameras_dirs"), num_of_ortho_cameras, GL_FALSE, glm::value_ptr(cameras_dirs[0]));
-	glUniform1f(glsl_blending.getLocation("gamma"), scene_model->gamma);
-	glUniform1i(glsl_blending.getLocation("current_frame"), 1);
-	glUniform1i(glsl_blending.getLocation("g_width"), g_width);
-	glUniform1i(glsl_blending.getLocation("g_height"), g_height);
-
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D_ARRAY, scattered_maps->array_texture);
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D_ARRAY, scattered_maps->depth_texture);
-
-	glBindVertexArray(scene_model->vao);
-	glDrawArrays(GL_TRIANGLES, 0, scene_model->vertices.size());
-	glBindVertexArray(0);
-	glsl_blending.disable();
 
 	glStencilFunc(GL_ALWAYS, 2, -1);
 	scene_light->display(projection * view);
@@ -688,7 +733,7 @@ void display()
 
 	glDisable(GL_DEPTH_TEST);
 
-	if (!selecting_volume) {
+	if (!selecting_volume && scattering_model) {
 		glsl_g_buffer_plane.enable();
 		model_mat = glm::mat4(1.0f);
 		model_mat = glm::translate(model_mat, glm::vec3(0.7, -0.7, -1.0));

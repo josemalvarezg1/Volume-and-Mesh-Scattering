@@ -162,12 +162,16 @@ bool light::update_interface()
 	if (visible_interface)
 	{				
 		this->ambient_comp = this->light_interface->ambient_comp;
-		this->diffuse_comp = this->light_interface->diffuse_comp;
 		this->specular_comp = this->light_interface->specular_comp;
 		this->on = this->light_interface->on;
 		if (this->translation != this->light_interface->translation) 
 		{			
 			this->translation = this->light_interface->translation;
+			return true;
+		}
+		if (this->diffuse_comp != this->light_interface->diffuse_comp)
+		{
+			this->diffuse_comp = this->light_interface->diffuse_comp;
 			return true;
 		}
 	}

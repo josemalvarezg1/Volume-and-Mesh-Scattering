@@ -72,3 +72,11 @@ void halton::generate_samples(float sigma_tr, float radius, int num_of_samples_p
 		i++;
 	}
 }
+
+void halton::add_new_camera(int index) {
+	double x_pos, y_pos, z_pos;
+	x_pos = this->halton_sequence(index, 2) + (15.0f * this->negative_positive());
+	y_pos = this->halton_sequence(index, 3) + (15.0f * this->negative_positive());
+	z_pos = this->halton_sequence(index, 7) + (15.0f * this->negative_positive());
+	this->camera_positions.push_back(glm::vec3(x_pos, y_pos, z_pos));
+}

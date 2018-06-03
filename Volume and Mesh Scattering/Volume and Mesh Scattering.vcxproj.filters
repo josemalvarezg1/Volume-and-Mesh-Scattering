@@ -187,5 +187,11 @@
     <None Include="Shaders\cornell.frag">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="Shaders\blinnPhong.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\blinnPhong.frag">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

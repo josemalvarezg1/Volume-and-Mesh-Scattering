@@ -5,9 +5,7 @@ in vec3 frag_normal;
 uniform vec3 camera_pos;
 
 uniform vec3 light_pos;
-uniform vec4 light_diff;
-uniform vec4 light_spec;
-uniform vec4 light_amb;
+uniform vec3 light_diffuse_color;
 
 uniform float asymmetry_param_g;
 uniform float refractive_index;
@@ -112,7 +110,7 @@ void main()
 	wo = normalize(camera_pos - frag_pos);
 
 	Lo = vec3(0.0f);
-	Ll = light_diff.xyz; 		/*Hasta ahora una sola luz por la parte que vamos en el paper*/
+	Ll = light_diffuse_color;
 
 	wi = normalize(light_pos - model_center);
 	/* Inicio: Generación de muestras */

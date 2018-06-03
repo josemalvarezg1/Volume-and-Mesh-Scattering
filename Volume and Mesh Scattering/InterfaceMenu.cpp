@@ -1,6 +1,7 @@
 #include "InterfaceMenu.h"
 
 interface_menu * interface_menu::user_interface = NULL;
+extern bool scattering_model, scattering_volume;
 
 interface_menu * interface_menu::instance()
 {
@@ -22,11 +23,13 @@ interface_menu::interface_menu()
 	TwDefine("Menú position = '850 20'");
 	TwDefine("Menú valueswidth = 100 ");
 	TwDefine("Menú color = '42 148 100' alpha = 85");
-	TwDefine("Menú size = '300 100'");
+	TwDefine("Menú size = '300 200'");
 
-	TwAddVarRW(this->menu_interface, "num_of_cam", TW_TYPE_INT32, &this->num_of_cameras, "label = 'Número de cámaras' min=1");
+	TwAddVarRW(this->menu_interface, "num_of_cam", TW_TYPE_INT32, &this->num_of_cameras, "group = 'Mallado' label = 'Número de cámaras' min=1");
+	TwAddVarRW(this->menu_interface, "actual_cam", TW_TYPE_INT32, &this->camera_selected, "group = 'Mallado' label = 'Cámara actual' min=0");
+	TwAddVarCB(this->menu_interface, "scattering_model", TW_TYPE_BOOL32, set_model_scattering, get_model_scattering, NULL, " label='Scattering' group='Mallado'");
 	TwAddSeparator(this->menu_interface, NULL, "");
-	TwAddVarRW(this->menu_interface, "actual_cam", TW_TYPE_INT32, &this->camera_selected, "label = 'Cámara actual' min=0");
+	TwAddVarCB(this->menu_interface, "scattering_volume", TW_TYPE_BOOL32, set_volume_scattering, get_volume_scattering, NULL, " label='Scattering' group='Volumen'");
 }
 
 interface_menu::~interface_menu()
@@ -69,4 +72,22 @@ void interface_menu::show()
 void interface_menu::hide()
 {
 	TwDefine("Menú visible = false");
+}
+
+void TW_CALL set_model_scattering(const void *value, void *clientData) {
+	scattering_model = *(const int *)value;
+}
+
+void TW_CALL get_model_scattering(void *value, void *clientData) {
+	(void)clientData;
+	*(int *)value = scattering_model;
+}
+
+void TW_CALL set_volume_scattering(const void *value, void *clientData) {
+	scattering_volume = *(const int *)value;
+}
+
+void TW_CALL get_volume_scattering(void *value, void *clientData) {
+	(void)clientData;
+	*(int *)value = scattering_volume;
 }
