@@ -9,6 +9,7 @@ uniform vec3 diffuse_reflectance;
 uniform vec3 light_ambient_color;
 uniform vec3 light_diffuse_color;
 uniform vec3 light_specular_color;
+uniform float gamma;
 
 out vec4 color;
 
@@ -31,4 +32,5 @@ void main(void)
 	specular = vec4(spec, spec, spec, 1.0f);
 
 	color = (ambient * vec4(light_ambient_color, 1.0f) + vec4(diffuse_reflectance, 1.0) * diffuse * vec4(light_diffuse_color, 1.0f) + specular * vec4(light_specular_color, 1.0f));
+	color = pow(color, vec4(1.0f / gamma));
 }

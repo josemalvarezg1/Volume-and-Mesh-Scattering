@@ -411,6 +411,7 @@ bool init_glew()
 		glsl_scattered_map.addUniform("g_normal");
 		glsl_scattered_map.addUniform("g_depth");
 		glsl_scattered_map.addUniform("radius");
+		glsl_scattered_map.addUniform("bias");
 		glsl_scattered_map.addUniform("refractive_index");
 		glsl_scattered_map.addUniform("diffuse_reflectance");
 		glsl_scattered_map.addUniform("light_diffuse_color");
@@ -444,6 +445,7 @@ bool init_glew()
 		glsl_blending.addUniform("cameras_matrix");
 		glsl_blending.addUniform("cameras_dirs");
 		glsl_blending.addUniform("gamma");
+		glsl_blending.addUniform("bias");
 		glsl_blending.addUniform("current_frame");
 		glsl_blending.addUniform("g_width");
 		glsl_blending.addUniform("g_height");
@@ -460,6 +462,7 @@ bool init_glew()
 		glsl_phong.addUniform("light_ambient_color");
 		glsl_phong.addUniform("light_diffuse_color");
 		glsl_phong.addUniform("light_specular_color");
+		glsl_phong.addUniform("gamma");
 		glsl_phong.disable();
 
 		glsl_cornell.enable();
@@ -609,6 +612,7 @@ void display()
 			glUniform1i(glsl_scattered_map.getLocation("g_normal"), 1);
 			glUniform1i(glsl_scattered_map.getLocation("g_depth"), 2);
 			glUniform1f(glsl_scattered_map.getLocation("radius"), scene_model->radius);
+			glUniform1f(glsl_scattered_map.getLocation("bias"), scene_model->bias);
 			glUniform3fv(glsl_scattered_map.getLocation("model_center"), 1, glm::value_ptr(center_model));
 			glUniform1i(glsl_scattered_map.getLocation("n_samples"), num_of_samples_per_frag);
 			glUniform2fv(glsl_scattered_map.getLocation("samples"), num_of_samples_per_frag, glm::value_ptr(halton_generator->samples[0]));
@@ -678,6 +682,7 @@ void display()
 		glUniformMatrix4fv(glsl_blending.getLocation("cameras_matrix"), num_of_ortho_cameras, GL_FALSE, glm::value_ptr(view_proj_ortho_randoms[0]));
 		glUniformMatrix4fv(glsl_blending.getLocation("cameras_dirs"), num_of_ortho_cameras, GL_FALSE, glm::value_ptr(cameras_dirs[0]));
 		glUniform1f(glsl_blending.getLocation("gamma"), scene_model->gamma);
+		glUniform1f(glsl_blending.getLocation("bias"), scene_model->bias);
 		glUniform1i(glsl_blending.getLocation("current_frame"), 1);
 		glUniform1i(glsl_blending.getLocation("g_width"), g_width);
 		glUniform1i(glsl_blending.getLocation("g_height"), g_height);
@@ -703,6 +708,7 @@ void display()
 		glUniform3fv(glsl_phong.getLocation("light_ambient_color"), 1, glm::value_ptr(scene_light->ambient_comp));
 		glUniform3fv(glsl_phong.getLocation("light_diffuse_color"), 1, glm::value_ptr(scene_light->diffuse_comp));
 		glUniform3fv(glsl_phong.getLocation("light_specular_color"), 1, glm::value_ptr(scene_light->specular_comp));
+		glUniform1f(glsl_phong.getLocation("gamma"), scene_model->gamma);
 
 		glBindVertexArray(scene_model->vao);
 		glDrawArrays(GL_TRIANGLES, 0, scene_model->vertices.size());

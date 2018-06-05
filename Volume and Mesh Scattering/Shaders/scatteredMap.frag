@@ -19,6 +19,7 @@ uniform sampler2DArray g_position;
 uniform sampler2DArray g_normal;
 uniform sampler2DArray g_depth;
 uniform float radius;
+uniform float bias;
 uniform vec3 model_center;
 
 // Valores pre-calculados
@@ -102,7 +103,7 @@ void main()
 	vec3 xo, no, wo, Lo, Ll, xi, ni, wi, x, r, dr, dr_pow, w12, p, ni_ast, xv, dv, wv;
 	vec3 diffuse_part_prime_1, diffuse_part_prime_2, diffuse_part_d;
 	vec3 cos_beta, z_prime, R, T, diffuse_part;
-	float miu_0, Ti, To, theta, bias, visibility;
+	float miu_0, Ti, To, theta, visibility;
 	mat2 rotation_samples_matrix;
 
 	xo = frag_pos;
@@ -131,9 +132,6 @@ void main()
 		ni = texture(g_normal, vec3(offset.xy, 0)).xyz;
 
 		visibility = 1.0f;
-		bias = 0.005f * tan(acos(clamp(dot(no, wi), 0.0f, 1.0f)));
-		bias = clamp(bias, 0.0f, 0.01f);
-		bias = 0.005f;
 
 		if (texture(g_depth, vec3(offset.xy, 0)).r < offset.z - bias)
 			visibility = 0.0f;

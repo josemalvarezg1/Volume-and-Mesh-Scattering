@@ -10,11 +10,12 @@ mesh::mesh()
 	this->specular_comp = glm::vec3(1.0f, 1.0f, 1.0f);
 	this->asymmetry_param_g = -1.0f;
 	this->refractive_index = 1.3f;
-	this->current_material = Patata;
+	this->current_material = Crema;
 	this->q = 1.0f;
-	this->radius = 0.00001f;
+	this->radius = 0.0025f;
 	this->epsilon = 0.04f;
-	this->gamma = 2.0f;
+	this->gamma = 1.25f;
+	this->bias = 0.005f;
 	this->change_values = true;
 	this->visible_interface = false;
 	this->min_vertex = glm::vec3(1000);
@@ -205,6 +206,7 @@ void mesh::click_model()
 	this->model_interface->q = this->q;
 	this->model_interface->radius = this->radius;
 	this->model_interface->gamma = this->gamma;
+	this->model_interface->bias = this->bias;
 	this->model_interface->epsilon = this->epsilon;
 	this->visible_interface = true;
 }
@@ -280,6 +282,11 @@ void mesh::update_interface()
 		if (this->gamma != this->model_interface->gamma)
 		{
 			this->gamma = this->model_interface->gamma;
+			this->change_values = true;
+		}
+		if (this->bias != this->model_interface->bias)
+		{
+			this->bias = this->model_interface->bias;
 			this->change_values = true;
 		}
 		if (this->current_material != this->model_interface->current_material)

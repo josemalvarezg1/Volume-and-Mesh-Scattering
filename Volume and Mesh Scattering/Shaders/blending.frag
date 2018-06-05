@@ -12,6 +12,7 @@ uniform int n_cameras;
 uniform mat4 cameras_matrix[32];
 uniform vec3 cameras_dirs[32];
 uniform float gamma;
+uniform float bias;
 uniform int current_frame;
 uniform int g_width;
 uniform int g_height;
@@ -51,7 +52,7 @@ float fresnel_t(vec3 inv, vec3 n, float n_1)
 void main(void)
 {
 	vec3 xo, no, wo, pos, offset, dir;
-	float div, vi, visibility, bias, fresnel, cos_theta, pcf_depth;
+	float div, vi, visibility, fresnel, cos_theta, pcf_depth;
 	vec4 texture_pos, color_map;
 	vec2 texel_size;
 
@@ -74,9 +75,6 @@ void main(void)
 		texture_pos = texture_pos * 0.5f + 0.5f;
 
 		visibility = 1.0f;
-		bias = 0.005 * tan(acos(cos_theta));
-		bias = clamp(bias, 0.0f, 0.01f);
-		bias = 0.005f;
 
 		for (int k = -1; k <= 1; k++) {
 			for (int j = -1; j <= 1; j++) {
