@@ -76,7 +76,7 @@ vec3 diffuse_part_prime(vec3 x, vec3 w12, vec3 r, vec3 no)
 float fresnel_t(vec3 inv, vec3 n, float n_1)
 {
 	float cos_i, n_2, eta, sin_t;
-	cos_i = clamp(dot(inv, n), -1.0f, 1.0f);
+	cos_i = clamp(dot(inv, n), 0.0f, 1.0f);
 	n_2 = 1.0f;
 	eta = n_1 / n_2;
 
@@ -120,9 +120,9 @@ void main()
 		// De espacio de vista a espacio de clipping
 		offset = vp_light * offset;
 		offset.xyz /= offset.w;
-		// El offset estará en un rango [0:1]     
-		offset.xyz = offset.xyz * 0.5f + 0.5f;
+		// El offset estará en un rango [0:1]    
 		offset.xy += samples[i].xy;
+		offset.xyz = offset.xyz * 0.5f + 0.5f;
 
 		xi = texture(g_position, vec3(offset.xy, 0)).xyz;
 		ni = texture(g_normal, vec3(offset.xy, 0)).xyz;
@@ -162,7 +162,6 @@ void main()
 			//diffuse_part = (diffuse_part_d * dot(ni, wi));
 
 			Lo += diffuse_part;
-
 			/* Fin: Parte Difusa */
 		}
 	}

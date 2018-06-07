@@ -27,7 +27,7 @@ vec4 sample_color_map(vec3 coord)
 float fresnel_t(vec3 inv, vec3 n, float n_1)
 {
 	float cos_i, n_2, eta, sin_t;
-	cos_i = clamp(dot(inv, n), -1.0f, 1.0f);
+	cos_i = clamp(dot(inv, n), 0.0f, 1.0f);
 	n_2 = 1.0f;
 	eta = n_1 / n_2;
 
