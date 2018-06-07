@@ -104,7 +104,6 @@ void main()
 	vec3 diffuse_part_prime_1, diffuse_part_prime_2, diffuse_part_d;
 	vec3 cos_beta, z_prime, R, T, diffuse_part;
 	float miu_0, Ti, To, theta, visibility;
-	mat2 rotation_samples_matrix;
 
 	xo = frag_pos;
 	no = normalize(frag_normal);
@@ -124,9 +123,6 @@ void main()
 		// El offset estará en un rango [0:1]     
 		offset.xyz = offset.xyz * 0.5f + 0.5f;
 		offset.xy += samples[i].xy;
-		theta = 2.0f * PI * radius;
-		rotation_samples_matrix = mat2(vec2(cos(theta), sin(theta)), vec2(-sin(theta), cos(theta)));
-		offset.xy = rotation_samples_matrix * offset.xy;
 
 		xi = texture(g_position, vec3(offset.xy, 0)).xyz;
 		ni = texture(g_normal, vec3(offset.xy, 0)).xyz;
