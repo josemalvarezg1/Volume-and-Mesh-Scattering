@@ -8,6 +8,8 @@ void TW_CALL set_model_scattering(const void *value, void *clientData);
 void TW_CALL get_model_scattering(void *value, void *clientData);
 void TW_CALL set_volume_scattering(const void *value, void *clientData);
 void TW_CALL get_volume_scattering(void *value, void *clientData);
+void TW_CALL set_model_center(const void *value, void *clientData);
+void TW_CALL get_model_center(void *value, void *clientData);
 
 class interface_menu
 {

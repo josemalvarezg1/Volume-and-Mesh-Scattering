@@ -7,7 +7,7 @@ int g_width, g_height;
 GLuint num_of_ortho_cameras, num_of_samples_per_frag, selected_camera;
 GLfloat delta_time = 0.0f, last_frame = 0.0f, current_frame;
 GLdouble last_x = 600.0, last_y = 340.0;
-bool keys[1024], keys_pressed[1024], selecting_model = false, selecting_light = false, first_mouse = true, activate_camera = false, change_light = false, selecting_volume = false, scattering_model = true, scattering_volume = true;
+bool keys[1024], keys_pressed[1024], selecting_model = false, selecting_light = false, first_mouse = true, activate_camera = false, change_light = false, selecting_volume = false, scattering_model = true, scattering_volume = true, model_center = true, last_model_center = true;
 scattered_map *scattered_maps;
 halton *halton_generator;
 glm::mat4 projection, view, model;
@@ -44,6 +44,10 @@ void update_interface_menu()
 	num_of_ortho_cameras = scene_interface->num_of_cameras;
 	scene_interface->set_max_values(num_of_ortho_cameras - 1);
 	selected_camera = scene_interface->camera_selected;
+	if (last_model_center != model_center) {
+		scene_model->change_values = true;
+		last_model_center = model_center;
+	}
 }
 
 void click_interface_menu()
@@ -613,7 +617,10 @@ void display()
 			glUniform1i(glsl_scattered_map.getLocation("g_depth"), 2);
 			glUniform1f(glsl_scattered_map.getLocation("radius"), scene_model->radius);
 			glUniform1f(glsl_scattered_map.getLocation("bias"), scene_model->bias);
-			glUniform3fv(glsl_scattered_map.getLocation("model_center"), 1, glm::value_ptr(center_model));
+			if (model_center)
+				glUniform3fv(glsl_scattered_map.getLocation("model_center"), 1, glm::value_ptr(center_model));
+			else
+				glUniform3fv(glsl_scattered_map.getLocation("model_center"), 1, glm::value_ptr(glm::vec3(0.0f, 0.0f, 0.0f)));
 			glUniform1i(glsl_scattered_map.getLocation("n_samples"), num_of_samples_per_frag);
 			glUniform2fv(glsl_scattered_map.getLocation("samples"), num_of_samples_per_frag, glm::value_ptr(halton_generator->samples[0]));
 			glUniform1f(glsl_scattered_map.getLocation("asymmetry_param_g"), scene_model->asymmetry_param_g);

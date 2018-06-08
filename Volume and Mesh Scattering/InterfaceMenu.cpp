@@ -1,7 +1,7 @@
 #include "InterfaceMenu.h"
 
 interface_menu * interface_menu::user_interface = NULL;
-extern bool scattering_model, scattering_volume;
+extern bool scattering_model, scattering_volume, model_center;
 
 interface_menu * interface_menu::instance()
 {
@@ -27,6 +27,7 @@ interface_menu::interface_menu()
 
 	TwAddVarRW(this->menu_interface, "num_of_cam", TW_TYPE_INT32, &this->num_of_cameras, "group = 'Mallado' label = 'Número de cámaras' min=1");
 	TwAddVarRW(this->menu_interface, "actual_cam", TW_TYPE_INT32, &this->camera_selected, "group = 'Mallado' label = 'Cámara actual' min=0");
+	TwAddVarCB(this->menu_interface, "center_model", TW_TYPE_BOOL32, set_model_center, get_model_center, NULL, " label='Centro del modelo' group='Mallado'");
 	TwAddVarCB(this->menu_interface, "scattering_model", TW_TYPE_BOOL32, set_model_scattering, get_model_scattering, NULL, " label='Scattering' group='Mallado'");
 	TwAddSeparator(this->menu_interface, NULL, "");
 	TwAddVarCB(this->menu_interface, "scattering_volume", TW_TYPE_BOOL32, set_volume_scattering, get_volume_scattering, NULL, " label='Scattering' group='Volumen'");
@@ -90,4 +91,13 @@ void TW_CALL set_volume_scattering(const void *value, void *clientData) {
 void TW_CALL get_volume_scattering(void *value, void *clientData) {
 	(void)clientData;
 	*(int *)value = scattering_volume;
+}
+
+void TW_CALL set_model_center(const void *value, void *clientData) {
+	model_center = *(const int *)value;
+}
+
+void TW_CALL get_model_center(void *value, void *clientData) {
+	(void)clientData;
+	*(int *)value = model_center;
 }
