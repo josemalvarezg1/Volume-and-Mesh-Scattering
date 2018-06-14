@@ -100,10 +100,11 @@ float fresnel_t(vec3 inv, vec3 n, float n_1)
 
 void main()
 {
-	vec3 xo, no, wo, Lo, Ll, xi, ni, wi, x, r, dr, dr_pow, w12, p, ni_ast, xv, dv, wv;
+	vec3 xo, no, wo, Lo, Ll, xi, ni, wi, x, r, dr, dr_pow, w12, ni_ast, xv, dv, wv;
 	vec3 diffuse_part_prime_1, diffuse_part_prime_2, diffuse_part_d;
-	vec3 cos_beta, z_prime, R, T, diffuse_part;
-	float miu_0, Ti, To, theta, visibility;
+	vec3 cos_beta, z_prime, diffuse_part;
+	vec2 texel_size;
+	float miu_0, Ti, visibility, pcf_depth;
 
 	xo = frag_pos;
 	no = normalize(frag_normal);
@@ -129,8 +130,14 @@ void main()
 
 		visibility = 1.0f;
 
-		if (texture(g_depth, vec3(offset.xy, 0)).r < offset.z - bias)
-			visibility = 0.0f;
+		for (int k = -1; k <= 1; k++) {
+			for (int j = -1; j <= 1; j++) {
+				texel_size = 1.0f / vec2(1200, 680);
+				pcf_depth = texture(g_depth, vec3(offset.xy + vec2(k, j) * texel_size, i)).r;
+				if (pcf_depth < offset.z - bias)
+					visibility -= 1.0f / 9.0f;
+			}
+		}
 
 		if (visibility > 0.0f)
 		{
@@ -151,15 +158,13 @@ void main()
 			dr_pow = calculate_dr_pow(r, D, miu_0, de, cos_beta, attenuation_coeff);
 			dr = sqrt(dr_pow);
 
-			diffuse_part_prime_1 = diffuse_part_prime(x, w12, dr, no);
-			diffuse_part_prime_2 = diffuse_part_prime(xo - xv, wv, dv, no);
+			diffuse_part_prime_1 = clamp(diffuse_part_prime(x, w12, dr, no), vec3(0.0f), vec3(1.0f));
+			diffuse_part_prime_2 = clamp(diffuse_part_prime(xo - xv, wv, dv, no), vec3(0.0f), vec3(1.0f));
 			diffuse_part_d = diffuse_part_prime_1 - diffuse_part_prime_2;
 
-			Ti = fresnel_t(wi, ni, 1.0f / refractive_index);
-			To = fresnel_t(wo, no, 1.0f / refractive_index);
+			Ti = clamp(fresnel_t(wi, ni, 1.0f / refractive_index), 0.0f, 1.0f);
 
 			diffuse_part = (Ti * diffuse_part_d * dot(ni, wi));
-			//diffuse_part = (diffuse_part_d * dot(ni, wi));
 
 			Lo += diffuse_part;
 			/* Fin: Parte Difusa */

@@ -13,9 +13,11 @@ uniform mat4 cameras_matrix[32];
 uniform vec3 cameras_dirs[32];
 uniform float gamma;
 uniform float bias;
-uniform int current_frame;
 uniform int g_width;
 uniform int g_height;
+uniform vec3 view_pos;
+uniform vec3 light_pos;
+uniform bool specular_flag;
 
 out vec4 color;
 
@@ -51,9 +53,9 @@ float fresnel_t(vec3 inv, vec3 n, float n_1)
 
 void main(void)
 {
-	vec3 xo, no, wo, pos, offset, dir;
-	float div, vi, visibility, fresnel, cos_theta, pcf_depth;
-	vec4 texture_pos, color_map;
+	vec3 xo, no, wo, pos, offset, dir, view_dir, light_dir, halfway_dir;
+	float div, vi, visibility, fresnel, cos_theta, pcf_depth, spec;
+	vec4 texture_pos, color_map, specular;
 	vec2 texel_size;
 
 	xo = frag_pos;
@@ -85,15 +87,24 @@ void main(void)
 			}
 		}
 
-		/*if (texture(depth_map, vec3(texture_pos.xy, i)).z  <  texture_pos.z - bias)
-			visibility = 0.0f;*/
-
 		color_map = sample_color_map(vec3(texture_pos.xy, i));
+
 		color += (color_map / max(color_map.a, 1.0f)) * visibility;
 		div += visibility;
 	}
 
 	color /= max(div, 1.0f);
 	color *= clamp(fresnel, 0.0f, 1.0f);
+
+	if (specular_flag) {
+		light_dir = normalize(light_pos - frag_pos);
+		view_dir = normalize(view_pos - frag_pos);
+		halfway_dir = normalize(light_dir + view_dir);
+		spec = pow(max(dot(no, halfway_dir), 0.0f), 128.0f);
+		specular = vec4(spec, spec, spec, 1.0f);
+
+		color += specular;
+	}
+
 	color = pow(color, vec4(1.0f / gamma));
 }

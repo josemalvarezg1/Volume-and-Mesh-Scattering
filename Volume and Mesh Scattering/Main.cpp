@@ -1,16 +1,22 @@
 #include "Main.h"
 
-// Falta: Agregar cámaras dinámicamente
+// Falta:
+//	- Agregar cámaras dinámicamente.
+//	- Agregar shininess en el menú.
+//	- Varios modelos pre - cargados.
+//		- Arreglar cálculo de normales.
+//	- Extra: Agregar más luces.
 
 GLFWwindow *g_window;
 int g_width, g_height;
 GLuint num_of_ortho_cameras, num_of_samples_per_frag, selected_camera;
 GLfloat delta_time = 0.0f, last_frame = 0.0f, current_frame;
 GLdouble last_x = 600.0, last_y = 340.0;
-bool keys[1024], keys_pressed[1024], selecting_model = false, selecting_light = false, first_mouse = true, activate_camera = false, change_light = false, selecting_volume = false, scattering_model = true, scattering_volume = true, model_center = true, last_model_center = true;
+bool keys[1024], keys_pressed[1024], selecting_model = false, selecting_light = false, first_mouse = true, activate_camera = false, change_light = false, selecting_volume = false, scattering_model = true, scattering_volume = true, model_center = true, last_model_center = true, specular_flag = false;
 scattered_map *scattered_maps;
 halton *halton_generator;
 glm::mat4 projection, view, model;
+texture_t current_texture_type;
 
 light* scene_light;
 camera *scene_camera;
@@ -41,6 +47,7 @@ void update_interface_menu()
 			scattered_maps->update_scattered_map(g_width, g_height, scene_interface->num_of_cameras);
 		}
 	}
+	current_texture_type = scene_interface->current_texture_type;
 	num_of_ortho_cameras = scene_interface->num_of_cameras;
 	scene_interface->set_max_values(num_of_ortho_cameras - 1);
 	selected_camera = scene_interface->camera_selected;
@@ -450,9 +457,11 @@ bool init_glew()
 		glsl_blending.addUniform("cameras_dirs");
 		glsl_blending.addUniform("gamma");
 		glsl_blending.addUniform("bias");
-		glsl_blending.addUniform("current_frame");
 		glsl_blending.addUniform("g_width");
 		glsl_blending.addUniform("g_height");
+		glsl_blending.addUniform("light_pos");
+		glsl_blending.addUniform("view_pos");
+		glsl_blending.addUniform("specular_flag");
 		glsl_blending.disable();
 
 		glsl_phong.enable();
@@ -499,6 +508,7 @@ bool init_scene()
 
 	scene_interface = interface_menu::instance();
 	click_interface_menu();
+	current_texture_type = Scattered_Map;
 
 	scene_model = new mesh();
 	scene_cornell = new mesh();
@@ -690,9 +700,11 @@ void display()
 		glUniformMatrix4fv(glsl_blending.getLocation("cameras_dirs"), num_of_ortho_cameras, GL_FALSE, glm::value_ptr(cameras_dirs[0]));
 		glUniform1f(glsl_blending.getLocation("gamma"), scene_model->gamma);
 		glUniform1f(glsl_blending.getLocation("bias"), scene_model->bias);
-		glUniform1i(glsl_blending.getLocation("current_frame"), 1);
 		glUniform1i(glsl_blending.getLocation("g_width"), g_width);
 		glUniform1i(glsl_blending.getLocation("g_height"), g_height);
+		glUniform3fv(glsl_blending.getLocation("light_pos"), 1, glm::value_ptr(scene_light->translation));
+		glUniform3fv(glsl_blending.getLocation("view_pos"), 1, glm::value_ptr(scene_camera->position));
+		glUniform1i(glsl_blending.getLocation("specular_flag"), specular_flag);
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D_ARRAY, scattered_maps->array_texture);
@@ -728,7 +740,6 @@ void display()
 
 	glDisable(GL_STENCIL_TEST);
 
-
 	glsl_cornell.enable();
 	model_mat = glm::mat4(1.0f);
 	model_mat = glm::translate(model_mat, scene_cornell->translation);
@@ -746,6 +757,9 @@ void display()
 
 	glDisable(GL_DEPTH_TEST);
 
+	volumes->display(projection * view, scene_camera->position, scene_light);
+	transfer_funtion->display();
+
 	if (!selecting_volume && scattering_model) {
 		glsl_g_buffer_plane.enable();
 		model_mat = glm::mat4(1.0f);
@@ -755,13 +769,17 @@ void display()
 		glUniform1i(glsl_g_buffer_plane.getLocation("camera_select"), selected_camera);
 		glUniform1i(glsl_g_buffer_plane.getLocation("quad_texture"), 0);
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D_ARRAY, scattered_maps->array_texture);
+		if (current_texture_type == Scattered_Map)
+			glBindTexture(GL_TEXTURE_2D_ARRAY, scattered_maps->array_texture);
+		else if (current_texture_type == GBuffer_Light_Position)
+			glBindTexture(GL_TEXTURE_2D_ARRAY, light_buffers->g_position);
+		else if (current_texture_type == GBuffer_Light_Normal)
+			glBindTexture(GL_TEXTURE_2D_ARRAY, light_buffers->g_normal);
+		else if (current_texture_type == GBuffer_Light_Depth)
+			glBindTexture(GL_TEXTURE_2D_ARRAY, light_buffers->g_depth);
 		render_quad();
 		glsl_g_buffer_plane.disable();
 	}
-
-	volumes->display(projection * view, scene_camera->position, scene_light);
-	transfer_funtion->display();
 }
 
 void destroy()
