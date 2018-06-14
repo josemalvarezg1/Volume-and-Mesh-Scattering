@@ -10,6 +10,7 @@ uniform vec3 light_ambient_color;
 uniform vec3 light_diffuse_color;
 uniform vec3 light_specular_color;
 uniform float gamma;
+uniform float shininess;
 
 out vec4 color;
 
@@ -28,7 +29,7 @@ void main(void)
 
 	view_dir = normalize(view_pos - frag_pos);
 	halfway_dir = normalize(light_dir + view_dir);
-	spec = pow(max(dot(normal, halfway_dir), 0.0f), 128.0f);
+	spec = pow(max(dot(normal, halfway_dir), 0.0f), shininess);
 	specular = vec4(spec, spec, spec, 1.0f);
 
 	color = (ambient * vec4(light_ambient_color, 1.0f) + vec4(diffuse_reflectance, 1.0) * diffuse * vec4(light_diffuse_color, 1.0f) + specular * vec4(light_specular_color, 1.0f));

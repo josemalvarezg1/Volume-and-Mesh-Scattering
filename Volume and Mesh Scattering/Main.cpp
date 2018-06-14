@@ -2,7 +2,6 @@
 
 // Falta:
 //	- Agregar cámaras dinámicamente.
-//	- Agregar shininess en el menú.
 //	- Varios modelos pre - cargados.
 //		- Arreglar cálculo de normales.
 //	- Extra: Agregar más luces.
@@ -462,6 +461,7 @@ bool init_glew()
 		glsl_blending.addUniform("light_pos");
 		glsl_blending.addUniform("view_pos");
 		glsl_blending.addUniform("specular_flag");
+		glsl_blending.addUniform("shininess");
 		glsl_blending.disable();
 
 		glsl_phong.enable();
@@ -476,6 +476,7 @@ bool init_glew()
 		glsl_phong.addUniform("light_diffuse_color");
 		glsl_phong.addUniform("light_specular_color");
 		glsl_phong.addUniform("gamma");
+		glsl_phong.addUniform("shininess");
 		glsl_phong.disable();
 
 		glsl_cornell.enable();
@@ -705,6 +706,7 @@ void display()
 		glUniform3fv(glsl_blending.getLocation("light_pos"), 1, glm::value_ptr(scene_light->translation));
 		glUniform3fv(glsl_blending.getLocation("view_pos"), 1, glm::value_ptr(scene_camera->position));
 		glUniform1i(glsl_blending.getLocation("specular_flag"), specular_flag);
+		glUniform1f(glsl_blending.getLocation("shininess"), scene_interface->shininess);
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D_ARRAY, scattered_maps->array_texture);
@@ -728,6 +730,7 @@ void display()
 		glUniform3fv(glsl_phong.getLocation("light_diffuse_color"), 1, glm::value_ptr(scene_light->diffuse_comp));
 		glUniform3fv(glsl_phong.getLocation("light_specular_color"), 1, glm::value_ptr(scene_light->specular_comp));
 		glUniform1f(glsl_phong.getLocation("gamma"), scene_model->gamma);
+		glUniform1f(glsl_phong.getLocation("shininess"), scene_interface->shininess);
 
 		glBindVertexArray(scene_model->vao);
 		glDrawArrays(GL_TRIANGLES, 0, scene_model->vertices.size());

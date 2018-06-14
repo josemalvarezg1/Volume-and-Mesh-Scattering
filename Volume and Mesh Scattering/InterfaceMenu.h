@@ -24,6 +24,7 @@ private:
 
 public:
 	int num_of_cameras, camera_selected;
+	float shininess;
 	texture_t current_texture_type;
 
 	static interface_menu * instance();

@@ -14,6 +14,7 @@ interface_menu * interface_menu::instance()
 interface_menu::interface_menu()
 {
 	this->menu_interface = TwNewBar("Menú");
+	this->shininess = 128.0f;
 
 	TwDefine("Menú refresh = '0.0001f'");
 	TwDefine("Menú resizable = false");
@@ -35,6 +36,8 @@ interface_menu::interface_menu()
 	TwAddVarCB(this->menu_interface, "center_model", TW_TYPE_BOOL32, set_model_center, get_model_center, NULL, " label='Centro del modelo' group='Mallado'");
 	TwAddVarCB(this->menu_interface, "scattering_model", TW_TYPE_BOOL32, set_model_scattering, get_model_scattering, NULL, " label='Scattering' group='Mallado'");
 	TwAddVarCB(this->menu_interface, "specular_flag", TW_TYPE_BOOL32, set_model_specular, get_model_specular, NULL, " label='Especular' group='Mallado'");
+	TwAddVarRW(this->menu_interface, "shininess", TW_TYPE_FLOAT, &this->shininess, "group = 'Mallado' label = 'Shininess' min=1.0 step = 0.01 visible=false");	
+	
 	TwAddSeparator(this->menu_interface, NULL, "");
 	TwAddVarCB(this->menu_interface, "scattering_volume", TW_TYPE_BOOL32, set_volume_scattering, get_volume_scattering, NULL, " label='Scattering' group='Volumen'");
 }
@@ -83,6 +86,14 @@ void interface_menu::hide()
 
 void TW_CALL set_model_scattering(const void *value, void *clientData) {
 	scattering_model = *(const int *)value;
+	if (!scattering_model) {
+		TwDefine("Menú/shininess visible = true");
+		TwDefine("Menú/specular_flag visible = false");
+	}
+	else {
+		TwDefine("Menú/shininess visible = false");
+		TwDefine("Menú/specular_flag visible = true");
+	}
 }
 
 void TW_CALL get_model_scattering(void *value, void *clientData) {
@@ -110,6 +121,10 @@ void TW_CALL get_model_center(void *value, void *clientData) {
 
 void TW_CALL set_model_specular(const void *value, void *clientData) {
 	specular_flag = *(const int *)value;
+	if (specular_flag)
+		TwDefine("Menú/shininess visible = true");
+	else
+		TwDefine("Menú/shininess visible = false");
 }
 
 void TW_CALL get_model_specular(void *value, void *clientData) {

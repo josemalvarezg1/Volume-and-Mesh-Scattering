@@ -18,6 +18,7 @@ uniform int g_height;
 uniform vec3 view_pos;
 uniform vec3 light_pos;
 uniform bool specular_flag;
+uniform float shininess;
 
 out vec4 color;
 
@@ -100,7 +101,7 @@ void main(void)
 		light_dir = normalize(light_pos - frag_pos);
 		view_dir = normalize(view_pos - frag_pos);
 		halfway_dir = normalize(light_dir + view_dir);
-		spec = pow(max(dot(no, halfway_dir), 0.0f), 128.0f);
+		spec = pow(max(dot(no, halfway_dir), 0.0f), shininess);
 		specular = vec4(spec, spec, spec, 1.0f);
 
 		color += specular;
