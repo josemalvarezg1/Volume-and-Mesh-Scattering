@@ -21,6 +21,8 @@ uniform sampler2DArray g_depth;
 uniform float radius;
 uniform float bias;
 uniform vec3 model_center;
+uniform int g_width;
+uniform int g_height;
 
 // Valores pre-calculados
 uniform vec3 attenuation_coeff;
@@ -132,7 +134,7 @@ void main()
 
 		for (int k = -1; k <= 1; k++) {
 			for (int j = -1; j <= 1; j++) {
-				texel_size = 1.0f / vec2(1200, 680);
+				texel_size = 1.0f / vec2(g_width, g_height);
 				pcf_depth = texture(g_depth, vec3(offset.xy + vec2(k, j) * texel_size, i)).r;
 				if (pcf_depth < offset.z - bias)
 					visibility -= 1.0f / 9.0f;

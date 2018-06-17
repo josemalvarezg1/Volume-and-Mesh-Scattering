@@ -413,6 +413,8 @@ bool init_glew()
 		glsl_scattered_map.addUniform("vp_light");
 		glsl_scattered_map.addUniform("model_matrix");
 		glsl_scattered_map.addUniform("model_center");
+		glsl_scattered_map.addUniform("g_width");
+		glsl_scattered_map.addUniform("g_height");
 
 		glsl_scattered_map.addUniform("asymmetry_param_g");
 		glsl_scattered_map.addUniform("light_pos");
@@ -504,7 +506,7 @@ bool init_scene()
 	light_buffer *g_buffer;
 	material *potato, *marble, *skin, *milk, *cream, *none;
 
-	num_of_ortho_cameras = 8;
+	num_of_ortho_cameras = 6;
 	selected_camera = 0;
 	num_of_samples_per_frag = 3 * num_of_ortho_cameras;
 
@@ -656,6 +658,8 @@ void display()
 			glUniform3fv(glsl_scattered_map.getLocation("diffuse_reflectance"), 1, glm::value_ptr(materials->materials[scene_model->current_material]->diffuse_reflectance));
 			glUniform3fv(glsl_scattered_map.getLocation("light_pos"), 1, glm::value_ptr(scene_light->translation));
 			glUniform3fv(glsl_scattered_map.getLocation("light_diffuse_color"), 1, glm::value_ptr(scene_light->diffuse_comp));
+			glUniform1i(glsl_scattered_map.getLocation("g_width"), g_width);
+			glUniform1i(glsl_scattered_map.getLocation("g_height"), g_height);
 
 			// Valores pre-calculados
 			glUniform3fv(glsl_scattered_map.getLocation("attenuation_coeff"), 1, glm::value_ptr(materials->materials[scene_model->current_material]->attenuation_coeff));
