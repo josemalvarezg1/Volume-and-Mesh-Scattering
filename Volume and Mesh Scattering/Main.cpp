@@ -19,6 +19,7 @@ texture_t current_texture_type;
 
 light* scene_light;
 camera *scene_camera;
+//std::vector<mesh*> scene_models(5, new mesh());
 mesh *scene_model;
 mesh* scene_cornell;
 interface_menu *scene_interface;
@@ -42,7 +43,7 @@ void update_interface_menu()
 		scene_model->change_values = true;
 		scene_interface->camera_selected = 0;
 		if (scene_interface->num_of_cameras > halton_generator->camera_positions.size()) {
-			halton_generator->add_new_camera(halton_generator->camera_positions.size());
+			halton_generator->add_new_camera(halton_generator->camera_positions.size() - 1);
 			scattered_maps->update_scattered_map(g_width, g_height, scene_interface->num_of_cameras);
 		}
 	}
@@ -503,11 +504,12 @@ bool init_scene()
 	light_buffer *g_buffer;
 	material *potato, *marble, *skin, *milk, *cream, *none;
 
-	num_of_ortho_cameras = 6;
+	num_of_ortho_cameras = 8;
 	selected_camera = 0;
 	num_of_samples_per_frag = 3 * num_of_ortho_cameras;
 
 	scene_interface = interface_menu::instance();
+	scene_interface->num_of_cameras = num_of_ortho_cameras;
 	click_interface_menu();
 	current_texture_type = Scattered_Map;
 
@@ -538,8 +540,23 @@ bool init_scene()
 	materials->materials.push_back(cream);
 	materials->materials.push_back(none);
 
-	scattered_maps = new scattered_map(g_width, g_height, num_of_ortho_cameras);
+	scattered_maps = new scattered_map(g_width, g_height, 13);
 	scene_camera = new camera(glm::vec3(0.0f, 0.0f, 14.5f));
+
+	//for (int i = 0; i < 5; i++) {
+	//	if (i == 0)		// Bunny
+	//		scene_models[i]->load("Models/obj/bunny.obj");
+	//	if (i == 1)		// Hebe
+	//		scene_models[i]->load("Models/obj/hebe.obj");
+	//	if (i == 2)		// Buddha
+	//		scene_models[i]->load("Models/obj/buddha.obj");
+	//	if (i == 3)		// Dragon
+	//		scene_models[i]->load("Models/obj/dragon.obj");
+	//	if (i == 4)		// Esfera
+	//		scene_models[i]->load("Models/obj/sphere.obj");
+	//}
+
+	// Bunny - Por defecto
 	scene_model->load("Models/obj/bunny.obj");
 
 	scene_cornell->load("Models/obj/cornell.obj");
@@ -549,7 +566,7 @@ bool init_scene()
 	const char** paths = new const char*[1];
 	paths[0] = "Models\\raw\\bucky_32x32x32_8.raw";
 	volumes->drop_path(1, paths, g_width, g_height);
-	halton_generator->generate_orthographic_cameras(num_of_ortho_cameras);
+	halton_generator->generate_orthographic_cameras(13);
 
 	return true;
 }
@@ -601,8 +618,8 @@ void display()
 		{
 			glBindFramebuffer(GL_FRAMEBUFFER, scattered_maps->buffer);
 			glStencilFunc(GL_ALWAYS, 1, -1);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			materials->materials[scene_model->current_material]->precalculate_values(scene_model->asymmetry_param_g);
 			sigma_tr = materials->materials[scene_model->current_material]->effective_transport_coeff;
 			halton_generator->generate_samples(min(sigma_tr.x, sigma_tr.y, sigma_tr.z) / scene_model->q, scene_model->radius, num_of_samples_per_frag);

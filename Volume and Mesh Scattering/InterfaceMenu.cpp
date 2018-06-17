@@ -15,6 +15,7 @@ interface_menu::interface_menu()
 {
 	this->menu_interface = TwNewBar("Menú");
 	this->shininess = 128.0f;
+	this->current_model = Bunny;
 
 	TwDefine("Menú refresh = '0.0001f'");
 	TwDefine("Menú resizable = false");
@@ -26,18 +27,23 @@ interface_menu::interface_menu()
 	TwDefine("Menú color = '42 148 100' alpha = 85");
 	TwDefine("Menú size = '300 200'");
 
+	{
+		TwEnumVal models[5] = { { Bunny, "Bunny" },{ Hebe, "Hebe" },{ Buddha, "Buddha" },{ Dragon, "Dragon" },{ Esfera, "Esfera" } };
+		TwType model = TwDefineEnum("model", models, 5);
+		TwAddVarRW(this->menu_interface, "Modelo", model, &this->current_model, "group='Mallado'");
+	}
 	TwAddVarRW(this->menu_interface, "num_of_cam", TW_TYPE_INT32, &this->num_of_cameras, "group = 'Mallado' label = 'Número de cámaras' min=1");
 	{
 		TwEnumVal texture_type[4] = { { Scattered_Map, "Scattered Map" },{ GBuffer_Light_Position, "G-Buffer (Posición)" },{ GBuffer_Light_Normal, "G-Buffer (Normal)" },{ GBuffer_Light_Depth, "G-Buffer (Profundidad)" } };
-		TwType light = TwDefineEnum("texture_type", texture_type, 4);
-		TwAddVarRW(this->menu_interface, "Textura", light, &this->current_texture_type, "group='Mallado'");
+		TwType type = TwDefineEnum("texture_type", texture_type, 4);
+		TwAddVarRW(this->menu_interface, "Textura", type, &this->current_texture_type, "group='Mallado'");
 	}
 	TwAddVarRW(this->menu_interface, "actual_cam", TW_TYPE_INT32, &this->camera_selected, "group = 'Mallado' label = 'Cámara actual' min=0");
 	TwAddVarCB(this->menu_interface, "center_model", TW_TYPE_BOOL32, set_model_center, get_model_center, NULL, " label='Centro del modelo' group='Mallado'");
 	TwAddVarCB(this->menu_interface, "scattering_model", TW_TYPE_BOOL32, set_model_scattering, get_model_scattering, NULL, " label='Scattering' group='Mallado'");
 	TwAddVarCB(this->menu_interface, "specular_flag", TW_TYPE_BOOL32, set_model_specular, get_model_specular, NULL, " label='Especular' group='Mallado'");
-	TwAddVarRW(this->menu_interface, "shininess", TW_TYPE_FLOAT, &this->shininess, "group = 'Mallado' label = 'Shininess' min=1.0 step = 0.01 visible=false");	
-	
+	TwAddVarRW(this->menu_interface, "shininess", TW_TYPE_FLOAT, &this->shininess, "group = 'Mallado' label = 'Shininess' min=1.0 step = 0.01 visible=false");
+
 	TwAddSeparator(this->menu_interface, NULL, "");
 	TwAddVarCB(this->menu_interface, "scattering_volume", TW_TYPE_BOOL32, set_volume_scattering, get_volume_scattering, NULL, " label='Scattering' group='Volumen'");
 }

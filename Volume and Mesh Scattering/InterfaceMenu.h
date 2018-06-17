@@ -5,6 +5,7 @@
 #include <string>
 
 typedef enum { Scattered_Map, GBuffer_Light_Position, GBuffer_Light_Normal, GBuffer_Light_Depth } texture_t;
+typedef enum { Bunny, Hebe, Buddha, Dragon, Esfera } model_m;
 
 void TW_CALL set_model_scattering(const void *value, void *clientData);
 void TW_CALL get_model_scattering(void *value, void *clientData);
@@ -26,6 +27,7 @@ public:
 	int num_of_cameras, camera_selected;
 	float shininess;
 	texture_t current_texture_type;
+	model_m current_model;
 
 	static interface_menu * instance();
 	~interface_menu();

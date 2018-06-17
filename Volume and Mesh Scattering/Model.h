@@ -34,6 +34,7 @@ public:
 	std::vector<std::string> process_attribute(std::string value);
 	std::vector<std::string> split(std::string s, char delim);
 	void calculate_center();
+	void calculate_normals(std::vector<glm::vec3> &aux_normals, std::vector<glm::vec3> aux_vertices, std::vector<glm::uvec3> index_vertices);
 	void load(std::string path);
 	void create_vbo();
 	void click_model();

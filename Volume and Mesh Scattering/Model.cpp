@@ -57,8 +57,34 @@ void mesh::calculate_center()
 	this->center.x = (this->max_vertex.x + this->min_vertex.x) / 2.0f;
 	this->center.y = (this->max_vertex.y + this->min_vertex.y) / 2.0f;
 	this->center.z = (this->max_vertex.z + this->min_vertex.z) / 2.0f;
-	this->max_value = this->max_vertex.x;
-	for (unsigned int i = 0; i < 3; i++) if (this->max_value < this->max_vertex[i]) this->max_value = this->max_vertex[i];
+	this->max_value = max(this->max_vertex.x, max(this->max_vertex.y, this->max_vertex.z));
+}
+
+void mesh::calculate_normals(std::vector<glm::vec3> &aux_normals, std::vector<glm::vec3> aux_vertices, std::vector<glm::uvec3> index_vertices) {
+	std::vector<glm::vec3> normals(aux_vertices.size(), glm::vec3(0.0f));
+	std::vector<float> totals(aux_vertices.size(), 0.0f);
+	glm::vec3 u, v, v1, v2, v3, normal;
+
+	for (int i = 0; i < index_vertices.size(); i++) {
+		v1 = aux_vertices[index_vertices[i].x];
+		v2 = aux_vertices[index_vertices[i].y];
+		v3 = aux_vertices[index_vertices[i].z];
+
+		u = v1 - v3;
+		v = v1 - v2;
+		normal = glm::cross(u, v);
+		normal = glm::normalize(normal);
+		normals[index_vertices[i].x] += normal;
+		normals[index_vertices[i].y] += normal;
+		normals[index_vertices[i].z] += normal;
+
+		totals[index_vertices[i].x] += 1.0f;
+		totals[index_vertices[i].y] += 1.0f;
+		totals[index_vertices[i].z] += 1.0f;
+	}	
+
+	for (int i = 0; i < normals.size(); i++)
+		aux_normals.push_back(normals[i] / glm::vec3(totals[i]));
 }
 
 void mesh::load(std::string path)
@@ -68,7 +94,7 @@ void mesh::load(std::string path)
 	if (file.is_open())
 	{
 		std::string buffer;
-		std::vector<glm::vec3>  aux_vertices, aux_normals;
+		std::vector<glm::vec3> aux_vertices, aux_normals;
 		std::vector<unsigned int> aux_index_vertices, aux_index_normals;
 		std::vector<glm::uvec3> index_vertices, index_normals;
 		glm::uvec3 vertex_aux_index, normal_aux_index;
@@ -139,17 +165,34 @@ void mesh::load(std::string path)
 		normals = std::vector<glm::vec3>(index_vertices.size() * 3);
 		calculate_center();
 
-		for (int i = 0; i < index_vertices.size(); i++)
-		{
-			vertex_aux_index = index_vertices[i];
-			this->vertices[(i * 3)] = (aux_vertices[vertex_aux_index.x] - this->center) / this->max_value;
-			this->vertices[(i * 3) + 1] = (aux_vertices[vertex_aux_index.y] - this->center) / this->max_value;
-			this->vertices[(i * 3) + 2] = (aux_vertices[vertex_aux_index.z] - this->center) / this->max_value;
+		if (aux_normals.empty()) {
+			this->calculate_normals(aux_normals, aux_vertices, index_vertices);
 
-			normal_aux_index = index_normals[i];
-			this->normals[(i * 3)] = aux_normals[normal_aux_index.x];
-			this->normals[(i * 3) + 1] = aux_normals[normal_aux_index.y];
-			this->normals[(i * 3) + 2] = aux_normals[normal_aux_index.z];
+			for (int i = 0; i < index_vertices.size(); i++)
+			{
+				vertex_aux_index = index_vertices[i];
+				this->vertices[(i * 3)] = (aux_vertices[vertex_aux_index.x] - this->center) / this->max_value;
+				this->vertices[(i * 3) + 1] = (aux_vertices[vertex_aux_index.y] - this->center) / this->max_value;
+				this->vertices[(i * 3) + 2] = (aux_vertices[vertex_aux_index.z] - this->center) / this->max_value;
+
+				this->normals[(i * 3)] = aux_normals[vertex_aux_index.x];
+				this->normals[(i * 3) + 1] = aux_normals[vertex_aux_index.y];
+				this->normals[(i * 3) + 2] = aux_normals[vertex_aux_index.z];
+			}
+		}
+		else {
+			for (int i = 0; i < index_vertices.size(); i++)
+			{
+				vertex_aux_index = index_vertices[i];
+				this->vertices[(i * 3)] = (aux_vertices[vertex_aux_index.x] - this->center) / this->max_value;
+				this->vertices[(i * 3) + 1] = (aux_vertices[vertex_aux_index.y] - this->center) / this->max_value;
+				this->vertices[(i * 3) + 2] = (aux_vertices[vertex_aux_index.z] - this->center) / this->max_value;
+
+				normal_aux_index = index_normals[i];
+				this->normals[(i * 3)] = aux_normals[normal_aux_index.x];
+				this->normals[(i * 3) + 1] = aux_normals[normal_aux_index.y];
+				this->normals[(i * 3) + 2] = aux_normals[normal_aux_index.z];
+			}
 		}
 
 		aux_index_vertices.clear();
@@ -161,6 +204,7 @@ void mesh::load(std::string path)
 
 		this->max_vertex = (this->max_vertex - this->center) / this->max_value;
 		this->min_vertex = (this->min_vertex - this->center) / this->max_value;
+		calculate_center();
 
 		this->bounding_box.push_back(this->max_vertex);
 		this->bounding_box.push_back(this->min_vertex);
