@@ -1,9 +1,7 @@
 #include "Main.h"
-
+#define INITIAL_NUM_OF_CAMERAS 8
 // Falta:
 //	- Agregar cámaras dinámicamente.
-//	- Varios modelos pre - cargados.
-//		- Arreglar cálculo de normales.
 //	- Extra: Agregar más luces.
 
 GLFWwindow *g_window;
@@ -19,8 +17,8 @@ texture_t current_texture_type;
 
 light* scene_light;
 camera *scene_camera;
-//std::vector<mesh*> scene_models(5, new mesh());
 mesh *scene_model;
+model_m current_model = Bunny;
 mesh* scene_cornell;
 interface_menu *scene_interface;
 light_buffer *light_buffers;
@@ -42,10 +40,6 @@ void update_interface_menu()
 	{
 		scene_model->change_values = true;
 		scene_interface->camera_selected = 0;
-		if (scene_interface->num_of_cameras > halton_generator->camera_positions.size()) {
-			halton_generator->add_new_camera(halton_generator->camera_positions.size() - 1);
-			scattered_maps->update_scattered_map(g_width, g_height, scene_interface->num_of_cameras);
-		}
 	}
 	current_texture_type = scene_interface->current_texture_type;
 	num_of_ortho_cameras = scene_interface->num_of_cameras;
@@ -55,12 +49,42 @@ void update_interface_menu()
 		scene_model->change_values = true;
 		last_model_center = model_center;
 	}
+	if (current_model != scene_interface->current_model) {
+		scene_model->~mesh();
+		current_model = scene_interface->current_model;
+		scene_model = new mesh();
+		switch (current_model) {
+			case Bunny:
+				scene_model->load("Models/obj/bunny.obj");
+				break;
+			case Hebe:
+				scene_model->load("Models/obj/hebe.obj");
+				break;
+			case Buddha:
+				scene_model->load("Models/obj/buddha.obj");
+				break;
+			case Dragon:
+				scene_model->load("Models/obj/dragon.obj");
+				break;
+			case Esfera:
+				scene_model->load("Models/obj/sphere.obj");
+				break;
+		}		
+		scene_light->not_click_light();
+		volumes->volume_interface->hide();
+		scene_model->click_model();
+		selecting_model = true;
+		selecting_light = false;
+		selecting_volume = false;
+		transfer_funtion->hide = true;
+		scene_model->change_values = true;
+	}
 }
 
 void click_interface_menu()
 {
 	scene_interface->show();
-	scene_interface->num_of_cameras = num_of_ortho_cameras;
+	scene_interface->num_of_cameras = INITIAL_NUM_OF_CAMERAS;
 	scene_interface->camera_selected = selected_camera;
 }
 
@@ -506,12 +530,11 @@ bool init_scene()
 	light_buffer *g_buffer;
 	material *potato, *marble, *skin, *milk, *cream, *none;
 
-	num_of_ortho_cameras = 6;
+	num_of_ortho_cameras = 32;
 	selected_camera = 0;
 	num_of_samples_per_frag = 3 * num_of_ortho_cameras;
 
 	scene_interface = interface_menu::instance();
-	scene_interface->num_of_cameras = num_of_ortho_cameras;
 	click_interface_menu();
 	current_texture_type = Scattered_Map;
 
@@ -542,7 +565,7 @@ bool init_scene()
 	materials->materials.push_back(cream);
 	materials->materials.push_back(none);
 
-	scattered_maps = new scattered_map(g_width, g_height, 13);
+	scattered_maps = new scattered_map(g_width, g_height, num_of_ortho_cameras);
 	scene_camera = new camera(glm::vec3(0.0f, 0.0f, 14.5f));
 
 	//for (int i = 0; i < 5; i++) {
@@ -568,7 +591,7 @@ bool init_scene()
 	const char** paths = new const char*[1];
 	paths[0] = "Models\\raw\\bucky_32x32x32_8.raw";
 	volumes->drop_path(1, paths, g_width, g_height);
-	halton_generator->generate_orthographic_cameras(13);
+	halton_generator->generate_orthographic_cameras(num_of_ortho_cameras);
 
 	return true;
 }
@@ -820,6 +843,7 @@ int main()
 
 	glEnable(GL_DEPTH_TEST);
 	reshape(g_window, g_width, g_height);
+	num_of_ortho_cameras = INITIAL_NUM_OF_CAMERAS;
 
 	while (!glfwWindowShouldClose(g_window))
 	{

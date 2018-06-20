@@ -84,7 +84,7 @@ void mesh::calculate_normals(std::vector<glm::vec3> &aux_normals, std::vector<gl
 	}	
 
 	for (int i = 0; i < normals.size(); i++)
-		aux_normals.push_back(normals[i] / glm::vec3(totals[i]));
+		aux_normals.push_back(-normals[i] / glm::vec3(totals[i]));
 }
 
 void mesh::load(std::string path)
