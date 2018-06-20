@@ -61,9 +61,13 @@ void interface_menu::update_width(int g_width)
 {
 	int window_position[2];
 
-	window_position[0] = g_width - 320;
-	window_position[1] = 20;
-	TwSetParam(this->menu_interface, NULL, "position", TW_PARAM_INT32, 2, window_position);
+	if (g_width > 320)
+	{
+		window_position[0] = g_width - 320;
+		window_position[1] = 20;
+		TwSetParam(this->menu_interface, NULL, "position", TW_PARAM_INT32, 2, window_position);
+	}
+
 }
 
 void interface_menu::set_max_values(int num_of_cameras)

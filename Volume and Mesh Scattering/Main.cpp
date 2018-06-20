@@ -59,15 +59,22 @@ void update_interface_menu()
 				break;
 			case Hebe:
 				scene_model->load("Models/obj/hebe.obj");
+				scene_model->scale = 10.0f;
+				scene_model->rotation = glm::quat(0.7f, -0.7f, 0.0f, 0.0f);
 				break;
 			case Buddha:
 				scene_model->load("Models/obj/buddha.obj");
+				scene_model->scale = 3.25f;
+				scene_model->rotation = glm::quat(0.7f, -0.7f, 0.0f, 0.0f);
 				break;
 			case Dragon:
 				scene_model->load("Models/obj/dragon.obj");
+				scene_model->scale = 3.25f;
+				scene_model->rotation = glm::quat(0.7f, -0.7f, 0.0f, 0.0f);
 				break;
 			case Esfera:
 				scene_model->load("Models/obj/sphere.obj");
+				scene_model->scale = 2.5f;
 				break;
 		}		
 		scene_light->not_click_light();
@@ -126,10 +133,11 @@ void reshape(GLFWwindow *window, int width, int height)
 
 	light_buffers->update_g_buffer(g_width, g_height, 1);
 	scene_light->light_interface->reshape(g_width, g_height);
-
 	scene_model->change_values = true;
 
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	g_width = max(width, 16);
+	g_height = max(height, 16);
 	scattered_maps->update_scattered_map(g_width, g_height, num_of_ortho_cameras);
 	glViewport(0, 0, g_width, g_height);
 }
@@ -568,20 +576,6 @@ bool init_scene()
 	scattered_maps = new scattered_map(g_width, g_height, num_of_ortho_cameras);
 	scene_camera = new camera(glm::vec3(0.0f, 0.0f, 14.5f));
 
-	//for (int i = 0; i < 5; i++) {
-	//	if (i == 0)		// Bunny
-	//		scene_models[i]->load("Models/obj/bunny.obj");
-	//	if (i == 1)		// Hebe
-	//		scene_models[i]->load("Models/obj/hebe.obj");
-	//	if (i == 2)		// Buddha
-	//		scene_models[i]->load("Models/obj/buddha.obj");
-	//	if (i == 3)		// Dragon
-	//		scene_models[i]->load("Models/obj/dragon.obj");
-	//	if (i == 4)		// Esfera
-	//		scene_models[i]->load("Models/obj/sphere.obj");
-	//}
-
-	// Bunny - Por defecto
 	scene_model->load("Models/obj/bunny.obj");
 
 	scene_cornell->load("Models/obj/cornell.obj");
@@ -807,7 +801,8 @@ void display()
 	volumes->display(projection * view, scene_camera->position, scene_light);
 	transfer_funtion->display();
 
-	if (!selecting_volume && scattering_model) {
+	if (!selecting_volume && scattering_model) 
+	{
 		glsl_g_buffer_plane.enable();
 		model_mat = glm::mat4(1.0f);
 		model_mat = glm::translate(model_mat, glm::vec3(0.7, -0.7, -1.0));
