@@ -16,6 +16,7 @@ interface_menu::interface_menu()
 	this->menu_interface = TwNewBar("Menú");
 	this->shininess = 128.0f;
 	this->current_model = Bunny;
+	this->current_volume = Bucky;
 
 	TwDefine("Menú refresh = '0.0001f'");
 	TwDefine("Menú resizable = false");
@@ -25,7 +26,7 @@ interface_menu::interface_menu()
 	TwDefine("Menú position = '850 20'");
 	TwDefine("Menú valueswidth = 100 ");
 	TwDefine("Menú color = '42 148 100' alpha = 85");
-	TwDefine("Menú size = '300 200'");
+	TwDefine("Menú size = '300 230'");
 
 	{
 		TwEnumVal models[5] = { { Bunny, "Bunny" },{ Hebe, "Hebe" },{ Buddha, "Buddha" },{ Dragon, "Dragon" },{ Esfera, "Esfera" } };
@@ -45,6 +46,11 @@ interface_menu::interface_menu()
 	TwAddVarRW(this->menu_interface, "shininess", TW_TYPE_FLOAT, &this->shininess, "group = 'Mallado' label = 'Shininess' min=1.0 step = 0.01 visible=false");
 
 	TwAddSeparator(this->menu_interface, NULL, "");
+	{
+		TwEnumVal models[3] = { { Bucky, "Futboleno" },{ Bonsai, "Bonsai" },{ Head, "Cabeza" } };
+		TwType model = TwDefineEnum("volume", models, 3);
+		TwAddVarRW(this->menu_interface, "volume_v", model, &this->current_volume, "group='Volumen' label='Volumen'");
+	}
 	TwAddVarCB(this->menu_interface, "scattering_volume", TW_TYPE_BOOL32, set_volume_scattering, get_volume_scattering, NULL, " label='Scattering' group='Volumen'");
 }
 

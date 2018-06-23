@@ -19,6 +19,7 @@ light* scene_light;
 camera *scene_camera;
 mesh *scene_model;
 model_m current_model = Bunny;
+volume_v current_volume = Bucky;
 mesh* scene_cornell;
 interface_menu *scene_interface;
 light_buffer *light_buffers;
@@ -85,6 +86,36 @@ void update_interface_menu()
 		selecting_volume = false;
 		transfer_funtion->hide = true;
 		scene_model->change_values = true;
+	}
+	if (current_volume != scene_interface->current_volume) {
+		current_volume = scene_interface->current_volume;
+		const char** paths = new const char*[1];
+		volumes->volumes.clear();
+		switch (current_volume) {
+			case Bucky:
+				paths[0] = "Models\\raw\\bucky_32x32x32_8.raw";
+				volumes->drop_path(1, paths, g_width, g_height);
+				volumes->volumes[0]->rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+				break;
+			case Bonsai:
+				paths[0] = "Models\\raw\\bonsai_256x256x256_8.raw";
+				volumes->drop_path(1, paths, g_width, g_height);
+				volumes->volumes[0]->rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+				break;
+			case Head:
+				paths[0] = "Models\\raw\\head_256x256x225_8.raw";
+				volumes->drop_path(1, paths, g_width, g_height);
+				volumes->volumes[0]->rotation = glm::quat(0.7f, -0.7f, 0.0f, 0.0f);
+				break;
+		}
+		scene_light->not_click_light();
+		volumes->volume_interface->show();
+		scene_model->not_click_model();
+		selecting_model = false;
+		selecting_light = false;
+		selecting_volume = true;
+		transfer_funtion->hide = false;
+		scene_model->change_values = false;
 	}
 }
 
