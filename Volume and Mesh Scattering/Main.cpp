@@ -1,8 +1,5 @@
 #include "Main.h"
 #define INITIAL_NUM_OF_CAMERAS 8
-// Falta:
-//	- Agregar cámaras dinámicamente.
-//	- Extra: Agregar más luces.
 
 GLFWwindow *g_window;
 int g_width, g_height;
@@ -27,7 +24,7 @@ materials_set *materials;
 interface_function *transfer_funtion;
 volume_render *volumes;
 
-CGLSLProgram glsl_g_buffer, glsl_g_buffer_plane, glsl_scattered_map, glsl_blending, glsl_phong, glsl_cornell;
+CGLSLProgram glsl_g_buffer, glsl_g_buffer_plane, glsl_scattered_map, glsl_blending, glsl_phong, glsl_cornell, glsl_g_buffer_volume;
 int selected_model = -1;
 GLuint quad_vao, quad_vbo;
 
@@ -441,6 +438,8 @@ bool init_glew()
 		glsl_cornell.loadShader("Shaders/cornell.frag", CGLSLProgram::FRAGMENT);
 		glsl_phong.loadShader("Shaders/blinnPhong.vert", CGLSLProgram::VERTEX);
 		glsl_phong.loadShader("Shaders/blinnPhong.frag", CGLSLProgram::FRAGMENT);
+		glsl_g_buffer_volume.loadShader("Shaders/gBufferVolume.vert", CGLSLProgram::VERTEX);
+		glsl_g_buffer_volume.loadShader("Shaders/gBufferVolume.frag", CGLSLProgram::FRAGMENT);
 
 		glsl_g_buffer.create_link();
 		glsl_g_buffer_plane.create_link();
@@ -448,6 +447,7 @@ bool init_glew()
 		glsl_blending.create_link();
 		glsl_phong.create_link();
 		glsl_cornell.create_link();
+		glsl_g_buffer_volume.create_link();
 
 		glsl_g_buffer.enable();
 		glsl_g_buffer.addAttribute("position");
@@ -552,6 +552,13 @@ bool init_glew()
 		glsl_cornell.addUniform("light_pos");
 		glsl_cornell.addUniform("model_matrix");
 		glsl_cornell.disable();
+
+		glsl_g_buffer_volume.enable();
+		glsl_g_buffer_volume.addAttribute("position");
+		glsl_g_buffer_volume.addAttribute("tex_coords");
+		glsl_g_buffer_volume.addUniform("model_matrix");
+		glsl_g_buffer_volume.addUniform("texture");
+		glsl_g_buffer_volume.disable();
 
 		return true;
 	}
@@ -829,7 +836,7 @@ void display()
 
 	glDisable(GL_DEPTH_TEST);
 
-	volumes->display(projection * view, scene_camera->position, scene_light);
+	volumes->display(projection, view, scene_camera->position, scene_light);
 	transfer_funtion->display();
 
 	if (!selecting_volume && scattering_model) 
@@ -852,6 +859,19 @@ void display()
 			glBindTexture(GL_TEXTURE_2D_ARRAY, light_buffers->g_depth);
 		render_quad();
 		glsl_g_buffer_plane.disable();
+	}
+	else if (selecting_volume)
+	{
+		glsl_g_buffer_volume.enable();
+		model_mat = glm::mat4(1.0f);
+		model_mat = glm::translate(model_mat, glm::vec3(0.7, -0.7, -1.0));
+		model_mat = glm::scale(model_mat, glm::vec3(0.3f));
+		glUniformMatrix4fv(glsl_g_buffer_volume.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
+		glUniform1i(glsl_g_buffer_volume.getLocation("quad_texture"), 0);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, volumes->volumes[0]->render_texture);
+		render_quad();
+		glsl_g_buffer_volume.disable();
 	}
 }
 

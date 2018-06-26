@@ -659,25 +659,37 @@ void volume_render::render_cube(glm::mat4 &MVP)
 	this->backface.disable();
 }
 
-void volume_render::render_light_cube(glm::mat4 &MVP, glm::mat4 &model, glm::vec3 view_pos, light* scene_lights, glm::mat4 view_projection)
+void volume_render::render_light_cube(glm::mat4 &MVP, glm::mat4 &model, glm::vec3 view_pos, light* scene_lights, glm::mat4 view)
 {
 	int actual_texture;
 	glm::vec4 position_sign;
 	std::vector<glm::vec4> dir_max;
-	glm::vec3 ray_step, position;
-	float distance, lenght_in_out, step_size, texture_step, start_texture;
+	glm::vec3 ray_step, position, volume_center;
+	float distance, lenght_in_out, step_size, texture_step, start_texture, alpha_zero, alpha_one;
+	glm::mat4 projection_ortho, view_ortho, view_proj_ortho_light;
+	
 	
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 
 	actual_texture = 1;
 	dir_max = calculate_dir_max(scene_lights->translation, model);
+	projection_ortho = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.01f, 40.0f);
+	volume_center = glm::vec3(model * glm::vec4(glm::vec3(0.0f), 1.0f));
+	view_ortho = glm::lookAt(scene_lights->translation, volume_center, glm::vec3(0.0f, 1.0f, 0.0f));
+	view_proj_ortho_light = projection_ortho * view_ortho;
+	
+	this->volumes[this->index_select]->cos_beta = (glm::dot(glm::vec3(dir_max[0]), glm::normalize(scene_lights->translation - volume_center))) / (glm::length(glm::vec3(dir_max[0])) * glm::length(scene_lights->translation - volume_center));
+	this->volumes[this->index_select]->cos_gamma = (glm::dot(glm::vec3(dir_max[1]), glm::normalize(scene_lights->translation - volume_center))) / (glm::length(glm::vec3(dir_max[1])) * glm::length(scene_lights->translation - volume_center));
+
+	alpha_zero = 1.0f - ((2.0f * glm::acos(this->volumes[this->index_select]->cos_beta)) / glm::pi<float>());
+	alpha_one = 1.0f - ((2.0f * glm::acos(this->volumes[this->index_select]->cos_gamma)) / glm::pi<float>());
 
 	for (size_t f = 0; f < dir_max.size(); f++)
 	{
 		step_size = this->volumes[this->index_select]->step_light_volume[f];
 		position_sign = this->get_position(this->volumes[this->index_select]->current_index[f]);
-		ray_step = glm::vec3(dir_max[f].x, dir_max[f].y, dir_max[f].z) * step_size * position_sign.w;
+		ray_step = glm::vec3(dir_max[f]) * step_size * position_sign.w;
 		texture_step = step_size * position_sign.w;
 		position = glm::vec3(position_sign.x, position_sign.y, position_sign.z);
 
@@ -687,7 +699,7 @@ void volume_render::render_light_cube(glm::mat4 &MVP, glm::mat4 &model, glm::vec
 			start_texture = 0.0f;
 
 		this->lightcube.enable();
-		lenght_in_out = glm::length(glm::vec3(dir_max[f].x, dir_max[f].y, dir_max[f].z));
+		lenght_in_out = glm::length(glm::vec3(dir_max[f]));
 		for (float i = 0.0f; i < lenght_in_out; i += step_size)
 		{
 			if (actual_texture == 1)
@@ -699,7 +711,7 @@ void volume_render::render_light_cube(glm::mat4 &MVP, glm::mat4 &model, glm::vec
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
-			glUniformMatrix4fv(this->lightcube.getLocation("MVP"), 1, GL_FALSE, glm::value_ptr(MVP));
+			glUniformMatrix4fv(this->lightcube.getLocation("MVP"), 1, GL_FALSE, glm::value_ptr(view_proj_ortho_light * model));
 			glUniformMatrix4fv(this->lightcube.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model));
 			glUniform1i(this->lightcube.getLocation("axis"), dir_max[f].w);
 			glUniform1f(this->lightcube.getLocation("start_texture"), start_texture);
@@ -709,7 +721,7 @@ void volume_render::render_light_cube(glm::mat4 &MVP, glm::mat4 &model, glm::vec
 			glUniform3fv(this->lightcube.getLocation("light_pos"), 1, glm::value_ptr(scene_lights->translation));
 			glUniform3fv(this->lightcube.getLocation("normal"), 1, glm::value_ptr(-glm::vec3(dir_max[f].x, dir_max[f].y, dir_max[f].z)));
 			glUniform3iv(this->lightcube.getLocation("volume_size"), 1, glm::value_ptr(glm::ivec3(this->volumes[this->index_select]->width, this->volumes[this->index_select]->height, this->volumes[this->index_select]->depth)));
-			glUniformMatrix4fv(this->lightcube.getLocation("vp_matrix"), 1, GL_FALSE, glm::value_ptr(view_projection));
+			glUniformMatrix4fv(this->lightcube.getLocation("vp_matrix"), 1, GL_FALSE, glm::value_ptr(view_proj_ortho_light));
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_1D, this->transfer_function_text);
 			glUniform1i(this->lightcube.getLocation("transfer_function_text"), 0);
@@ -737,6 +749,71 @@ void volume_render::render_light_cube(glm::mat4 &MVP, glm::mat4 &model, glm::vec
 		}
 		this->lightcube.disable();
 	}
+
+	/*for (size_t f = 0; f < dir_max.size(); f++)
+	{
+		step_size = this->volumes[this->index_select]->step_light_volume[f];
+		position_sign = this->get_position(this->volumes[this->index_select]->current_index[f]);
+		ray_step = glm::vec3(dir_max[f].x, dir_max[f].y, dir_max[f].z) * step_size * position_sign.w;
+		texture_step = step_size * position_sign.w;
+		position = glm::vec3(position_sign.x, position_sign.y, position_sign.z);
+
+		if (position_sign.w == -1.0f)
+			start_texture = 1.0f;
+		else
+			start_texture = 0.0f;
+
+		this->lightcube.enable();
+		lenght_in_out = glm::length(glm::vec3(dir_max[f].x, dir_max[f].y, dir_max[f].z));
+		for (float i = 0.0f; i < lenght_in_out; i += step_size)
+		{
+			if (actual_texture == 1)
+				actual_texture = 0;
+			else
+				actual_texture = 1;
+
+			glBindFramebuffer(GL_FRAMEBUFFER, this->volumes[this->index_select]->volume_buffer[actual_texture]);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+
+			glUniformMatrix4fv(this->lightcube.getLocation("MVP"), 1, GL_FALSE, glm::value_ptr(view_proj_ortho_light * model));
+			glUniformMatrix4fv(this->lightcube.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model));
+			glUniform1i(this->lightcube.getLocation("axis"), dir_max[f].w);
+			glUniform1f(this->lightcube.getLocation("start_texture"), start_texture);
+			glUniform3fv(this->lightcube.getLocation("position"), 1, &position[0]);
+			glUniform1f(this->lightcube.getLocation("iteration"), i);
+			glUniform1i(this->lightcube.getLocation("actual_texture"), actual_texture);
+			glUniform3fv(this->lightcube.getLocation("light_pos"), 1, glm::value_ptr(scene_lights->translation));
+			glUniform3fv(this->lightcube.getLocation("normal"), 1, glm::value_ptr(-glm::vec3(dir_max[f].x, dir_max[f].y, dir_max[f].z)));
+			glUniform3iv(this->lightcube.getLocation("volume_size"), 1, glm::value_ptr(glm::ivec3(this->volumes[this->index_select]->width, this->volumes[this->index_select]->height, this->volumes[this->index_select]->depth)));
+			glUniformMatrix4fv(this->lightcube.getLocation("vp_matrix"), 1, GL_FALSE, glm::value_ptr(view_proj_ortho_light));
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_1D, this->transfer_function_text);
+			glUniform1i(this->lightcube.getLocation("transfer_function_text"), 0);
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_3D, this->volumes[this->index_select]->volume_text);
+			glUniform1i(this->lightcube.getLocation("volume_text"), 1);
+			if (i > 0.0f)
+			{
+				glActiveTexture(GL_TEXTURE2);
+				if (actual_texture == 0)
+					glBindTexture(GL_TEXTURE_2D, this->volumes[this->index_select]->previous_texture);
+				else
+					glBindTexture(GL_TEXTURE_2D, this->volumes[this->index_select]->render_texture);
+				glUniform1i(this->lightcube.getLocation("previous_text"), 2);
+			}
+			glBindImageTexture(4, this->volumes[this->index_select]->light_volume_text, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+
+			glBindVertexArray(this->volumes[this->index_select]->texture_vao);
+			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+			glBindVertexArray(0);
+
+			position += ray_step;
+			start_texture += texture_step;
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		}
+		this->lightcube.disable();
+	}*/
 
 	glDisable(GL_BLEND);
 }
@@ -772,13 +849,13 @@ void volume_render::render_cube_raycast(glm::mat4 &MVP, glm::mat4 &model, glm::v
 	this->raycasting.disable();
 }
 
-void volume_render::display(glm::mat4 &view_projection, glm::vec3 view_pos, light* scene_lights)
+void volume_render::display(glm::mat4 &projection, glm::mat4 &view, glm::vec3 view_pos, light* scene_lights)
 {
 	if (this->index_select != -1)
 	{
 		glm::mat4 model, MVP;
 		model = glm::translate(glm::mat4(1.0f), this->volumes[this->index_select]->translation) * glm::mat4_cast(this->volumes[this->index_select]->rotation) * glm::scale(glm::mat4(1.0f), glm::vec3(this->volumes[this->index_select]->escalation));
-		MVP = view_projection * model;
+		MVP = projection * view * model;
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_CULL_FACE);
 		glCullFace(GL_FRONT);
@@ -790,8 +867,8 @@ void volume_render::display(glm::mat4 &view_projection, glm::vec3 view_pos, ligh
 		glCullFace(GL_BACK);
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-		this->render_light_cube(MVP, model, view_pos, scene_lights, view_projection);
-		this->render_cube_raycast(MVP, model, view_pos, scene_lights, view_projection);
+		this->render_light_cube(MVP, model, view_pos, scene_lights, view);
+		this->render_cube_raycast(MVP, model, view_pos, scene_lights, projection * view);
 		glDisable(GL_BLEND);
 		glDisable(GL_DEPTH_TEST);
 		glDisable(GL_CULL_FACE);

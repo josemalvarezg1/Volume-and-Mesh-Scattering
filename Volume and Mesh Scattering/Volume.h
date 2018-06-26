@@ -36,7 +36,7 @@ public:
 	std::vector<GLuint> current_index;
 	glm::quat rotation;
 	glm::vec3 translation, scattering_coeff, extinction_coeff;
-	GLfloat escalation, step, asymmetry_param_g, radius;
+	GLfloat escalation, step, asymmetry_param_g, radius, cos_beta, cos_gamma;
 	std::vector<GLfloat> step_light_volume;
 	std::vector<glm::vec3> bounding_box;
 	glm::vec4 back_radiance;
@@ -81,9 +81,9 @@ public:
 	void create_backface_text();
 	bool create_frame_buffer();
 	void render_cube(glm::mat4 &MVP);
-	void render_light_cube(glm::mat4 &MVP, glm::mat4 &model, glm::vec3 view_pos, light* scene_lights, glm::mat4 view_projection);
+	void render_light_cube(glm::mat4 &projection, glm::mat4 &model, glm::vec3 view_pos, light* scene_lights, glm::mat4 view);
 	void render_cube_raycast(glm::mat4 &MVP, glm::mat4 &model, glm::vec3 view_pos, light* scene_lights, glm::mat4 view_projection);
-	void display(glm::mat4 &view_projection, glm::vec3 view_pos, light* scene_lights);
+	void display(glm::mat4 &projection, glm::mat4 &view, glm::vec3 view_pos, light* scene_lights);
 	void change_volume(int type);
 	void resize_screen(const glm::vec2 screen);
 	void update_interface();

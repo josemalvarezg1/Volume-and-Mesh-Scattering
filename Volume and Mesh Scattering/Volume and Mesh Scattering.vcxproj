@@ -177,6 +177,8 @@
     <None Include="Shaders\gBuffer.vert" />
     <None Include="Shaders\gBufferPosition.frag" />
     <None Include="Shaders\gBufferPosition.vert" />
+    <None Include="Shaders\gBufferVolume.frag" />
+    <None Include="Shaders\gBufferVolume.vert" />
     <None Include="Shaders\light.frag" />
     <None Include="Shaders\light.vert" />
     <None Include="Shaders\lightCube.frag" />
