@@ -308,6 +308,52 @@ void mesh::update_interface()
 			else
 				this->model_interface->scale = this->scale;
 		}
+		if (this->current_material != this->model_interface->current_material) {
+			switch (this->model_interface->current_material) {
+			case Patata:
+				this->model_interface->asymmetry_param_g = -1.0f;
+				this->model_interface->radius = 0.005f;
+				this->model_interface->gamma = 1.25f;
+				this->model_interface->epsilon = 0.04f;
+				this->model_interface->bias = 0.005f;
+				break;
+			case Mármol:
+				this->model_interface->asymmetry_param_g = -1.0f;
+				this->model_interface->radius = 0.025f;
+				this->model_interface->gamma = 1.25f;
+				this->model_interface->epsilon = 0.04f;
+				this->model_interface->bias = 0.005f;
+				break;
+			case Leche:
+				this->model_interface->asymmetry_param_g = -1.0f;
+				this->model_interface->radius = 0.025f;
+				this->model_interface->gamma = 1.25f;
+				this->model_interface->epsilon = 0.04f;
+				this->model_interface->bias = 0.005f;
+				break;
+			case Crema:
+				this->model_interface->asymmetry_param_g = -1.0f;
+				this->model_interface->radius = 0.025f;
+				this->model_interface->gamma = 1.25f;
+				this->model_interface->epsilon = 0.04f;
+				this->model_interface->bias = 0.005f;
+				break;
+			case Piel:
+				this->model_interface->asymmetry_param_g = -1.0f;
+				this->model_interface->radius = 0.005f;
+				this->model_interface->gamma = 1.25f;
+				this->model_interface->epsilon = 0.04f;
+				this->model_interface->bias = 0.005f;
+				break;
+			case Ninguno:
+				this->model_interface->asymmetry_param_g = -1.0f;
+				this->model_interface->radius = 0.025f;
+				this->model_interface->gamma = 1.25f;
+				this->model_interface->epsilon = 0.04f;
+				this->model_interface->bias = 0.005f;
+				break;
+			}
+		}
 		if (this->asymmetry_param_g != this->model_interface->asymmetry_param_g)
 		{
 			this->asymmetry_param_g = this->model_interface->asymmetry_param_g;
