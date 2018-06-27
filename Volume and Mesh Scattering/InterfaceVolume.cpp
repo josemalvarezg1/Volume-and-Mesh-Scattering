@@ -21,7 +21,7 @@ interface_volume::interface_volume()
 	TwDefine("Volumen position = '20 20'");
 	TwDefine("Volumen valueswidth = 100 ");
 	TwDefine("Volumen color = '42 46 148' alpha = 85");
-	TwDefine("Volumen size = '300 400'");
+	TwDefine("Volumen size = '300 250'");
 
 	TwAddVarRW(this->volume_interface, "Escalar", TW_TYPE_FLOAT, &this->scale, "group='Transformaciones' min=0.01 step=0.01");
 	TwAddVarRW(this->volume_interface, "Posición X", TW_TYPE_FLOAT, &this->translation[0], "group = 'Transformaciones' step = 0.01");
@@ -29,13 +29,7 @@ interface_volume::interface_volume()
 	TwAddVarRW(this->volume_interface, "Posición Z", TW_TYPE_FLOAT, &this->translation[2], "group = 'Transformaciones' step = 0.01");
 	TwAddVarRW(this->volume_interface, "Rotación", TW_TYPE_QUAT4F, &this->rotation, "group='Transformaciones' opened=true");
 
-	TwAddVarRW(this->volume_interface, "Asimetría g", TW_TYPE_FLOAT, &this->asymmetry_param_g, "group='Parámetros de Dispersión' min=-1.0 max=0.99 step=0.01");
-	TwAddVarRW(this->volume_interface, "Radio", TW_TYPE_FLOAT, &this->radius, "group='Parámetros de Dispersión' min=0.5 max=1.0 step=0.001");
-	TwAddVarRW(this->volume_interface, "Albedo", TW_TYPE_FLOAT, &this->albedo, "group='Parámetros de Dispersión' min=0.04 max=0.99 step=0.001");
 	TwAddVarRW(this->volume_interface, "Resplandor de fondo", TW_TYPE_COLOR4F, &this->back_radiance, "group='Parámetros de Dispersión'");
-
-	TwAddVarRW(this->volume_interface, "Coeficiente de dispersión", TW_TYPE_COLOR3F, &this->scattering_coeff, "group='Parámetros de Dispersión'");
-	TwAddVarRW(this->volume_interface, "Coeficiente de extinción", TW_TYPE_COLOR3F, &this->extinction_coeff, "group='Parámetros de Dispersión'");
 }
 
 interface_volume::~interface_volume()

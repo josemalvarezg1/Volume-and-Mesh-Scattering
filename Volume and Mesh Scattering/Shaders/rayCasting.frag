@@ -1,21 +1,16 @@
 #version 330
+//Falta Combinacion, kernel en vecindad
 uniform sampler1D transfer_function_text;
 uniform sampler2D back_face_text;
 uniform sampler3D volume_text;
+uniform sampler3D light_volume_text;
 uniform vec2 screen_size;
 uniform float step_size;
 uniform int num_of_lights;
-uniform vec3 light_pos[3];
-uniform bool lighting[3];
+uniform vec3 light_pos;
+uniform bool lighting;
 uniform vec3 camera_pos;
-uniform vec3 ambient_comp[3];
-uniform vec3 diffuse_comp[3];
-uniform vec3 specular_comp[3];
-uniform float radius;
-uniform float asymmetry_param_g;
 uniform vec4 back_radiance;
-uniform vec3 scattering_coeff;
-uniform vec3 extinction_coeff;
 
 in vec3 in_coord;
 in vec3 frag_pos;
@@ -42,40 +37,24 @@ vec3 get_gradient(vec3 ray_position)
     return normal;
 }
 
-vec4 illuminate(vec3 position, vec4 actual_color, float index) 
+vec4 illuminate(vec3 position, vec4 actual_color) 
 { 
-	vec3 gradient, N, L, V, actual_shading, c, li;
-	float diffuse, specular, wo, phase_function;
+	vec3 gradient, N, L, V;
+	float diffuse, specular;
 	gradient = get_gradient(position);
     gradient = gradient * vec3(2.0) - vec3(1.0);
-	for (int i = 0; i < num_of_lights; i++) {
-		if (lighting[i]) {
-			if (index == 0.0f) {
-				li = diffuse_comp[i];
-				c = scattering_coeff;
-			}
-			else {
-				li = (1.0f - actual_color.a) * li + actual_color.a;
-				c = (1.0f - actual_color.a) * c + actual_color.a * actual_color.rgb;
-			}
-			N = normalize(normalize(light_pos[i]) - position);
-			wo = dot(-N, gradient);
-			L = normalize(light_pos[i] - frag_pos);
-			V = normalize(camera_pos - frag_pos);
-			phase_function = (1.0f - pow(asymmetry_param_g, 2)) / pow((1.0f + pow(asymmetry_param_g, 2) - 2 * asymmetry_param_g * wo), 3/2);
-			actual_shading = extinction_coeff * phase_function;
-			//diffuse = abs(dot(N, gradient));
-			//specular = pow(max(dot(N, normalize(L + V)), 0.0), 64.0);
-			//actual_color.rgb = actual_color.rgb * (ambient_comp[i] + (diffuse_comp[i] * diffuse) + (specular_comp[i] * specular));
-			actual_color.rgb *= actual_shading;
-		}
-	}
+	N = normalize(normalize(light_pos) - position);	  
+    L = normalize(light_pos - frag_pos);
+	V = normalize(camera_pos - frag_pos);
+	diffuse = abs(dot(N, gradient));
+	specular = pow(max(dot(N, normalize(L + V)), 0.0), 64.0);
+	actual_color.rgb = actual_color.rgb * (diffuse + specular);	
 	return actual_color;
 }
 
 vec4 ray_casting(vec3 direction, float lenght_in_out)
 {
-	vec4 accumulated_color, actual_color;
+	vec4 accumulated_color, actual_color, light_color;
 	float i, density, shadow;
 	vec3 position, ray_step, c, li;
 	ray_step = direction * step_size;
@@ -84,13 +63,14 @@ vec4 ray_casting(vec3 direction, float lenght_in_out)
 	for(i = 0.0f; i < lenght_in_out; i += step_size)
 	{
 		density = texture(volume_text, position).x;
+		light_color = texture(light_volume_text, position).rgba;
+		//actual_color = texture(transfer_function_text, density) * vec4(light_color.rgb, 1.0f) * light_color.a;
 		actual_color = texture(transfer_function_text, density);
-		//actual_color = illuminate(position, actual_color, i);
+		if (lighting)
+			actual_color = illuminate(position, actual_color);
     	actual_color.a = 1.0 - exp(-0.5 * actual_color.a);
     	accumulated_color.rgb += accumulated_color.a * actual_color.rgb * actual_color.a;
     	accumulated_color.a *= (1.0 - actual_color.a);
-		/*if (shadow <= 0.05) 
-			return vec4(1.0, 1.0, 1.0, actual_color.a);*/
 		if (1.0 - accumulated_color.a > 0.95) break;
 		position += ray_step;
 	}

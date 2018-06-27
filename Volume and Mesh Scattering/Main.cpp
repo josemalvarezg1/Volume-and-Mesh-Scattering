@@ -864,8 +864,8 @@ void display()
 	{
 		glsl_g_buffer_volume.enable();
 		model_mat = glm::mat4(1.0f);
-		model_mat = glm::translate(model_mat, glm::vec3(0.7, -0.7, -1.0));
-		model_mat = glm::scale(model_mat, glm::vec3(0.3f));
+		model_mat = glm::translate(model_mat, glm::vec3(0.7, -0.8, -1.0));
+		model_mat = glm::scale(model_mat, glm::vec3(0.3f, 0.2f, 0.2f));
 		glUniformMatrix4fv(glsl_g_buffer_volume.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
 		glUniform1i(glsl_g_buffer_volume.getLocation("quad_texture"), 0);
 		glActiveTexture(GL_TEXTURE0);

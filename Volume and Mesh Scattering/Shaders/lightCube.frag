@@ -1,4 +1,4 @@
-#version 330
+#version 420
 
 layout(location = 0) out vec4 out_color;
 
@@ -11,12 +11,15 @@ uniform vec3 light_pos;
 uniform vec3 normal;
 uniform mat4 vp_matrix;
 uniform ivec3 volume_size;
+uniform float alpha_0;
+uniform float alpha_1;
+uniform int direction;
 
 in vec3 in_coord;
 in vec3 frag_pos;
 in float ray_distance;
 
-//uniform layout(binding = 4, rgba16f) writeonly image3D vol_ilum;
+uniform layout(binding = 4, rgba16f) restrict image3D vol_ilum;
 
 vec3 plane_intersection(vec3 origin, vec3 direction)
 {
@@ -29,7 +32,7 @@ void main()
 {
 	float value;
 	vec3 ray_direction, intersection_point;
-	vec4 accumulated_color, actual_color, color, offset;
+	vec4 accumulated_color, actual_color, color, offset, I_0, I_1, S;
 	ivec3 size;
 
 	value = texture(volume_text, in_coord).x;
@@ -49,6 +52,7 @@ void main()
 		offset.xyz /= offset.w;
 		offset.xyz = offset.xyz * 0.5 + 0.5;
 		accumulated_color = texture(previous_text, offset.xy);
+		//Aplicar Kernel
 		color.rgb = (1.0f - actual_color.a) * accumulated_color.rgb + actual_color.a * actual_color.rgb;
 		color.a = (1.0f - actual_color.a) * accumulated_color.a + actual_color.a;
 	}
@@ -57,5 +61,14 @@ void main()
 
 	size = ivec3(in_coord.x * volume_size.x, in_coord.y * volume_size.y, in_coord.z * volume_size.z);
 
-	//imageStore(vol_ilum, size, color);
+	if (direction == 0)
+		imageStore(vol_ilum, size, color);
+	else
+	{
+		I_0 = imageLoad(vol_ilum, size);
+		I_1 = color;
+		S = alpha_0 * I_0 + alpha_1 * I_1;
+		imageStore(vol_ilum, size, S);
+	}
+	
 }

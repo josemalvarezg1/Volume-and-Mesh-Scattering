@@ -35,8 +35,8 @@ public:
 	GLuint width, height, depth, bits, volume_text, light_volume_text, volume_buffer[2], render_texture, previous_texture, texture_vao, texture_vbo;
 	std::vector<GLuint> current_index;
 	glm::quat rotation;
-	glm::vec3 translation, scattering_coeff, extinction_coeff;
-	GLfloat escalation, step, asymmetry_param_g, radius, cos_beta, cos_gamma;
+	glm::vec3 translation;
+	GLfloat escalation, step, cos_beta, cos_gamma;
 	std::vector<GLfloat> step_light_volume;
 	std::vector<glm::vec3> bounding_box;
 	glm::vec4 back_radiance;

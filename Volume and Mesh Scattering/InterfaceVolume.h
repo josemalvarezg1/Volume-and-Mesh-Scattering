@@ -12,9 +12,9 @@ private:
 	interface_volume();
 
 public:
-	glm::vec3 translation, scattering_coeff, extinction_coeff;
+	glm::vec3 translation;
 	glm::quat rotation;
-	GLfloat scale, asymmetry_param_g, radius, albedo;
+	GLfloat scale;
 	glm::vec4 back_radiance;
 
 	static interface_volume * instance();

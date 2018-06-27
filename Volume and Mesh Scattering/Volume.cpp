@@ -86,10 +86,6 @@ volume::volume(std::string path, GLuint width, GLuint height, GLuint depth, GLui
 	this->rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
 	this->translation = glm::vec3(2.25f, 0.0f, 0.0f);
 	this->escalation = 4.0f;
-	this->asymmetry_param_g = 0.77f;
-	this->radius = 0.5f;
-	this->scattering_coeff = glm::vec3(0.02894f, 0.02145f, 0.01215f);
-	this->extinction_coeff = glm::vec3(0.0002f, 0.0028f, 0.016f);
 	this->back_radiance = glm::vec4(1.0f);
 	this->step = (GLfloat)(1.0f / sqrt((this->width * this->width) + (this->height * this->height) + (this->depth * this->depth)));
 	
@@ -318,17 +314,11 @@ void volume_render::init_shaders()
 	this->raycasting.addUniform("light_pos");
 	this->raycasting.addUniform("lighting");
 	this->raycasting.addUniform("camera_pos");
-	this->raycasting.addUniform("radius");
-	this->raycasting.addUniform("asymmetry_param_g");
 	this->raycasting.addUniform("back_radiance");
-	this->raycasting.addUniform("ambient_comp");
-	this->raycasting.addUniform("diffuse_comp");
-	this->raycasting.addUniform("specular_comp");
 	this->raycasting.addUniform("back_face_text");
 	this->raycasting.addUniform("volume_text");
+	this->raycasting.addUniform("light_volume_text");
 	this->raycasting.addUniform("transfer_function_text");
-	this->raycasting.addUniform("scattering_coeff");
-	this->raycasting.addUniform("extinction_coeff");
 	this->raycasting.disable();
 
 	this->lightcube.enable();
@@ -338,6 +328,8 @@ void volume_render::init_shaders()
 	this->lightcube.addUniform("model_matrix");
 	this->lightcube.addUniform("axis");
 	this->lightcube.addUniform("start_texture");
+	this->lightcube.addUniform("alpha_0");
+	this->lightcube.addUniform("alpha_1");
 	this->lightcube.addUniform("position");
 	this->lightcube.addUniform("transfer_function_text");
 	this->lightcube.addUniform("volume_text");
@@ -379,11 +371,7 @@ bool volume_render::click_volume(double x, double y, glm::mat4 &projection, glm:
 			this->volume_interface->translation = this->volumes[this->index_select]->translation;
 			this->volume_interface->rotation = this->volumes[this->index_select]->rotation;
 			this->volume_interface->scale = this->volumes[this->index_select]->escalation;
-			this->volume_interface->asymmetry_param_g = this->volumes[this->index_select]->asymmetry_param_g;
-			this->volume_interface->radius = this->volumes[this->index_select]->radius;
 			this->volume_interface->back_radiance = this->volumes[this->index_select]->back_radiance;
-			this->volume_interface->scattering_coeff = this->volumes[this->index_select]->scattering_coeff;
-			this->volume_interface->extinction_coeff = this->volumes[this->index_select]->extinction_coeff;
 			this->visible_interface = true;
 
 			return true;
@@ -464,7 +452,7 @@ std::vector<glm::vec4> volume_render::calculate_dir_max(glm::vec3 light_pos, glm
 {
 	face actual;
 	std::vector<face> faces;
-	unsigned int f_0, f_1, axis;
+	unsigned int f_0, f_1;
 	glm::mat3 normal_matrix;
 	std::vector<glm::vec3> center_cube_faces, normals_cube_faces, dir_max;
 	std::vector<glm::vec4> return_values;
@@ -665,7 +653,7 @@ void volume_render::render_light_cube(glm::mat4 &MVP, glm::mat4 &model, glm::vec
 	glm::vec4 position_sign;
 	std::vector<glm::vec4> dir_max;
 	glm::vec3 ray_step, position, volume_center;
-	float distance, lenght_in_out, step_size, texture_step, start_texture, alpha_zero, alpha_one;
+	float lenght_in_out, step_size, texture_step, start_texture, alpha_zero, alpha_one;
 	glm::mat4 projection_ortho, view_ortho, view_proj_ortho_light;
 	
 	
@@ -713,11 +701,14 @@ void volume_render::render_light_cube(glm::mat4 &MVP, glm::mat4 &model, glm::vec
 
 			glUniformMatrix4fv(this->lightcube.getLocation("MVP"), 1, GL_FALSE, glm::value_ptr(view_proj_ortho_light * model));
 			glUniformMatrix4fv(this->lightcube.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model));
-			glUniform1i(this->lightcube.getLocation("axis"), dir_max[f].w);
+			glUniform1i(this->lightcube.getLocation("axis"), (GLint)dir_max[f].w);
 			glUniform1f(this->lightcube.getLocation("start_texture"), start_texture);
+			glUniform1f(this->lightcube.getLocation("alpha_0"), alpha_zero);
+			glUniform1f(this->lightcube.getLocation("alpha_1"), alpha_one);
 			glUniform3fv(this->lightcube.getLocation("position"), 1, &position[0]);
 			glUniform1f(this->lightcube.getLocation("iteration"), i);
 			glUniform1i(this->lightcube.getLocation("actual_texture"), actual_texture);
+			glUniform1i(this->lightcube.getLocation("direction"), f);
 			glUniform3fv(this->lightcube.getLocation("light_pos"), 1, glm::value_ptr(scene_lights->translation));
 			glUniform3fv(this->lightcube.getLocation("normal"), 1, glm::value_ptr(-glm::vec3(dir_max[f].x, dir_max[f].y, dir_max[f].z)));
 			glUniform3iv(this->lightcube.getLocation("volume_size"), 1, glm::value_ptr(glm::ivec3(this->volumes[this->index_select]->width, this->volumes[this->index_select]->height, this->volumes[this->index_select]->depth)));
@@ -737,8 +728,9 @@ void volume_render::render_light_cube(glm::mat4 &MVP, glm::mat4 &model, glm::vec
 					glBindTexture(GL_TEXTURE_2D, this->volumes[this->index_select]->render_texture);
 				glUniform1i(this->lightcube.getLocation("previous_text"), 2);
 			}
-			glBindImageTexture(4, this->volumes[this->index_select]->light_volume_text, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
-
+			
+			glBindImageTexture(4, this->volumes[this->index_select]->light_volume_text, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
+			
 			glBindVertexArray(this->volumes[this->index_select]->texture_vao);
 			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 			glBindVertexArray(0);
@@ -749,71 +741,6 @@ void volume_render::render_light_cube(glm::mat4 &MVP, glm::mat4 &model, glm::vec
 		}
 		this->lightcube.disable();
 	}
-
-	/*for (size_t f = 0; f < dir_max.size(); f++)
-	{
-		step_size = this->volumes[this->index_select]->step_light_volume[f];
-		position_sign = this->get_position(this->volumes[this->index_select]->current_index[f]);
-		ray_step = glm::vec3(dir_max[f].x, dir_max[f].y, dir_max[f].z) * step_size * position_sign.w;
-		texture_step = step_size * position_sign.w;
-		position = glm::vec3(position_sign.x, position_sign.y, position_sign.z);
-
-		if (position_sign.w == -1.0f)
-			start_texture = 1.0f;
-		else
-			start_texture = 0.0f;
-
-		this->lightcube.enable();
-		lenght_in_out = glm::length(glm::vec3(dir_max[f].x, dir_max[f].y, dir_max[f].z));
-		for (float i = 0.0f; i < lenght_in_out; i += step_size)
-		{
-			if (actual_texture == 1)
-				actual_texture = 0;
-			else
-				actual_texture = 1;
-
-			glBindFramebuffer(GL_FRAMEBUFFER, this->volumes[this->index_select]->volume_buffer[actual_texture]);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-			glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-
-			glUniformMatrix4fv(this->lightcube.getLocation("MVP"), 1, GL_FALSE, glm::value_ptr(view_proj_ortho_light * model));
-			glUniformMatrix4fv(this->lightcube.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model));
-			glUniform1i(this->lightcube.getLocation("axis"), dir_max[f].w);
-			glUniform1f(this->lightcube.getLocation("start_texture"), start_texture);
-			glUniform3fv(this->lightcube.getLocation("position"), 1, &position[0]);
-			glUniform1f(this->lightcube.getLocation("iteration"), i);
-			glUniform1i(this->lightcube.getLocation("actual_texture"), actual_texture);
-			glUniform3fv(this->lightcube.getLocation("light_pos"), 1, glm::value_ptr(scene_lights->translation));
-			glUniform3fv(this->lightcube.getLocation("normal"), 1, glm::value_ptr(-glm::vec3(dir_max[f].x, dir_max[f].y, dir_max[f].z)));
-			glUniform3iv(this->lightcube.getLocation("volume_size"), 1, glm::value_ptr(glm::ivec3(this->volumes[this->index_select]->width, this->volumes[this->index_select]->height, this->volumes[this->index_select]->depth)));
-			glUniformMatrix4fv(this->lightcube.getLocation("vp_matrix"), 1, GL_FALSE, glm::value_ptr(view_proj_ortho_light));
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_1D, this->transfer_function_text);
-			glUniform1i(this->lightcube.getLocation("transfer_function_text"), 0);
-			glActiveTexture(GL_TEXTURE1);
-			glBindTexture(GL_TEXTURE_3D, this->volumes[this->index_select]->volume_text);
-			glUniform1i(this->lightcube.getLocation("volume_text"), 1);
-			if (i > 0.0f)
-			{
-				glActiveTexture(GL_TEXTURE2);
-				if (actual_texture == 0)
-					glBindTexture(GL_TEXTURE_2D, this->volumes[this->index_select]->previous_texture);
-				else
-					glBindTexture(GL_TEXTURE_2D, this->volumes[this->index_select]->render_texture);
-				glUniform1i(this->lightcube.getLocation("previous_text"), 2);
-			}
-			glBindImageTexture(4, this->volumes[this->index_select]->light_volume_text, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
-
-			glBindVertexArray(this->volumes[this->index_select]->texture_vao);
-			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-			glBindVertexArray(0);
-
-			position += ray_step;
-			start_texture += texture_step;
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		}
-		this->lightcube.disable();
-	}*/
 
 	glDisable(GL_BLEND);
 }
@@ -830,20 +757,19 @@ void volume_render::render_cube_raycast(glm::mat4 &MVP, glm::mat4 &model, glm::v
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_3D, this->volumes[this->index_select]->volume_text);
 	glUniform1i(this->raycasting.getLocation("volume_text"), 2);
+	glActiveTexture(GL_TEXTURE3);
+	glBindTexture(GL_TEXTURE_3D, this->volumes[this->index_select]->light_volume_text);
+	glUniform1i(this->raycasting.getLocation("light_volume_text"), 3);
 	glUniform2f(this->raycasting.getLocation("screen_size"), (GLfloat)this->g_width, (GLfloat)this->g_height);
 	glUniform1f(this->raycasting.getLocation("step_size"), this->volumes[this->index_select]->step);
 	glUniformMatrix4fv(this->raycasting.getLocation("MVP"), 1, GL_FALSE, glm::value_ptr(MVP));
 	glUniformMatrix4fv(this->raycasting.getLocation("model"), 1, GL_FALSE, glm::value_ptr(model));
 	glUniform3fv(this->raycasting.getLocation("camera_pos"), 1, &view_pos[0]);
-	glUniform1f(this->raycasting.getLocation("radius"), this->volumes[this->index_select]->radius);
-	glUniform1f(this->raycasting.getLocation("asymmetry_param_g"), this->volumes[this->index_select]->asymmetry_param_g);
 	glUniform4fv(this->raycasting.getLocation("back_radiance"), 1, &this->volumes[this->index_select]->back_radiance[0]);
 	glUniform3fv(this->raycasting.getLocation("light_pos"), 1, glm::value_ptr(scene_lights->translation));
 	glUniform3fv(this->raycasting.getLocation("ambient_comp"), 1, glm::value_ptr(scene_lights->ambient_comp));
 	glUniform3fv(this->raycasting.getLocation("diffuse_comp"), 1, glm::value_ptr(scene_lights->diffuse_comp));
 	glUniform3fv(this->raycasting.getLocation("specular_comp"), 1, glm::value_ptr(scene_lights->specular_comp));
-	glUniform3fv(this->raycasting.getLocation("scattering_coeff"), 1, &this->volumes[this->index_select]->scattering_coeff[0]);
-	glUniform3fv(this->raycasting.getLocation("extinction_coeff"), 1, &this->volumes[this->index_select]->extinction_coeff[0]);
 	glUniform1i(this->raycasting.getLocation("lighting"), (GLint)(scene_lights->on));
 	this->unitary_cube->display();
 	this->raycasting.disable();
@@ -949,31 +875,11 @@ void volume_render::update_interface()
 			else
 				this->volume_interface->scale = this->volumes[this->index_select]->escalation;
 		}
-		if (this->volumes[this->index_select]->asymmetry_param_g != this->volume_interface->asymmetry_param_g)
-		{
-			this->volumes[this->index_select]->asymmetry_param_g = this->volume_interface->asymmetry_param_g;
-			this->volumes[this->index_select]->change_values = true;
-		}
-		if (this->volumes[this->index_select]->radius != this->volume_interface->radius)
-		{
-			this->volumes[this->index_select]->radius = this->volume_interface->radius;
-			this->volumes[this->index_select]->change_values = true;
-		}
 		if (this->volumes[this->index_select]->back_radiance != this->volume_interface->back_radiance)
 		{
 			this->volumes[this->index_select]->back_radiance = this->volume_interface->back_radiance;
 			this->volumes[this->index_select]->change_values = true;
 		}	
-		if (this->volumes[this->index_select]->scattering_coeff != this->volume_interface->scattering_coeff)
-		{
-			this->volumes[this->index_select]->scattering_coeff = this->volume_interface->scattering_coeff;
-			this->volumes[this->index_select]->change_values = true;
-		}
-		if (this->volumes[this->index_select]->extinction_coeff != this->volume_interface->extinction_coeff)
-		{
-			this->volumes[this->index_select]->extinction_coeff = this->volume_interface->extinction_coeff;
-			this->volumes[this->index_select]->change_values = true;
-		}
 	}
 }
 

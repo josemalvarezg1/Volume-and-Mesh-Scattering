@@ -86,7 +86,7 @@ void interface_menu::update_position()
 	int window_position[2];
 
 	window_position[0] = 20;
-	window_position[1] = 440;
+	window_position[1] = 290;
 	TwSetParam(this->menu_interface, NULL, "position", TW_PARAM_INT32, 2, window_position);
 }
 
