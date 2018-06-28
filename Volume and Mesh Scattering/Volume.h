@@ -57,7 +57,7 @@ public:
 	GLuint frame_buffer, backface_text, transfer_function_text;
 	cube *unitary_cube;
 	std::vector<volume*> volumes;
-	bool press_volume_right, press_volume_left;
+	bool press_volume_right, press_volume_left, change_values;
 	double x_reference, y_reference;
 	interface_volume *volume_interface;
 	bool visible_interface;	

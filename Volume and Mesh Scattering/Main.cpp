@@ -105,6 +105,7 @@ void update_interface_menu()
 				volumes->volumes[0]->rotation = glm::quat(0.7f, -0.7f, 0.0f, 0.0f);
 				break;
 		}
+		volumes->change_values = true;
 		scene_light->not_click_light();
 		volumes->volume_interface->show();
 		scene_model->not_click_model();
@@ -380,7 +381,7 @@ bool init_glfw()
 	if (!glfwInit())
 		return false;
 
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
 	glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);

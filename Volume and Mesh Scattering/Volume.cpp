@@ -220,6 +220,7 @@ volume_render::volume_render(int g_width, int g_height)
 	this->index_select = -1;
 	this->press_volume_right = false;
 	this->press_volume_left = false;
+	this->change_values = true;
 	glGenTextures(1, &this->transfer_function_text);
 	glGenTextures(1, &this->backface_text);
 	glGenFramebuffers(1, &this->frame_buffer);
@@ -660,88 +661,92 @@ void volume_render::render_light_cube(glm::mat4 &MVP, glm::mat4 &model, glm::vec
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 
-	actual_texture = 1;
-	dir_max = calculate_dir_max(scene_lights->translation, model);
-	projection_ortho = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.01f, 40.0f);
-	volume_center = glm::vec3(model * glm::vec4(glm::vec3(0.0f), 1.0f));
-	view_ortho = glm::lookAt(scene_lights->translation, volume_center, glm::vec3(0.0f, 1.0f, 0.0f));
-	view_proj_ortho_light = projection_ortho * view_ortho;
-	
-	this->volumes[this->index_select]->cos_beta = (glm::dot(glm::vec3(dir_max[0]), glm::normalize(scene_lights->translation - volume_center))) / (glm::length(glm::vec3(dir_max[0])) * glm::length(scene_lights->translation - volume_center));
-	this->volumes[this->index_select]->cos_gamma = (glm::dot(glm::vec3(dir_max[1]), glm::normalize(scene_lights->translation - volume_center))) / (glm::length(glm::vec3(dir_max[1])) * glm::length(scene_lights->translation - volume_center));
-
-	alpha_zero = 1.0f - ((2.0f * glm::acos(this->volumes[this->index_select]->cos_beta)) / glm::pi<float>());
-	alpha_one = 1.0f - ((2.0f * glm::acos(this->volumes[this->index_select]->cos_gamma)) / glm::pi<float>());
-
-	for (size_t f = 0; f < dir_max.size(); f++)
+	if (this->change_values)
 	{
-		step_size = this->volumes[this->index_select]->step_light_volume[f];
-		position_sign = this->get_position(this->volumes[this->index_select]->current_index[f]);
-		ray_step = glm::vec3(dir_max[f]) * step_size * position_sign.w;
-		texture_step = step_size * position_sign.w;
-		position = glm::vec3(position_sign.x, position_sign.y, position_sign.z);
+		actual_texture = 1;
+		dir_max = calculate_dir_max(scene_lights->translation, model);
+		projection_ortho = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.01f, 40.0f);
+		volume_center = glm::vec3(model * glm::vec4(glm::vec3(0.0f), 1.0f));
+		view_ortho = glm::lookAt(scene_lights->translation, volume_center, glm::vec3(0.0f, 1.0f, 0.0f));
+		view_proj_ortho_light = projection_ortho * view_ortho;
 
-		if (position_sign.w == -1.0f)
-			start_texture = 1.0f;
-		else
-			start_texture = 0.0f;
+		this->volumes[this->index_select]->cos_beta = (glm::dot(glm::vec3(dir_max[0]), glm::normalize(scene_lights->translation - volume_center))) / (glm::length(glm::vec3(dir_max[0])) * glm::length(scene_lights->translation - volume_center));
+		this->volumes[this->index_select]->cos_gamma = (glm::dot(glm::vec3(dir_max[1]), glm::normalize(scene_lights->translation - volume_center))) / (glm::length(glm::vec3(dir_max[1])) * glm::length(scene_lights->translation - volume_center));
 
-		this->lightcube.enable();
-		lenght_in_out = glm::length(glm::vec3(dir_max[f]));
-		for (float i = 0.0f; i < lenght_in_out; i += step_size)
+		alpha_zero = 1.0f - ((2.0f * glm::acos(this->volumes[this->index_select]->cos_beta)) / glm::pi<float>());
+		alpha_one = 1.0f - ((2.0f * glm::acos(this->volumes[this->index_select]->cos_gamma)) / glm::pi<float>());
+
+		for (size_t f = 0; f < dir_max.size(); f++)
 		{
-			if (actual_texture == 1)
-				actual_texture = 0;
+			step_size = this->volumes[this->index_select]->step_light_volume[f];
+			position_sign = this->get_position(this->volumes[this->index_select]->current_index[f]);
+			ray_step = glm::vec3(dir_max[f]) * step_size * position_sign.w;
+			texture_step = step_size * position_sign.w;
+			position = glm::vec3(position_sign.x, position_sign.y, position_sign.z);
+
+			if (position_sign.w == -1.0f)
+				start_texture = 1.0f;
 			else
-				actual_texture = 1;
+				start_texture = 0.0f;
 
-			glBindFramebuffer(GL_FRAMEBUFFER, this->volumes[this->index_select]->volume_buffer[actual_texture]);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-			glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-
-			glUniformMatrix4fv(this->lightcube.getLocation("MVP"), 1, GL_FALSE, glm::value_ptr(view_proj_ortho_light * model));
-			glUniformMatrix4fv(this->lightcube.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model));
-			glUniform1i(this->lightcube.getLocation("axis"), (GLint)dir_max[f].w);
-			glUniform1f(this->lightcube.getLocation("start_texture"), start_texture);
-			glUniform1f(this->lightcube.getLocation("alpha_0"), alpha_zero);
-			glUniform1f(this->lightcube.getLocation("alpha_1"), alpha_one);
-			glUniform3fv(this->lightcube.getLocation("position"), 1, &position[0]);
-			glUniform1f(this->lightcube.getLocation("iteration"), i);
-			glUniform1i(this->lightcube.getLocation("actual_texture"), actual_texture);
-			glUniform1i(this->lightcube.getLocation("direction"), f);
-			glUniform3fv(this->lightcube.getLocation("light_pos"), 1, glm::value_ptr(scene_lights->translation));
-			glUniform3fv(this->lightcube.getLocation("normal"), 1, glm::value_ptr(-glm::vec3(dir_max[f].x, dir_max[f].y, dir_max[f].z)));
-			glUniform3iv(this->lightcube.getLocation("volume_size"), 1, glm::value_ptr(glm::ivec3(this->volumes[this->index_select]->width, this->volumes[this->index_select]->height, this->volumes[this->index_select]->depth)));
-			glUniformMatrix4fv(this->lightcube.getLocation("vp_matrix"), 1, GL_FALSE, glm::value_ptr(view_proj_ortho_light));
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_1D, this->transfer_function_text);
-			glUniform1i(this->lightcube.getLocation("transfer_function_text"), 0);
-			glActiveTexture(GL_TEXTURE1);
-			glBindTexture(GL_TEXTURE_3D, this->volumes[this->index_select]->volume_text);
-			glUniform1i(this->lightcube.getLocation("volume_text"), 1);
-			if (i > 0.0f)
+			this->lightcube.enable();
+			lenght_in_out = glm::length(glm::vec3(dir_max[f]));
+			for (float i = 0.0f; i < lenght_in_out; i += step_size)
 			{
-				glActiveTexture(GL_TEXTURE2);
-				if (actual_texture == 0)
-					glBindTexture(GL_TEXTURE_2D, this->volumes[this->index_select]->previous_texture);
+				if (actual_texture == 1)
+					actual_texture = 0;
 				else
-					glBindTexture(GL_TEXTURE_2D, this->volumes[this->index_select]->render_texture);
-				glUniform1i(this->lightcube.getLocation("previous_text"), 2);
+					actual_texture = 1;
+
+				glBindFramebuffer(GL_FRAMEBUFFER, this->volumes[this->index_select]->volume_buffer[actual_texture]);
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+				glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+
+				glUniformMatrix4fv(this->lightcube.getLocation("MVP"), 1, GL_FALSE, glm::value_ptr(view_proj_ortho_light * model));
+				glUniformMatrix4fv(this->lightcube.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model));
+				glUniform1i(this->lightcube.getLocation("axis"), (GLint)dir_max[f].w);
+				glUniform1f(this->lightcube.getLocation("start_texture"), start_texture);
+				glUniform1f(this->lightcube.getLocation("alpha_0"), alpha_zero);
+				glUniform1f(this->lightcube.getLocation("alpha_1"), alpha_one);
+				glUniform3fv(this->lightcube.getLocation("position"), 1, &position[0]);
+				glUniform1f(this->lightcube.getLocation("iteration"), i);
+				glUniform1i(this->lightcube.getLocation("actual_texture"), actual_texture);
+				glUniform1i(this->lightcube.getLocation("direction"), f);
+				glUniform3fv(this->lightcube.getLocation("light_pos"), 1, glm::value_ptr(scene_lights->translation));
+				glUniform3fv(this->lightcube.getLocation("normal"), 1, glm::value_ptr(-glm::vec3(dir_max[f].x, dir_max[f].y, dir_max[f].z)));
+				glUniform3iv(this->lightcube.getLocation("volume_size"), 1, glm::value_ptr(glm::ivec3(this->volumes[this->index_select]->width, this->volumes[this->index_select]->height, this->volumes[this->index_select]->depth)));
+				glUniformMatrix4fv(this->lightcube.getLocation("vp_matrix"), 1, GL_FALSE, glm::value_ptr(view_proj_ortho_light));
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_1D, this->transfer_function_text);
+				glUniform1i(this->lightcube.getLocation("transfer_function_text"), 0);
+				glActiveTexture(GL_TEXTURE1);
+				glBindTexture(GL_TEXTURE_3D, this->volumes[this->index_select]->volume_text);
+				glUniform1i(this->lightcube.getLocation("volume_text"), 1);
+				if (i > 0.0f)
+				{
+					glActiveTexture(GL_TEXTURE2);
+					if (actual_texture == 0)
+						glBindTexture(GL_TEXTURE_2D, this->volumes[this->index_select]->previous_texture);
+					else
+						glBindTexture(GL_TEXTURE_2D, this->volumes[this->index_select]->render_texture);
+					glUniform1i(this->lightcube.getLocation("previous_text"), 2);
+				}
+
+				glBindImageTexture(4, this->volumes[this->index_select]->light_volume_text, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA16F);
+
+				glBindVertexArray(this->volumes[this->index_select]->texture_vao);
+				glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+				glBindVertexArray(0);
+
+				position += ray_step;
+				start_texture += texture_step;
+				glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			}
-			
-			glBindImageTexture(4, this->volumes[this->index_select]->light_volume_text, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
-			
-			glBindVertexArray(this->volumes[this->index_select]->texture_vao);
-			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-			glBindVertexArray(0);
-
-			position += ray_step;
-			start_texture += texture_step;
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			this->lightcube.disable();
 		}
-		this->lightcube.disable();
+		this->change_values = false;
 	}
-
+	
 	glDisable(GL_BLEND);
 }
 
@@ -839,6 +844,7 @@ void volume_render::update_interface()
 			model_mat = glm::translate(model_mat, this->volume_interface->translation);
 			model_mat = model_mat * glm::toMat4(this->volumes[this->index_select]->rotation);
 			model_mat = glm::scale(model_mat, glm::vec3(this->volumes[this->index_select]->escalation));
+			this->change_values = true;
 			if (this->no_collision(model_mat))
 			{
 				this->volumes[this->index_select]->translation = this->volume_interface->translation;
@@ -853,6 +859,7 @@ void volume_render::update_interface()
 			model_mat = glm::translate(model_mat, this->volumes[this->index_select]->translation);
 			model_mat = model_mat * glm::toMat4(this->volume_interface->rotation);
 			model_mat = glm::scale(model_mat, glm::vec3(this->volumes[this->index_select]->escalation));
+			this->change_values = true;
 			if (this->no_collision(model_mat))
 			{
 				this->volumes[this->index_select]->rotation = this->volume_interface->rotation;
@@ -867,6 +874,7 @@ void volume_render::update_interface()
 			model_mat = glm::translate(model_mat, this->volumes[this->index_select]->translation);
 			model_mat = model_mat * glm::toMat4(this->volumes[this->index_select]->rotation);
 			model_mat = glm::scale(model_mat, glm::vec3(this->volume_interface->scale));
+			this->change_values = true;
 			if (this->no_collision(model_mat))
 			{
 				this->volumes[this->index_select]->escalation = this->volume_interface->scale;
@@ -877,6 +885,7 @@ void volume_render::update_interface()
 		}
 		if (this->volumes[this->index_select]->back_radiance != this->volume_interface->back_radiance)
 		{
+			this->change_values = true;
 			this->volumes[this->index_select]->back_radiance = this->volume_interface->back_radiance;
 			this->volumes[this->index_select]->change_values = true;
 		}	

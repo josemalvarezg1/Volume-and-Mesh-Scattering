@@ -1,4 +1,4 @@
-#version 420
+#version 430
 
 layout(location = 0) out vec4 out_color;
 
@@ -40,8 +40,10 @@ void main()
 
 	if (iteration == 0.0f)
 	{
-		color.rgb = (1.0f - actual_color.a) + actual_color.a * actual_color.rgb;
-		color.a = (1.0f - actual_color.a) + actual_color.a;
+		/*color.rgb = (1.0f - actual_color.a) + actual_color.a * actual_color.rgb;
+		color.a = (1.0f - actual_color.a) + actual_color.a;*/
+		color.rgb = actual_color.rgb;
+		color.a = actual_color.a;
 	}
 	else
 	{
