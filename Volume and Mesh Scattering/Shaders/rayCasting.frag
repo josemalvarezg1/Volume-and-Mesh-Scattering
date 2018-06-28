@@ -65,7 +65,7 @@ vec4 ray_casting(vec3 direction, float lenght_in_out)
 		density = texture(volume_text, position).x;
 		light_color = texture(light_volume_text, position).rgba;
 		//actual_color = texture(transfer_function_text, density) * vec4(light_color.rgb, 1.0f) * light_color.a;
-		actual_color = vec4(light_color.rgb, 1.0f) * light_color.a;
+		actual_color = texture(transfer_function_text, density) * vec4(light_color.rgb, 1.0f) * light_color.a;
 		//actual_color = texture(transfer_function_text, density);
 		if (lighting)
 			actual_color = illuminate(position, actual_color);

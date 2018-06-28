@@ -126,6 +126,11 @@ volume::volume(std::string path, GLuint width, GLuint height, GLuint depth, GLui
 
 			
 			glBindTexture(GL_TEXTURE_3D, this->light_volume_text);
+			glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+			glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+			glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_REPEAT);
 			glTexStorage3D(GL_TEXTURE_3D, 1, GL_RGBA16F, this->width, this->height, this->depth);
 			glBindTexture(GL_TEXTURE_3D, 0);
 
@@ -621,6 +626,7 @@ void volume_render::update_transfer_function(std::vector<double> points)
 		}
 	}
 	this->load_transfer_func_t(trans_funct_aux);
+	this->change_values = true;
 }
 
 void volume_render::create_backface_text()

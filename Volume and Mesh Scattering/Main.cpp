@@ -340,6 +340,7 @@ void pos_cursor(GLFWwindow* window, double x, double y)
 	if (transfer_funtion->poscursor_transfer_f(x, y, g_width, g_height))
 	{
 		volumes->update_transfer_function(transfer_funtion->get_color_points());
+
 		return;
 	}
 	/*if (volumes->poscursorVolume(x, y))
