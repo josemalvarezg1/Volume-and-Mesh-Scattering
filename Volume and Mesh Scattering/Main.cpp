@@ -28,6 +28,9 @@ CGLSLProgram glsl_g_buffer, glsl_g_buffer_plane, glsl_scattered_map, glsl_blendi
 int selected_model = -1;
 GLuint quad_vao, quad_vbo;
 
+GLfloat currenttime = 0.0f, timebase = 0.0f; GLint frame = 0;
+GLfloat lastFrame = 0.0f;
+
 void update_interface_menu()
 {
 	if (selecting_volume)
@@ -382,7 +385,7 @@ bool init_glfw()
 	if (!glfwInit())
 		return false;
 
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
 	glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
@@ -632,6 +635,16 @@ bool init_scene()
 
 void display()
 {
+	GLfloat currentFrame = glfwGetTime();
+	currenttime = currentFrame;
+	frame++;
+	if (currenttime - timebase >= 1) {
+		printf_s("FPS: %4.2f \n", frame / (currenttime - timebase));
+		timebase = currenttime;
+		frame = 0;
+	}
+	lastFrame = currentFrame;
+
 	glEnable(GL_DEPTH_TEST);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glm::mat4 projection_ortho, view_ortho, view_proj_ortho_light, view_proj_ortho_random, model_mat;
@@ -838,6 +851,8 @@ void display()
 
 	glDisable(GL_DEPTH_TEST);
 
+	if (change_light)
+		volumes->change_values = true;
 	volumes->display(projection, view, scene_camera->position, scene_light);
 	transfer_funtion->display();
 
