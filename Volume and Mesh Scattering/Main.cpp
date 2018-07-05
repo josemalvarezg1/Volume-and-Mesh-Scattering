@@ -1,5 +1,5 @@
 #include "Main.h"
-#define INITIAL_NUM_OF_CAMERAS 8
+#define INITIAL_NUM_OF_CAMERAS 2
 
 GLFWwindow *g_window;
 int g_width, g_height;
@@ -385,7 +385,7 @@ bool init_glfw()
 	if (!glfwInit())
 		return false;
 
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
 	glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
@@ -635,16 +635,6 @@ bool init_scene()
 
 void display()
 {
-	GLfloat currentFrame = glfwGetTime();
-	currenttime = currentFrame;
-	frame++;
-	if (currenttime - timebase >= 1) {
-		printf_s("FPS: %4.2f \n", frame / (currenttime - timebase));
-		timebase = currenttime;
-		frame = 0;
-	}
-	lastFrame = currentFrame;
-
 	glEnable(GL_DEPTH_TEST);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glm::mat4 projection_ortho, view_ortho, view_proj_ortho_light, view_proj_ortho_random, model_mat;
@@ -881,8 +871,8 @@ void display()
 	{
 		glsl_g_buffer_volume.enable();
 		model_mat = glm::mat4(1.0f);
-		model_mat = glm::translate(model_mat, glm::vec3(0.7, -0.8, -1.0));
-		model_mat = glm::scale(model_mat, glm::vec3(0.3f, 0.2f, 0.2f));
+		model_mat = glm::translate(model_mat, glm::vec3(0.7, -0.7, -1.0));
+		model_mat = glm::scale(model_mat, glm::vec3(0.3f));
 		glUniformMatrix4fv(glsl_g_buffer_volume.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
 		glUniform1i(glsl_g_buffer_volume.getLocation("quad_texture"), 0);
 		glActiveTexture(GL_TEXTURE0);

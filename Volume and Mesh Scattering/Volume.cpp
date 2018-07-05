@@ -120,8 +120,10 @@ volume::volume(std::string path, GLuint width, GLuint height, GLuint depth, GLui
 			glGenBuffers(1, &texture_vbo);
 
 			glGenFramebuffers(2, &this->volume_buffer[0]);
+			glGenFramebuffers(1, &this->texture_buffer);
 			glGenTextures(1, &this->render_texture);
 			glGenTextures(1, &this->previous_texture);
+			glGenTextures(1, &this->actual_texture);
 			glGenTextures(1, &this->light_volume_text);
 
 			
@@ -174,41 +176,58 @@ void volume::update_light_volume_textures(GLuint g_width, GLuint g_height)
 
 	glBindFramebuffer(GL_FRAMEBUFFER, this->volume_buffer[0]);
 	glBindTexture(GL_TEXTURE_2D, this->render_texture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, g_width, g_height, 0, GL_RGBA, GL_FLOAT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->render_texture, 0);
 	glDrawBuffers(1, attachments);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, this->volume_buffer[1]);
 	glBindTexture(GL_TEXTURE_2D, this->previous_texture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, g_width, g_height, 0, GL_RGBA, GL_FLOAT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->previous_texture, 0);
+	glDrawBuffers(1, attachments);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	// Casos dependiendo de Dir_Max
+	glBindFramebuffer(GL_FRAMEBUFFER, this->texture_buffer);
+	glBindTexture(GL_TEXTURE_2D, this->actual_texture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, this->width, this->height, 0, GL_RGBA, GL_FLOAT, NULL);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->actual_texture, 0);
 	glDrawBuffers(1, attachments);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void volume::create_quad_light_volume()
 {
-	GLfloat quad_data[] = {
-		-0.5f,  0.5f,  1.0f, 0.0f,
+	GLfloat quad_vertices[] =
+	{
+		-0.5f,  0.5f,  0.0f, 1.0f,
 		-0.5f, -0.5f,  0.0f, 0.0f,
 		0.5f,  0.5f,  1.0f, 1.0f,
-		0.5f, -0.5f,  0.0f, 1.0f,
+		0.5f, -0.5f,  1.0f, 0.0f,
 	};
-
+	glGenVertexArrays(1, &texture_vao);
+	glGenBuffers(1, &texture_vbo);
 	glBindVertexArray(texture_vao);
 	glBindBuffer(GL_ARRAY_BUFFER, texture_vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(quad_data), &quad_data, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(quad_vertices), &quad_vertices, GL_STATIC_DRAW);
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)0);
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)(2 * sizeof(GLfloat)));
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
 }
 
 volume::~volume()
@@ -299,10 +318,13 @@ void volume_render::init_shaders()
 	this->raycasting.loadShader("Shaders/rayCasting.frag", CGLSLProgram::FRAGMENT);
 	this->lightcube.loadShader("Shaders/lightCube.vert", CGLSLProgram::VERTEX);
 	this->lightcube.loadShader("Shaders/lightCube.frag", CGLSLProgram::FRAGMENT);
+	this->storagecube.loadShader("Shaders/storageCube.vert", CGLSLProgram::VERTEX);
+	this->storagecube.loadShader("Shaders/storageCube.frag", CGLSLProgram::FRAGMENT);
 
 	this->backface.create_link();
 	this->raycasting.create_link();
 	this->lightcube.create_link();
+	this->storagecube.create_link();
 
 	this->backface.enable();
 	this->backface.addAttribute("vertex_coords");
@@ -334,19 +356,30 @@ void volume_render::init_shaders()
 	this->lightcube.addUniform("model_matrix");
 	this->lightcube.addUniform("axis");
 	this->lightcube.addUniform("start_texture");
-	this->lightcube.addUniform("alpha_0");
-	this->lightcube.addUniform("alpha_1");
 	this->lightcube.addUniform("position");
 	this->lightcube.addUniform("transfer_function_text");
 	this->lightcube.addUniform("volume_text");
 	this->lightcube.addUniform("previous_text");
 	this->lightcube.addUniform("iteration");
-	this->lightcube.addUniform("actual_texture");
+	this->lightcube.addUniform("vp_matrix");
 	this->lightcube.addUniform("light_pos");
 	this->lightcube.addUniform("normal");
-	this->lightcube.addUniform("volume_size");
-	this->lightcube.addUniform("vp_matrix");
 	this->lightcube.disable();
+
+	this->storagecube.enable();
+	this->storagecube.addAttribute("vertex_coords");
+	this->storagecube.addAttribute("volume_coords");
+	this->storagecube.addUniform("model_matrix");
+	this->storagecube.addUniform("axis");
+	this->storagecube.addUniform("start_texture");
+	this->storagecube.addUniform("position");
+	this->storagecube.addUniform("actual_text");
+	this->storagecube.addUniform("vp_matrix");
+	this->storagecube.addUniform("alpha_0");
+	this->storagecube.addUniform("alpha_1");
+	this->storagecube.addUniform("volume_size");
+	this->storagecube.addUniform("vol_ilum");
+	this->storagecube.disable();
 }
 
 void volume_render::scroll_volume(double y_offset)
@@ -682,7 +715,7 @@ void volume_render::render_light_cube(glm::mat4 &MVP, glm::mat4 &model, glm::vec
 		alpha_zero = 1.0f - ((2.0f * glm::acos(this->volumes[this->index_select]->cos_beta)) / glm::pi<float>());
 		alpha_one = 1.0f - ((2.0f * glm::acos(this->volumes[this->index_select]->cos_gamma)) / glm::pi<float>());
 
-		for (size_t f = 0; f < dir_max.size(); f++)
+		for (size_t f = 0; f < 1; f++)
 		{
 			step_size = this->volumes[this->index_select]->step_light_volume[f];
 			position_sign = this->get_position(this->volumes[this->index_select]->current_index[f]);
@@ -695,7 +728,6 @@ void volume_render::render_light_cube(glm::mat4 &MVP, glm::mat4 &model, glm::vec
 			else
 				start_texture = 0.0f;
 
-			this->lightcube.enable();
 			lenght_in_out = glm::length(glm::vec3(dir_max[f]));
 			for (float i = 0.0f; i < lenght_in_out; i += step_size)
 			{
@@ -703,20 +735,19 @@ void volume_render::render_light_cube(glm::mat4 &MVP, glm::mat4 &model, glm::vec
 					actual_texture = 0;
 				else
 					actual_texture = 1;
-
+				
+				this->lightcube.enable();
+				
+				glViewport(0, 0, g_width, g_height);
 				glBindFramebuffer(GL_FRAMEBUFFER, this->volumes[this->index_select]->volume_buffer[actual_texture]);
-				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 				glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 				glUniformMatrix4fv(this->lightcube.getLocation("MVP"), 1, GL_FALSE, glm::value_ptr(view_proj_ortho_light * model));
 				glUniformMatrix4fv(this->lightcube.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model));
 				glUniform1i(this->lightcube.getLocation("axis"), (GLint)dir_max[f].w);
 				glUniform1f(this->lightcube.getLocation("start_texture"), start_texture);
-				glUniform1f(this->lightcube.getLocation("alpha_0"), alpha_zero);
-				glUniform1f(this->lightcube.getLocation("alpha_1"), alpha_one);
 				glUniform3fv(this->lightcube.getLocation("position"), 1, &position[0]);
 				glUniform1f(this->lightcube.getLocation("iteration"), i);
-				glUniform1i(this->lightcube.getLocation("actual_texture"), actual_texture);
 				glUniform1i(this->lightcube.getLocation("direction"), f);
 				glUniform3fv(this->lightcube.getLocation("light_pos"), 1, glm::value_ptr(scene_lights->translation));
 				glUniform3fv(this->lightcube.getLocation("normal"), 1, glm::value_ptr(-glm::vec3(dir_max[f].x, dir_max[f].y, dir_max[f].z)));
@@ -737,22 +768,61 @@ void volume_render::render_light_cube(glm::mat4 &MVP, glm::mat4 &model, glm::vec
 						glBindTexture(GL_TEXTURE_2D, this->volumes[this->index_select]->render_texture);
 					glUniform1i(this->lightcube.getLocation("previous_text"), 2);
 				}
-
-				glBindImageTexture(4, this->volumes[this->index_select]->light_volume_text, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA16F);
+				glActiveTexture(GL_TEXTURE3);
+				glBindImageTexture(3, this->volumes[this->index_select]->light_volume_text, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA16F);
 
 				glBindVertexArray(this->volumes[this->index_select]->texture_vao);
 				glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 				glBindVertexArray(0);
 
+				glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+				this->lightcube.disable();
+
+				glFlush();
+
+				this->storagecube.enable();
+				glViewport(0, 0, this->volumes[this->index_select]->width, this->volumes[this->index_select]->height);
+
+				glBindFramebuffer(GL_FRAMEBUFFER, this->volumes[this->index_select]->texture_buffer);
+				glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+				glUniformMatrix4fv(this->storagecube.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model));
+				glUniform1i(this->storagecube.getLocation("axis"), (GLint)dir_max[f].w);
+				glUniform1f(this->storagecube.getLocation("start_texture"), start_texture);
+				glUniform1f(this->storagecube.getLocation("alpha_0"), alpha_zero);
+				glUniform1f(this->storagecube.getLocation("alpha_1"), alpha_one);
+				glUniform3fv(this->storagecube.getLocation("position"), 1, &position[0]);
+				glUniform1i(this->storagecube.getLocation("dir_max"), f);
+				glUniform3iv(this->storagecube.getLocation("volume_size"), 1, glm::value_ptr(glm::ivec3(this->volumes[this->index_select]->width, this->volumes[this->index_select]->height, this->volumes[this->index_select]->depth)));
+				glUniformMatrix4fv(this->storagecube.getLocation("vp_matrix"), 1, GL_FALSE, glm::value_ptr(view_proj_ortho_light));
+				if (i > 0.0f)
+				{
+					glActiveTexture(GL_TEXTURE0);
+					if (actual_texture == 0)
+						glBindTexture(GL_TEXTURE_2D, this->volumes[this->index_select]->render_texture);
+					else
+						glBindTexture(GL_TEXTURE_2D, this->volumes[this->index_select]->previous_texture);
+					glUniform1i(this->storagecube.getLocation("actual_text"), 0);
+				}
+				glActiveTexture(GL_TEXTURE1);
+				glBindImageTexture(1, this->volumes[this->index_select]->light_volume_text, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+
+				glBindVertexArray(this->volumes[this->index_select]->texture_vao);
+				glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+				glBindVertexArray(0);
+
+				glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+				this->storagecube.disable();
+
 				position += ray_step;
 				start_texture += texture_step;
-				glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			}
-			this->lightcube.disable();
 		}
 		this->change_values = false;
 	}
-	
+	glViewport(0, 0, g_width, g_height);
 	glDisable(GL_BLEND);
 }
 

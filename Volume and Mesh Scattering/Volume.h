@@ -32,7 +32,7 @@ class volume
 {
 public:
 	std::string name;
-	GLuint width, height, depth, bits, volume_text, light_volume_text, volume_buffer[2], render_texture, previous_texture, texture_vao, texture_vbo;
+	GLuint width, height, depth, bits, volume_text, light_volume_text, volume_buffer[2], texture_buffer, render_texture, previous_texture, actual_texture, texture_vao, texture_vbo;
 	std::vector<GLuint> current_index;
 	glm::quat rotation;
 	glm::vec3 translation;
@@ -51,7 +51,7 @@ public:
 class volume_render
 {
 public:
-	CGLSLProgram backface, raycasting, lightcube;
+	CGLSLProgram backface, raycasting, lightcube, storagecube;
 	int g_width, g_height;
 	int index_select;
 	GLuint frame_buffer, backface_text, transfer_function_text;

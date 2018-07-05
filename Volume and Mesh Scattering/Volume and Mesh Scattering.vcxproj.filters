@@ -199,5 +199,11 @@
     <None Include="Shaders\gBufferVolume.frag">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="Shaders\storageCube.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\storageCube.vert">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>
