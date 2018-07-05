@@ -15,7 +15,6 @@ public:
 	glm::vec3 translation;
 	glm::quat rotation;
 	GLfloat scale;
-	glm::vec4 back_radiance;
 
 	static interface_volume * instance();
 	~interface_volume();

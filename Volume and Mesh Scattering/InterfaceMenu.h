@@ -6,12 +6,14 @@
 
 typedef enum { Scattered_Map, GBuffer_Light_Position, GBuffer_Light_Normal, GBuffer_Light_Depth } texture_t;
 typedef enum { Bunny, Hebe, Buddha, Dragon, Esfera } model_m;
-typedef enum { Bucky, Bonsai, Head } volume_v;
+typedef enum { Bucky, Bonsai, Engine } volume_v;
 
 void TW_CALL set_model_scattering(const void *value, void *clientData);
 void TW_CALL get_model_scattering(void *value, void *clientData);
 void TW_CALL set_volume_scattering(const void *value, void *clientData);
 void TW_CALL get_volume_scattering(void *value, void *clientData);
+void TW_CALL set_volume_gradient(const void *value, void *clientData);
+void TW_CALL get_volume_gradient(void *value, void *clientData);
 void TW_CALL set_model_center(const void *value, void *clientData);
 void TW_CALL get_model_center(void *value, void *clientData);
 void TW_CALL set_model_specular(const void *value, void *clientData);

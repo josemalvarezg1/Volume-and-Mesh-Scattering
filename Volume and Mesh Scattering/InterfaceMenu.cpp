@@ -1,7 +1,7 @@
 #include "InterfaceMenu.h"
 
 interface_menu * interface_menu::user_interface = NULL;
-extern bool scattering_model, scattering_volume, model_center, specular_flag;
+extern bool scattering_model, scattering_volume, model_center, specular_flag, gradient_volume;
 
 interface_menu * interface_menu::instance()
 {
@@ -26,7 +26,7 @@ interface_menu::interface_menu()
 	TwDefine("Menú position = '850 20'");
 	TwDefine("Menú valueswidth = 100 ");
 	TwDefine("Menú color = '42 148 100' alpha = 85");
-	TwDefine("Menú size = '300 230'");
+	TwDefine("Menú size = '300 250'");
 
 	{
 		TwEnumVal models[5] = { { Bunny, "Bunny" },{ Hebe, "Hebe" },{ Buddha, "Buddha" },{ Dragon, "Dragon" },{ Esfera, "Esfera" } };
@@ -47,11 +47,12 @@ interface_menu::interface_menu()
 
 	TwAddSeparator(this->menu_interface, NULL, "");
 	{
-		TwEnumVal models[3] = { { Bucky, "Futboleno" },{ Bonsai, "Bonsai" },{ Head, "Cabeza" } };
+		TwEnumVal models[3] = { { Bucky, "Futboleno" },{ Bonsai, "Bonsai" },{ Engine, "Motor" } };
 		TwType model = TwDefineEnum("volume", models, 3);
 		TwAddVarRW(this->menu_interface, "volume_v", model, &this->current_volume, "group='Volumen' label='Volumen'");
 	}
 	TwAddVarCB(this->menu_interface, "scattering_volume", TW_TYPE_BOOL32, set_volume_scattering, get_volume_scattering, NULL, " label='Scattering' group='Volumen'");
+	TwAddVarCB(this->menu_interface, "gradient_volume", TW_TYPE_BOOL32, set_volume_gradient, get_volume_gradient, NULL, " label='Gradientes' group='Volumen'");
 }
 
 interface_menu::~interface_menu()
@@ -125,6 +126,16 @@ void TW_CALL get_volume_scattering(void *value, void *clientData) {
 	(void)clientData;
 	*(int *)value = scattering_volume;
 }
+
+void TW_CALL set_volume_gradient(const void *value, void *clientData) {
+	gradient_volume = *(const int *)value;
+}
+
+void TW_CALL get_volume_gradient(void *value, void *clientData) {
+	(void)clientData;
+	*(int *)value = gradient_volume;
+}
+
 
 void TW_CALL set_model_center(const void *value, void *clientData) {
 	model_center = *(const int *)value;

@@ -1,7 +1,5 @@
 #include "Volume.h"
 
-//Faltan condiciones en render_light_cube
-
 std::vector<std::string> split(const std::string &s, char delim)
 {
 	std::stringstream ss(s);
@@ -86,7 +84,6 @@ volume::volume(std::string path, GLuint width, GLuint height, GLuint depth, GLui
 	this->rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
 	this->translation = glm::vec3(2.25f, 0.0f, 0.0f);
 	this->escalation = 4.0f;
-	this->back_radiance = glm::vec4(1.0f);
 	this->step = (GLfloat)(1.0f / sqrt((this->width * this->width) + (this->height * this->height) + (this->depth * this->depth)));
 	
 	this->bounding_box.push_back(glm::vec3(0.5f, 0.5f, 0.5f));
@@ -341,8 +338,8 @@ void volume_render::init_shaders()
 	this->raycasting.addUniform("step_size");
 	this->raycasting.addUniform("light_pos");
 	this->raycasting.addUniform("lighting");
+	this->raycasting.addUniform("scattering");
 	this->raycasting.addUniform("camera_pos");
-	this->raycasting.addUniform("back_radiance");
 	this->raycasting.addUniform("back_face_text");
 	this->raycasting.addUniform("volume_text");
 	this->raycasting.addUniform("light_volume_text");
@@ -379,6 +376,7 @@ void volume_render::init_shaders()
 	this->storagecube.addUniform("alpha_1");
 	this->storagecube.addUniform("volume_size");
 	this->storagecube.addUniform("vol_ilum");
+	this->storagecube.addUniform("dir_max");
 	this->storagecube.disable();
 }
 
@@ -410,7 +408,6 @@ bool volume_render::click_volume(double x, double y, glm::mat4 &projection, glm:
 			this->volume_interface->translation = this->volumes[this->index_select]->translation;
 			this->volume_interface->rotation = this->volumes[this->index_select]->rotation;
 			this->volume_interface->scale = this->volumes[this->index_select]->escalation;
-			this->volume_interface->back_radiance = this->volumes[this->index_select]->back_radiance;
 			this->visible_interface = true;
 
 			return true;
@@ -687,7 +684,7 @@ void volume_render::render_cube(glm::mat4 &MVP)
 	this->backface.disable();
 }
 
-void volume_render::render_light_cube(glm::mat4 &MVP, glm::mat4 &model, glm::vec3 view_pos, light* scene_lights, glm::mat4 view, interface_function *transfer_function)
+void volume_render::render_light_cube(glm::mat4 &MVP, glm::mat4 &model, glm::vec3 view_pos, light* scene_lights, glm::mat4 view, interface_function *transfer_function, bool scattering_volume)
 {
 	int actual_texture;
 	glm::vec4 position_sign;
@@ -700,7 +697,7 @@ void volume_render::render_light_cube(glm::mat4 &MVP, glm::mat4 &model, glm::vec
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 
-	if (this->change_values)
+	if (this->change_values && scattering_volume)
 	{
 		this->update_transfer_function(transfer_function->get_color_points());
 		actual_texture = 1;
@@ -716,7 +713,7 @@ void volume_render::render_light_cube(glm::mat4 &MVP, glm::mat4 &model, glm::vec
 		alpha_zero = 1.0f - ((2.0f * glm::acos(this->volumes[this->index_select]->cos_beta)) / glm::pi<float>());
 		alpha_one = 1.0f - ((2.0f * glm::acos(this->volumes[this->index_select]->cos_gamma)) / glm::pi<float>());
 
-		for (size_t f = 0; f < 1; f++)
+		for (size_t f = 0; f < 2; f++)
 		{
 			step_size = this->volumes[this->index_select]->step_light_volume[f];
 			position_sign = this->get_position(this->volumes[this->index_select]->current_index[f]);
@@ -805,7 +802,7 @@ void volume_render::render_light_cube(glm::mat4 &MVP, glm::mat4 &model, glm::vec
 					glUniform1i(this->storagecube.getLocation("actual_text"), 0);
 				}
 				glActiveTexture(GL_TEXTURE1);
-				glBindImageTexture(1, this->volumes[this->index_select]->light_volume_text, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+				glBindImageTexture(1, this->volumes[this->index_select]->light_volume_text, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA16F);
 
 				glBindVertexArray(this->volumes[this->index_select]->texture_vao);
 				glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -825,7 +822,7 @@ void volume_render::render_light_cube(glm::mat4 &MVP, glm::mat4 &model, glm::vec
 	glDisable(GL_BLEND);
 }
 
-void volume_render::render_cube_raycast(glm::mat4 &MVP, glm::mat4 &model, glm::vec3 view_pos, light* scene_lights, glm::mat4 view_projection)
+void volume_render::render_cube_raycast(glm::mat4 &MVP, glm::mat4 &model, glm::vec3 view_pos, light* scene_lights, glm::mat4 view_projection, bool scattering_volume, bool gradient_volume)
 {
 	this->raycasting.enable();
 	glActiveTexture(GL_TEXTURE0);
@@ -845,17 +842,17 @@ void volume_render::render_cube_raycast(glm::mat4 &MVP, glm::mat4 &model, glm::v
 	glUniformMatrix4fv(this->raycasting.getLocation("MVP"), 1, GL_FALSE, glm::value_ptr(MVP));
 	glUniformMatrix4fv(this->raycasting.getLocation("model"), 1, GL_FALSE, glm::value_ptr(model));
 	glUniform3fv(this->raycasting.getLocation("camera_pos"), 1, &view_pos[0]);
-	glUniform4fv(this->raycasting.getLocation("back_radiance"), 1, &this->volumes[this->index_select]->back_radiance[0]);
 	glUniform3fv(this->raycasting.getLocation("light_pos"), 1, glm::value_ptr(scene_lights->translation));
 	glUniform3fv(this->raycasting.getLocation("ambient_comp"), 1, glm::value_ptr(scene_lights->ambient_comp));
 	glUniform3fv(this->raycasting.getLocation("diffuse_comp"), 1, glm::value_ptr(scene_lights->diffuse_comp));
 	glUniform3fv(this->raycasting.getLocation("specular_comp"), 1, glm::value_ptr(scene_lights->specular_comp));
-	glUniform1i(this->raycasting.getLocation("lighting"), (GLint)(scene_lights->on));
+	glUniform1i(this->raycasting.getLocation("lighting"), gradient_volume);
+	glUniform1i(this->raycasting.getLocation("scattering"), scattering_volume);
 	this->unitary_cube->display();
 	this->raycasting.disable();
 }
 
-void volume_render::display(glm::mat4 &projection, glm::mat4 &view, glm::vec3 view_pos, light* scene_lights, interface_function *transfer_function)
+void volume_render::display(glm::mat4 &projection, glm::mat4 &view, glm::vec3 view_pos, light* scene_lights, interface_function *transfer_function, bool scattering_volume, bool gradient_volume)
 {
 	if (this->index_select != -1)
 	{
@@ -873,8 +870,8 @@ void volume_render::display(glm::mat4 &projection, glm::mat4 &view, glm::vec3 vi
 		glCullFace(GL_BACK);
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-		this->render_light_cube(MVP, model, view_pos, scene_lights, view, transfer_function);
-		this->render_cube_raycast(MVP, model, view_pos, scene_lights, projection * view);
+		this->render_light_cube(MVP, model, view_pos, scene_lights, view, transfer_function, scattering_volume);
+		this->render_cube_raycast(MVP, model, view_pos, scene_lights, projection * view, scattering_volume, gradient_volume);
 		glDisable(GL_BLEND);
 		glDisable(GL_DEPTH_TEST);
 		glDisable(GL_CULL_FACE);
@@ -958,12 +955,6 @@ void volume_render::update_interface()
 			else
 				this->volume_interface->scale = this->volumes[this->index_select]->escalation;
 		}
-		if (this->volumes[this->index_select]->back_radiance != this->volume_interface->back_radiance)
-		{
-			this->change_values = true;
-			this->volumes[this->index_select]->back_radiance = this->volume_interface->back_radiance;
-			this->volumes[this->index_select]->change_values = true;
-		}	
 	}
 }
 

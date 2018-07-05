@@ -10,7 +10,7 @@ uniform int num_of_lights;
 uniform vec3 light_pos;
 uniform bool lighting;
 uniform vec3 camera_pos;
-uniform vec4 back_radiance;
+uniform bool scattering;
 
 in vec3 in_coord;
 in vec3 frag_pos;
@@ -63,13 +63,16 @@ vec4 ray_casting(vec3 direction, float lenght_in_out)
 	for(i = 0.0f; i < lenght_in_out; i += step_size)
 	{
 		density = texture(volume_text, position).x;
-		light_color = texture(light_volume_text, position).rgba;
-		//actual_color = light_color;
-		actual_color = texture(transfer_function_text, density) * vec4(light_color.rgb, 1.0f) * light_color.a;
-		//actual_color = texture(transfer_function_text, density);
-		/*if (lighting)
-			actual_color = illuminate(position, actual_color);*/
-    	//actual_color.a = 1.0 - exp(-0.5 * actual_color.a);
+		if (scattering)
+		{
+			light_color = texture(light_volume_text, position).rgba;
+			actual_color = texture(transfer_function_text, density) * vec4(light_color.rgb, 1.0f) * light_color.a;
+		}
+		else
+			actual_color = texture(transfer_function_text, density);
+		if (lighting)
+			actual_color = illuminate(position, actual_color);
+    	actual_color.a = 1.0 - exp(-0.5 * actual_color.a);
     	accumulated_color.rgb += accumulated_color.a * actual_color.rgb * actual_color.a;
     	accumulated_color.a *= (1.0 - actual_color.a);
 		if (1.0 - accumulated_color.a > 0.95) break;

@@ -28,8 +28,6 @@ interface_volume::interface_volume()
 	TwAddVarRW(this->volume_interface, "Posición Y", TW_TYPE_FLOAT, &this->translation[1], "group = 'Transformaciones' step = 0.01");
 	TwAddVarRW(this->volume_interface, "Posición Z", TW_TYPE_FLOAT, &this->translation[2], "group = 'Transformaciones' step = 0.01");
 	TwAddVarRW(this->volume_interface, "Rotación", TW_TYPE_QUAT4F, &this->rotation, "group='Transformaciones' opened=true");
-
-	TwAddVarRW(this->volume_interface, "Resplandor de fondo", TW_TYPE_COLOR4F, &this->back_radiance, "group='Parámetros de Dispersión'");
 }
 
 interface_volume::~interface_volume()

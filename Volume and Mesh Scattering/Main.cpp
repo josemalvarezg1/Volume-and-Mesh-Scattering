@@ -1,12 +1,12 @@
 #include "Main.h"
-#define INITIAL_NUM_OF_CAMERAS 2
+#define INITIAL_NUM_OF_CAMERAS 6
 
 GLFWwindow *g_window;
 int g_width, g_height;
 GLuint num_of_ortho_cameras, num_of_samples_per_frag, selected_camera;
 GLfloat delta_time = 0.0f, last_frame = 0.0f, current_frame;
 GLdouble last_x = 600.0, last_y = 340.0;
-bool keys[1024], keys_pressed[1024], selecting_model = false, selecting_light = false, first_mouse = true, activate_camera = false, change_light = false, selecting_volume = false, scattering_model = true, scattering_volume = true, model_center = true, last_model_center = true, specular_flag = false;
+bool keys[1024], keys_pressed[1024], selecting_model = false, selecting_light = false, first_mouse = true, activate_camera = false, change_light = false, selecting_volume = false, scattering_model = true, scattering_volume = true, gradient_volume = false, model_center = true, last_model_center = true, specular_flag = false;
 scattered_map *scattered_maps;
 halton *halton_generator;
 glm::mat4 projection, view, model;
@@ -87,25 +87,24 @@ void update_interface_menu()
 		transfer_function->hide = true;
 		scene_model->change_values = true;
 	}
-	if (current_volume != scene_interface->current_volume) {
+	if (current_volume != scene_interface->current_volume)
+	{
 		current_volume = scene_interface->current_volume;
 		const char** paths = new const char*[1];
+		volumes->volumes[0]->~volume();
 		volumes->volumes.clear();
 		switch (current_volume) {
 			case Bucky:
 				paths[0] = "Models\\raw\\bucky_32x32x32_8.raw";
 				volumes->drop_path(1, paths, g_width, g_height);
-				volumes->volumes[0]->rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
 				break;
 			case Bonsai:
 				paths[0] = "Models\\raw\\bonsai_256x256x256_8.raw";
 				volumes->drop_path(1, paths, g_width, g_height);
-				volumes->volumes[0]->rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
 				break;
-			case Head:
-				paths[0] = "Models\\raw\\head_256x256x225_8.raw";
+			case Engine:
+				paths[0] = "Models\\raw\\engine_256x256x256_8.raw";
 				volumes->drop_path(1, paths, g_width, g_height);
-				volumes->volumes[0]->rotation = glm::quat(0.7f, -0.7f, 0.0f, 0.0f);
 				break;
 		}
 		volumes->change_values = true;
@@ -840,7 +839,7 @@ void display()
 
 	if (change_light)
 		volumes->change_values = true;
-	volumes->display(projection, view, scene_camera->position, scene_light, transfer_function);
+	volumes->display(projection, view, scene_camera->position, scene_light, transfer_function, scattering_volume, gradient_volume);
 	transfer_function->display();
 
 	if (!selecting_volume && scattering_model) 

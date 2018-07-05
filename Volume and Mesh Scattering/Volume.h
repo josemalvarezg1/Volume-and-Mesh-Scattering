@@ -40,7 +40,6 @@ public:
 	GLfloat escalation, step, cos_beta, cos_gamma;
 	std::vector<GLfloat> step_light_volume;
 	std::vector<glm::vec3> bounding_box;
-	glm::vec4 back_radiance;
 	bool change_values;
 
 	volume(std::string path, GLuint width, GLuint height, GLuint depth, GLuint bits, GLuint g_width, GLuint g_height);
@@ -82,9 +81,9 @@ public:
 	void create_backface_text();
 	bool create_frame_buffer();
 	void render_cube(glm::mat4 &MVP);
-	void render_light_cube(glm::mat4 &projection, glm::mat4 &model, glm::vec3 view_pos, light* scene_lights, glm::mat4 view, interface_function *transfer_function);
-	void render_cube_raycast(glm::mat4 &MVP, glm::mat4 &model, glm::vec3 view_pos, light* scene_lights, glm::mat4 view_projection);
-	void display(glm::mat4 &projection, glm::mat4 &view, glm::vec3 view_pos, light* scene_lights, interface_function *transfer_function);
+	void render_light_cube(glm::mat4 &projection, glm::mat4 &model, glm::vec3 view_pos, light* scene_lights, glm::mat4 view, interface_function *transfer_function, bool scattering_volume);
+	void render_cube_raycast(glm::mat4 &MVP, glm::mat4 &model, glm::vec3 view_pos, light* scene_lights, glm::mat4 view_projection, bool scattering_volume, bool gradient_volume);
+	void display(glm::mat4 &projection, glm::mat4 &view, glm::vec3 view_pos, light* scene_lights, interface_function *transfer_function, bool scattering_volume, bool gradient_volume);
 	void change_volume(int type);
 	void resize_screen(const glm::vec2 screen);
 	void update_interface();
