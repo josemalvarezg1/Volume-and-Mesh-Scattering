@@ -9,6 +9,7 @@ uniform float iteration;
 uniform vec3 light_pos;
 uniform vec3 normal;
 uniform mat4 vp_matrix;
+uniform ivec3 volume_size;
 
 
 in vec3 in_coord;
@@ -26,7 +27,7 @@ void main()
 {
 	float value;
 	vec3 ray_direction, intersection_point;
-	vec4 accumulated_color, actual_color, color, offset, I_0, I_1, S;
+	vec4 accumulated_color, actual_color, color, offset;
 	ivec3 size;
 	vec2 texel_size;
 
@@ -48,8 +49,15 @@ void main()
 		offset = vp_matrix * offset;
 		offset.xyz /= offset.w;
 		offset.xyz = offset.xyz * 0.5 + 0.5;
-		accumulated_color = texture(previous_text, offset.xy);
-		//Aplicar Kernel
+		for (int k = -1; k <= 1; k++) 
+		{
+			for (int j = -1; j <= 1; j++) 
+			{
+				texel_size = 1.0f / vec2(volume_size.x, volume_size.y);
+				accumulated_color += texture(previous_text, offset.xy + vec2(k, j) * texel_size);
+			}
+		}
+		accumulated_color /= 9;
 		color.rgb = (1.0f - actual_color.a) * accumulated_color.rgb + actual_color.a * actual_color.rgb;
 		color.a = (1.0f - actual_color.a) * accumulated_color.a + actual_color.a;
 	}

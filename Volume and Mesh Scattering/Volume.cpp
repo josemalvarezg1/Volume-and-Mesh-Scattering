@@ -361,6 +361,7 @@ void volume_render::init_shaders()
 	this->lightcube.addUniform("vp_matrix");
 	this->lightcube.addUniform("light_pos");
 	this->lightcube.addUniform("normal");
+	this->lightcube.addUniform("volume_size");
 	this->lightcube.disable();
 
 	this->storagecube.enable();
