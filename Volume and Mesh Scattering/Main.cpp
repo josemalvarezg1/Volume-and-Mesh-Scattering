@@ -21,7 +21,7 @@ mesh* scene_cornell;
 interface_menu *scene_interface;
 light_buffer *light_buffers;
 materials_set *materials;
-interface_function *transfer_funtion;
+interface_function *transfer_function;
 volume_render *volumes;
 
 CGLSLProgram glsl_g_buffer, glsl_g_buffer_plane, glsl_scattered_map, glsl_blending, glsl_phong, glsl_cornell, glsl_g_buffer_volume;
@@ -84,7 +84,7 @@ void update_interface_menu()
 		selecting_model = true;
 		selecting_light = false;
 		selecting_volume = false;
-		transfer_funtion->hide = true;
+		transfer_function->hide = true;
 		scene_model->change_values = true;
 	}
 	if (current_volume != scene_interface->current_volume) {
@@ -115,7 +115,7 @@ void update_interface_menu()
 		selecting_model = false;
 		selecting_light = false;
 		selecting_volume = true;
-		transfer_funtion->hide = false;
+		transfer_function->hide = false;
 		scene_model->change_values = false;
 	}
 }
@@ -203,7 +203,7 @@ void key_input(GLFWwindow *window, int key, int scan_code, int action, int mods)
 				if (selecting_light)
 					scene_light->not_click_light();
 				if (selecting_volume) {
-					transfer_funtion->hide = true;
+					transfer_function->hide = true;
 					volumes->volume_interface->hide();
 				}
 			}
@@ -215,17 +215,17 @@ void key_input(GLFWwindow *window, int key, int scan_code, int action, int mods)
 				if (selecting_light)
 					scene_light->click_light();
 				if (selecting_volume) {
-					transfer_funtion->hide = false;
+					transfer_function->hide = false;
 					volumes->volume_interface->show();
 				}
 			}
 		}
 		if (keys[GLFW_KEY_DELETE])
-			transfer_funtion->delete_point();
+			transfer_function->delete_point();
 		if (keys[GLFW_KEY_M])
-			transfer_funtion->movable = true;
+			transfer_function->movable = true;
 		if (keys[GLFW_KEY_N])
-			transfer_funtion->movable = false;
+			transfer_function->movable = false;
 	}
 }
 
@@ -255,7 +255,7 @@ void click(GLFWwindow* window, int button, int action, int mods)
 					selecting_model = true;
 					selecting_light = false;
 					selecting_volume = false;
-					transfer_funtion->hide = true;
+					transfer_function->hide = true;
 				}
 				else
 				{
@@ -266,7 +266,7 @@ void click(GLFWwindow* window, int button, int action, int mods)
 					selected_model = -1;
 					selecting_light = true;
 					selecting_volume = false;
-					transfer_funtion->hide = true;
+					transfer_function->hide = true;
 				}
 			}
 			else {
@@ -276,14 +276,14 @@ void click(GLFWwindow* window, int button, int action, int mods)
 				scene_light->not_click_light();
 				selecting_light = false;
 			}
-			if (transfer_funtion->click_transfer_f(x, y, g_width, g_height))
+			if (transfer_function->click_transfer_f(x, y, g_width, g_height))
 			{
-				volumes->update_transfer_function(transfer_funtion->get_color_points());
+				volumes->update_transfer_function(transfer_function->get_color_points());
 				return;
 			}
 			if (volumes->click_volume(x, y, projection, view, scene_camera->position, false)) {
 				selecting_volume = true;
-				transfer_funtion->hide = false;
+				transfer_function->hide = false;
 				volumes->volume_interface->show();
 				scene_model->not_click_model();
 				scene_light->not_click_light();
@@ -303,7 +303,7 @@ void click(GLFWwindow* window, int button, int action, int mods)
 	{
 		if (button == GLFW_MOUSE_BUTTON_LEFT)
 		{
-			transfer_funtion->disable_select();
+			transfer_function->disable_select();
 			volumes->disable_select();
 		}
 		else
@@ -340,14 +340,11 @@ void pos_cursor(GLFWwindow* window, double x, double y)
 	if (activate_camera)
 		scene_camera->process_mouse_movement(x_offset, y_offset);
 
-	if (transfer_funtion->poscursor_transfer_f(x, y, g_width, g_height))
+	if (transfer_function->poscursor_transfer_f(x, y, g_width, g_height))
 	{
-		volumes->update_transfer_function(transfer_funtion->get_color_points());
-
+		volumes->update_transfer_function(transfer_function->get_color_points());
 		return;
 	}
-	/*if (volumes->poscursorVolume(x, y))
-	return;*/
 }
 
 void char_input(GLFWwindow* window, unsigned int scan_char)
@@ -594,10 +591,10 @@ bool init_scene()
 	halton_generator = new halton();
 	materials = new materials_set();
 	light_buffers = new light_buffer(g_width, g_height, 1);
-	transfer_funtion = new interface_function();
+	transfer_function = new interface_function();
 	volumes = new volume_render(g_width, g_height);
-	volumes->update_transfer_function(transfer_funtion->get_color_points());
-	transfer_funtion->hide = true;
+	volumes->update_transfer_function(transfer_function->get_color_points());
+	transfer_function->hide = true;
 
 	scene_light = new light();
 	scene_light->translation = glm::vec3(0.0, 6.0f, 5.0f);
@@ -843,8 +840,8 @@ void display()
 
 	if (change_light)
 		volumes->change_values = true;
-	volumes->display(projection, view, scene_camera->position, scene_light);
-	transfer_funtion->display();
+	volumes->display(projection, view, scene_camera->position, scene_light, transfer_function);
+	transfer_function->display();
 
 	if (!selecting_volume && scattering_model) 
 	{
@@ -886,7 +883,7 @@ void destroy()
 {
 	glfwDestroyWindow(g_window);
 	glfwTerminate();
-	transfer_funtion->~interface_function();
+	transfer_function->~interface_function();
 }
 
 int main()
@@ -905,7 +902,7 @@ int main()
 		last_frame = current_frame;
 		glfwPollEvents();
 		movement();
-		transfer_funtion->update_coords();
+		transfer_function->update_coords();
 		display();
 		TwDraw();
 		change_light = scene_light->update_interface();

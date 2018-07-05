@@ -687,7 +687,7 @@ void volume_render::render_cube(glm::mat4 &MVP)
 	this->backface.disable();
 }
 
-void volume_render::render_light_cube(glm::mat4 &MVP, glm::mat4 &model, glm::vec3 view_pos, light* scene_lights, glm::mat4 view)
+void volume_render::render_light_cube(glm::mat4 &MVP, glm::mat4 &model, glm::vec3 view_pos, light* scene_lights, glm::mat4 view, interface_function *transfer_function)
 {
 	int actual_texture;
 	glm::vec4 position_sign;
@@ -702,6 +702,7 @@ void volume_render::render_light_cube(glm::mat4 &MVP, glm::mat4 &model, glm::vec
 
 	if (this->change_values)
 	{
+		this->update_transfer_function(transfer_function->get_color_points());
 		actual_texture = 1;
 		dir_max = calculate_dir_max(scene_lights->translation, model);
 		projection_ortho = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.01f, 40.0f);
@@ -779,8 +780,6 @@ void volume_render::render_light_cube(glm::mat4 &MVP, glm::mat4 &model, glm::vec
 
 				this->lightcube.disable();
 
-				glFlush();
-
 				this->storagecube.enable();
 				glViewport(0, 0, this->volumes[this->index_select]->width, this->volumes[this->index_select]->height);
 
@@ -856,7 +855,7 @@ void volume_render::render_cube_raycast(glm::mat4 &MVP, glm::mat4 &model, glm::v
 	this->raycasting.disable();
 }
 
-void volume_render::display(glm::mat4 &projection, glm::mat4 &view, glm::vec3 view_pos, light* scene_lights)
+void volume_render::display(glm::mat4 &projection, glm::mat4 &view, glm::vec3 view_pos, light* scene_lights, interface_function *transfer_function)
 {
 	if (this->index_select != -1)
 	{
@@ -874,7 +873,7 @@ void volume_render::display(glm::mat4 &projection, glm::mat4 &view, glm::vec3 vi
 		glCullFace(GL_BACK);
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-		this->render_light_cube(MVP, model, view_pos, scene_lights, view);
+		this->render_light_cube(MVP, model, view_pos, scene_lights, view, transfer_function);
 		this->render_cube_raycast(MVP, model, view_pos, scene_lights, projection * view);
 		glDisable(GL_BLEND);
 		glDisable(GL_DEPTH_TEST);
