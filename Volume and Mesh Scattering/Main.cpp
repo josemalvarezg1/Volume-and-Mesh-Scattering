@@ -24,7 +24,7 @@ materials_set *materials;
 interface_function *transfer_function;
 volume_render *volumes;
 
-CGLSLProgram glsl_g_buffer, glsl_g_buffer_plane, glsl_scattered_map, glsl_blending, glsl_phong, glsl_cornell, glsl_g_buffer_volume;
+CGLSLProgram glsl_g_buffer, glsl_g_buffer_plane, glsl_scattered_map, glsl_blending, glsl_phong, glsl_cornell;
 int selected_model = -1;
 GLuint quad_vao, quad_vbo;
 
@@ -90,24 +90,8 @@ void update_interface_menu()
 	if (current_volume != scene_interface->current_volume)
 	{
 		current_volume = scene_interface->current_volume;
-		const char** paths = new const char*[1];
-		volumes->volumes[0]->~volume();
-		volumes->volumes.clear();
-		switch (current_volume) {
-			case Bucky:
-				paths[0] = "Models\\raw\\bucky_32x32x32_8.raw";
-				volumes->drop_path(1, paths, g_width, g_height);
-				break;
-			case Bonsai:
-				paths[0] = "Models\\raw\\bonsai_256x256x256_8.raw";
-				volumes->drop_path(1, paths, g_width, g_height);
-				break;
-			case Engine:
-				paths[0] = "Models\\raw\\engine_256x256x256_8.raw";
-				volumes->drop_path(1, paths, g_width, g_height);
-				break;
-		}
 		volumes->change_values = true;
+		volumes->index_select = current_volume;
 		scene_light->not_click_light();
 		volumes->volume_interface->show();
 		scene_model->not_click_model();
@@ -439,8 +423,6 @@ bool init_glew()
 		glsl_cornell.loadShader("Shaders/cornell.frag", CGLSLProgram::FRAGMENT);
 		glsl_phong.loadShader("Shaders/blinnPhong.vert", CGLSLProgram::VERTEX);
 		glsl_phong.loadShader("Shaders/blinnPhong.frag", CGLSLProgram::FRAGMENT);
-		glsl_g_buffer_volume.loadShader("Shaders/gBufferVolume.vert", CGLSLProgram::VERTEX);
-		glsl_g_buffer_volume.loadShader("Shaders/gBufferVolume.frag", CGLSLProgram::FRAGMENT);
 
 		glsl_g_buffer.create_link();
 		glsl_g_buffer_plane.create_link();
@@ -448,7 +430,6 @@ bool init_glew()
 		glsl_blending.create_link();
 		glsl_phong.create_link();
 		glsl_cornell.create_link();
-		glsl_g_buffer_volume.create_link();
 
 		glsl_g_buffer.enable();
 		glsl_g_buffer.addAttribute("position");
@@ -554,13 +535,6 @@ bool init_glew()
 		glsl_cornell.addUniform("model_matrix");
 		glsl_cornell.disable();
 
-		glsl_g_buffer_volume.enable();
-		glsl_g_buffer_volume.addAttribute("position");
-		glsl_g_buffer_volume.addAttribute("tex_coords");
-		glsl_g_buffer_volume.addUniform("model_matrix");
-		glsl_g_buffer_volume.addUniform("texture");
-		glsl_g_buffer_volume.disable();
-
 		return true;
 	}
 }
@@ -624,6 +598,11 @@ bool init_scene()
 	const char** paths = new const char*[1];
 	paths[0] = "Models\\raw\\bucky_32x32x32_8.raw";
 	volumes->drop_path(1, paths, g_width, g_height);
+	paths[0] = "Models\\raw\\bonsai_256x256x256_8.raw";
+	volumes->drop_path(1, paths, g_width, g_height);
+	paths[0] = "Models\\raw\\engine_256x256x256_8.raw";
+	volumes->drop_path(1, paths, g_width, g_height);
+	volumes->index_select = 0;
 	halton_generator->generate_orthographic_cameras(num_of_ortho_cameras);
 
 	return true;
@@ -862,19 +841,6 @@ void display()
 			glBindTexture(GL_TEXTURE_2D_ARRAY, light_buffers->g_depth);
 		render_quad();
 		glsl_g_buffer_plane.disable();
-	}
-	else if (selecting_volume)
-	{
-		glsl_g_buffer_volume.enable();
-		model_mat = glm::mat4(1.0f);
-		model_mat = glm::translate(model_mat, glm::vec3(0.7, -0.7, -1.0));
-		model_mat = glm::scale(model_mat, glm::vec3(0.3f));
-		glUniformMatrix4fv(glsl_g_buffer_volume.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
-		glUniform1i(glsl_g_buffer_volume.getLocation("quad_texture"), 0);
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, volumes->volumes[0]->render_texture);
-		render_quad();
-		glsl_g_buffer_volume.disable();
 	}
 }
 
