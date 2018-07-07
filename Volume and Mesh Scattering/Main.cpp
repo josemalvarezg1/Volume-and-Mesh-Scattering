@@ -91,6 +91,9 @@ void update_interface_menu()
 	{
 		current_volume = scene_interface->current_volume;
 		volumes->change_values = true;
+		volumes->volumes[current_volume]->translation = volumes->volumes[volumes->index_select]->translation;
+		volumes->volumes[current_volume]->rotation = volumes->volumes[volumes->index_select]->rotation;
+		volumes->volumes[current_volume]->escalation = volumes->volumes[volumes->index_select]->escalation;
 		volumes->index_select = current_volume;
 		scene_light->not_click_light();
 		volumes->volume_interface->show();

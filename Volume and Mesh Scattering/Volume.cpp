@@ -372,8 +372,6 @@ void volume_render::init_shaders()
 	this->storagecube.addUniform("position");
 	this->storagecube.addUniform("actual_text");
 	this->storagecube.addUniform("vp_matrix");
-	this->storagecube.addUniform("alpha_0");
-	this->storagecube.addUniform("alpha_1");
 	this->storagecube.addUniform("volume_size");
 	this->storagecube.addUniform("vol_ilum");
 	this->storagecube.addUniform("dir_max");
@@ -690,7 +688,7 @@ void volume_render::render_light_cube(glm::mat4 &MVP, glm::mat4 &model, glm::vec
 	glm::vec4 position_sign;
 	std::vector<glm::vec4> dir_max;
 	glm::vec3 ray_step, position, volume_center;
-	float lenght_in_out, step_size, texture_step, start_texture, alpha_zero, alpha_one;
+	float lenght_in_out, step_size, texture_step, start_texture;
 	glm::mat4 projection_ortho, view_ortho, view_proj_ortho_light, new_model_mat;
 	
 	
@@ -710,9 +708,6 @@ void volume_render::render_light_cube(glm::mat4 &MVP, glm::mat4 &model, glm::vec
 
 		this->volumes[this->index_select]->cos_beta = (glm::dot(glm::vec3(dir_max[0]), glm::normalize(scene_lights->translation - volume_center))) / (glm::length(glm::vec3(dir_max[0])) * glm::length(scene_lights->translation - volume_center));
 		this->volumes[this->index_select]->cos_gamma = (glm::dot(glm::vec3(dir_max[1]), glm::normalize(scene_lights->translation - volume_center))) / (glm::length(glm::vec3(dir_max[1])) * glm::length(scene_lights->translation - volume_center));
-
-		alpha_zero = 1.0f - ((2.0f * glm::acos(this->volumes[this->index_select]->cos_beta)) / glm::pi<float>());
-		alpha_one = 1.0f - ((2.0f * glm::acos(this->volumes[this->index_select]->cos_gamma)) / glm::pi<float>());
 
 		for (size_t f = 0; f < 2; f++)
 		{
@@ -787,8 +782,6 @@ void volume_render::render_light_cube(glm::mat4 &MVP, glm::mat4 &model, glm::vec
 				glUniformMatrix4fv(this->storagecube.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(new_model_mat));
 				glUniform1i(this->storagecube.getLocation("axis"), (GLint)dir_max[f].w);
 				glUniform1f(this->storagecube.getLocation("start_texture"), start_texture);
-				glUniform1f(this->storagecube.getLocation("alpha_0"), alpha_zero);
-				glUniform1f(this->storagecube.getLocation("alpha_1"), alpha_one);
 				glUniform3fv(this->storagecube.getLocation("position"), 1, &position[0]);
 				glUniform1i(this->storagecube.getLocation("dir_max"), f);
 				glUniform3iv(this->storagecube.getLocation("volume_size"), 1, glm::value_ptr(glm::ivec3(this->volumes[this->index_select]->width, this->volumes[this->index_select]->height, this->volumes[this->index_select]->depth)));

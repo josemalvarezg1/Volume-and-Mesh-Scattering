@@ -6,8 +6,6 @@ uniform sampler2D actual_text;
 uniform ivec3 volume_size;
 uniform mat4 vp_matrix;
 uniform int dir_max;
-uniform float alpha_0;
-uniform float alpha_1;
 
 uniform layout(binding = 1, rgba16f) restrict image3D vol_ilum;
 
@@ -16,7 +14,7 @@ in vec3 frag_pos;
 
 void main()
 {
-	vec4 color, offset, I_0, I_1, S;
+	vec4 color, offset;
 	ivec3 size;
 
 	color = vec4(0.0f);
@@ -31,13 +29,6 @@ void main()
 
 	if (dir_max == 0)
 		imageStore(vol_ilum, size, color);
-	/*else
-	{
-		I_0 = imageLoad(vol_ilum, size);
-		I_1 = color;
-		S = alpha_0 * I_0 + alpha_1 * I_1;
-		imageStore(vol_ilum, size, S);
-	}*/
 	
 	out_color = color;
 }
