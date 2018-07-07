@@ -1,5 +1,4 @@
 #version 330
-//Falta Combinacion, kernel en vecindad
 uniform sampler1D transfer_function_text;
 uniform sampler2D back_face_text;
 uniform sampler3D volume_text;

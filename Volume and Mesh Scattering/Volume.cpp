@@ -194,7 +194,6 @@ void volume::update_light_volume_textures(GLuint g_width, GLuint g_height)
 	glDrawBuffers(1, attachments);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-	// Casos dependiendo de Dir_Max
 	glBindFramebuffer(GL_FRAMEBUFFER, this->texture_buffer);
 	glBindTexture(GL_TEXTURE_2D, this->actual_texture);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -692,7 +691,7 @@ void volume_render::render_light_cube(glm::mat4 &MVP, glm::mat4 &model, glm::vec
 	std::vector<glm::vec4> dir_max;
 	glm::vec3 ray_step, position, volume_center;
 	float lenght_in_out, step_size, texture_step, start_texture, alpha_zero, alpha_one;
-	glm::mat4 projection_ortho, view_ortho, view_proj_ortho_light;
+	glm::mat4 projection_ortho, view_ortho, view_proj_ortho_light, new_model_mat;
 	
 	
 	glEnable(GL_BLEND);
@@ -702,9 +701,10 @@ void volume_render::render_light_cube(glm::mat4 &MVP, glm::mat4 &model, glm::vec
 	{
 		this->update_transfer_function(transfer_function->get_color_points());
 		actual_texture = 1;
-		dir_max = calculate_dir_max(scene_lights->translation, model);
+		new_model_mat = glm::translate(glm::mat4(1.0f), glm::vec3(2.25f, 0.0f, 0.0f)) * glm::mat4_cast(glm::quat(1.0f, 0.0f, 0.0f, 0.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(4.0f));
+		dir_max = calculate_dir_max(scene_lights->translation, new_model_mat);
 		projection_ortho = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.01f, 40.0f);
-		volume_center = glm::vec3(model * glm::vec4(glm::vec3(0.0f), 1.0f));
+		volume_center = glm::vec3(new_model_mat * glm::vec4(glm::vec3(0.0f), 1.0f));
 		view_ortho = glm::lookAt(scene_lights->translation, volume_center, glm::vec3(0.0f, 1.0f, 0.0f));
 		view_proj_ortho_light = projection_ortho * view_ortho;
 
@@ -741,8 +741,8 @@ void volume_render::render_light_cube(glm::mat4 &MVP, glm::mat4 &model, glm::vec
 				glBindFramebuffer(GL_FRAMEBUFFER, this->volumes[this->index_select]->volume_buffer[actual_texture]);
 				glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-				glUniformMatrix4fv(this->lightcube.getLocation("MVP"), 1, GL_FALSE, glm::value_ptr(view_proj_ortho_light * model));
-				glUniformMatrix4fv(this->lightcube.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model));
+				glUniformMatrix4fv(this->lightcube.getLocation("MVP"), 1, GL_FALSE, glm::value_ptr(view_proj_ortho_light * new_model_mat));
+				glUniformMatrix4fv(this->lightcube.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(new_model_mat));
 				glUniform1i(this->lightcube.getLocation("axis"), (GLint)dir_max[f].w);
 				glUniform1f(this->lightcube.getLocation("start_texture"), start_texture);
 				glUniform3fv(this->lightcube.getLocation("position"), 1, &position[0]);
@@ -784,7 +784,7 @@ void volume_render::render_light_cube(glm::mat4 &MVP, glm::mat4 &model, glm::vec
 				glBindFramebuffer(GL_FRAMEBUFFER, this->volumes[this->index_select]->texture_buffer);
 				glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-				glUniformMatrix4fv(this->storagecube.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model));
+				glUniformMatrix4fv(this->storagecube.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(new_model_mat));
 				glUniform1i(this->storagecube.getLocation("axis"), (GLint)dir_max[f].w);
 				glUniform1f(this->storagecube.getLocation("start_texture"), start_texture);
 				glUniform1f(this->storagecube.getLocation("alpha_0"), alpha_zero);

@@ -33,6 +33,7 @@ void main()
 
 	value = texture(volume_text, in_coord).x;
 	actual_color = texture(transfer_function_text, value);
+	actual_color.a = 1.0 - exp(-0.5 * actual_color.a);
 	accumulated_color = vec4(0.0f);
 	color = vec4(0.0f);
 
