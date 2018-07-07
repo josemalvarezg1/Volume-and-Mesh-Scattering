@@ -625,34 +625,36 @@ void display()
 	model_mat = glm::scale(model_mat, glm::vec3(scene_model->scale));
 	center_model = glm::vec3(model_mat * glm::vec4(scene_model->center, 1.0f));
 
-	for (int i = 0; i < 2; i++) {
-		glBindFramebuffer(GL_FRAMEBUFFER, light_buffers->g_buffer[i]);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-		glsl_g_buffer.enable();
-
-		view_ortho = glm::lookAt(scene_light->translation, center_model, glm::vec3(0.0f, 1.0f, 0.0f));
-		view_proj_ortho_light = projection_ortho * view_ortho;
-
-		glUniformMatrix4fv(glsl_g_buffer.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
-		glUniformMatrix4fv(glsl_g_buffer.getLocation("vp_light"), 1, GL_FALSE, glm::value_ptr(view_proj_ortho_light));
-		glUniform1i(glsl_g_buffer.getLocation("num_of_buffer"), i);
-
-		glBindVertexArray(scene_model->vao);
-		glDrawArrays(GL_TRIANGLES, 0, scene_model->vertices.size());
-		glBindVertexArray(0);
-		glsl_g_buffer.disable();
-
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	}
-
-	glEnable(GL_STENCIL_TEST);
-	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-
-	if (scattering_model) {
-		glsl_scattered_map.enable();
+	if (scattering_model) 
+	{
 		if (scene_model->change_values || change_light)
 		{
+			for (int i = 0; i < 2; i++)
+			{
+				glBindFramebuffer(GL_FRAMEBUFFER, light_buffers->g_buffer[i]);
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+				glsl_g_buffer.enable();
+
+				view_ortho = glm::lookAt(scene_light->translation, center_model, glm::vec3(0.0f, 1.0f, 0.0f));
+				view_proj_ortho_light = projection_ortho * view_ortho;
+
+				glUniformMatrix4fv(glsl_g_buffer.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
+				glUniformMatrix4fv(glsl_g_buffer.getLocation("vp_light"), 1, GL_FALSE, glm::value_ptr(view_proj_ortho_light));
+				glUniform1i(glsl_g_buffer.getLocation("num_of_buffer"), i);
+
+				glBindVertexArray(scene_model->vao);
+				glDrawArrays(GL_TRIANGLES, 0, scene_model->vertices.size());
+				glBindVertexArray(0);
+				glsl_g_buffer.disable();
+
+				glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			}
+
+			glEnable(GL_STENCIL_TEST);
+			glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+
+			glsl_scattered_map.enable();
 			glBindFramebuffer(GL_FRAMEBUFFER, scattered_maps->buffer);
 			glStencilFunc(GL_ALWAYS, 1, -1);
 			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -719,10 +721,9 @@ void display()
 			glBindVertexArray(0);
 
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
+			glsl_scattered_map.disable();
 			scene_model->change_values = false;
 		}
-		glsl_scattered_map.disable();
 	}
 
 	glEnable(GL_STENCIL_TEST);
