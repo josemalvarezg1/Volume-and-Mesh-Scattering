@@ -6,7 +6,7 @@ int g_width, g_height;
 GLuint num_of_ortho_cameras, num_of_samples_per_frag, selected_camera;
 GLfloat delta_time = 0.0f, last_frame = 0.0f, current_frame;
 GLdouble last_x = 600.0, last_y = 340.0;
-bool keys[1024], keys_pressed[1024], selecting_model = false, selecting_light = false, first_mouse = true, activate_camera = false, change_light = false, selecting_volume = false, scattering_model = true, scattering_volume = true, gradient_volume = false, model_center = true, last_model_center = true, specular_flag = false;
+bool keys[1024], keys_pressed[1024], selecting_model = false, selecting_light = false, first_mouse = true, activate_camera = false, change_light = false, selecting_volume = false, scattering_model = true, scattering_volume = true, gradient_volume = false, model_center = true, last_model_center = true, specular_flag = false, volume_transparent = false;
 scattered_map *scattered_maps;
 halton *halton_generator;
 glm::mat4 projection, view, model;
@@ -46,11 +46,13 @@ void update_interface_menu()
 	num_of_ortho_cameras = scene_interface->num_of_cameras;
 	scene_interface->set_max_values(num_of_ortho_cameras - 1);
 	selected_camera = scene_interface->camera_selected;
-	if (last_model_center != model_center) {
+	if (last_model_center != model_center) 
+	{
 		scene_model->change_values = true;
 		last_model_center = model_center;
 	}
-	if (current_model != scene_interface->current_model) {
+	if (current_model != scene_interface->current_model) 
+	{
 		scene_model->~mesh();
 		current_model = scene_interface->current_model;
 		scene_model = new mesh();
@@ -734,7 +736,8 @@ void display()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
 	glStencilFunc(GL_ALWAYS, 1, -1);
-	if (scattering_model) {
+	if (scattering_model) 
+	{
 		glsl_blending.enable();
 
 		glUniform3f(glsl_blending.getLocation("camera_pos"), scene_camera->position[0], scene_camera->position[1], scene_camera->position[2]);
@@ -778,9 +781,9 @@ void display()
 		glBindVertexArray(0);
 		glsl_blending.disable();
 	}
-	else {
+	else 
+	{
 		glsl_phong.enable();
-
 		glUniformMatrix4fv(glsl_phong.getLocation("model_matrix"), 1, GL_FALSE, glm::value_ptr(model_mat));
 		glUniformMatrix4fv(glsl_phong.getLocation("MVP"), 1, GL_FALSE, glm::value_ptr(projection * view * model_mat));
 		glUniform3fv(glsl_phong.getLocation("diffuse_reflectance"), 1, glm::value_ptr(materials->materials[scene_model->current_material]->diffuse_reflectance));
@@ -822,7 +825,7 @@ void display()
 
 	if (change_light)
 		volumes->change_values = true;
-	volumes->display(projection, view, scene_camera->position, scene_light, transfer_function, scattering_volume, gradient_volume);
+	volumes->display(projection, view, scene_camera->position, scene_light, transfer_function, scattering_volume, gradient_volume, volume_transparent);
 	transfer_function->display();
 
 	if (!selecting_volume && scattering_model) 

@@ -81,9 +81,9 @@ public:
 	void create_backface_text();
 	bool create_frame_buffer();
 	void render_cube(glm::mat4 &MVP);
-	void render_light_cube(glm::mat4 &projection, glm::mat4 &model, glm::vec3 view_pos, light* scene_lights, glm::mat4 view, interface_function *transfer_function, bool scattering_volume);
+	void render_light_cube(glm::mat4 &projection, glm::mat4 &model, glm::vec3 view_pos, light* scene_lights, glm::mat4 view, interface_function *transfer_function, bool scattering_volume, bool volume_transparent);
 	void render_cube_raycast(glm::mat4 &MVP, glm::mat4 &model, glm::vec3 view_pos, light* scene_lights, glm::mat4 view_projection, bool scattering_volume, bool gradient_volume);
-	void display(glm::mat4 &projection, glm::mat4 &view, glm::vec3 view_pos, light* scene_lights, interface_function *transfer_function, bool scattering_volume, bool gradient_volume);
+	void display(glm::mat4 &projection, glm::mat4 &view, glm::vec3 view_pos, light* scene_lights, interface_function *transfer_function, bool scattering_volume, bool gradient_volume, bool volume_transparent);
 	void change_volume(int type);
 	void resize_screen(const glm::vec2 screen);
 	void update_interface();

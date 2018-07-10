@@ -682,7 +682,7 @@ void volume_render::render_cube(glm::mat4 &MVP)
 	this->backface.disable();
 }
 
-void volume_render::render_light_cube(glm::mat4 &MVP, glm::mat4 &model, glm::vec3 view_pos, light* scene_lights, glm::mat4 view, interface_function *transfer_function, bool scattering_volume)
+void volume_render::render_light_cube(glm::mat4 &MVP, glm::mat4 &model, glm::vec3 view_pos, light* scene_lights, glm::mat4 view, interface_function *transfer_function, bool scattering_volume, bool volume_transparent)
 {
 	int actual_texture;
 	glm::vec4 position_sign;
@@ -692,8 +692,11 @@ void volume_render::render_light_cube(glm::mat4 &MVP, glm::mat4 &model, glm::vec
 	glm::mat4 projection_ortho, view_ortho, view_proj_ortho_light, new_model_mat;
 	
 	
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+	if (!volume_transparent)
+	{
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+	}
 
 	if (this->change_values && scattering_volume)
 	{
@@ -813,7 +816,8 @@ void volume_render::render_light_cube(glm::mat4 &MVP, glm::mat4 &model, glm::vec
 		this->change_values = false;
 	}
 	glViewport(0, 0, g_width, g_height);
-	glDisable(GL_BLEND);
+	if (!volume_transparent)
+		glDisable(GL_BLEND);
 }
 
 void volume_render::render_cube_raycast(glm::mat4 &MVP, glm::mat4 &model, glm::vec3 view_pos, light* scene_lights, glm::mat4 view_projection, bool scattering_volume, bool gradient_volume)
@@ -846,7 +850,7 @@ void volume_render::render_cube_raycast(glm::mat4 &MVP, glm::mat4 &model, glm::v
 	this->raycasting.disable();
 }
 
-void volume_render::display(glm::mat4 &projection, glm::mat4 &view, glm::vec3 view_pos, light* scene_lights, interface_function *transfer_function, bool scattering_volume, bool gradient_volume)
+void volume_render::display(glm::mat4 &projection, glm::mat4 &view, glm::vec3 view_pos, light* scene_lights, interface_function *transfer_function, bool scattering_volume, bool gradient_volume, bool volume_transparent)
 {
 	if (this->index_select != -1)
 	{
@@ -864,7 +868,7 @@ void volume_render::display(glm::mat4 &projection, glm::mat4 &view, glm::vec3 vi
 		glCullFace(GL_BACK);
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-		this->render_light_cube(MVP, model, view_pos, scene_lights, view, transfer_function, scattering_volume);
+		this->render_light_cube(MVP, model, view_pos, scene_lights, view, transfer_function, scattering_volume, volume_transparent);
 		this->render_cube_raycast(MVP, model, view_pos, scene_lights, projection * view, scattering_volume, gradient_volume);
 		glDisable(GL_BLEND);
 		glDisable(GL_DEPTH_TEST);

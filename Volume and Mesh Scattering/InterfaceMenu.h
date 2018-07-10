@@ -14,6 +14,8 @@ void TW_CALL set_volume_scattering(const void *value, void *clientData);
 void TW_CALL get_volume_scattering(void *value, void *clientData);
 void TW_CALL set_volume_gradient(const void *value, void *clientData);
 void TW_CALL get_volume_gradient(void *value, void *clientData);
+void TW_CALL set_volume_transparent(const void *value, void *clientData);
+void TW_CALL get_volume_transparent(void *value, void *clientData);
 void TW_CALL set_model_center(const void *value, void *clientData);
 void TW_CALL get_model_center(void *value, void *clientData);
 void TW_CALL set_model_specular(const void *value, void *clientData);
