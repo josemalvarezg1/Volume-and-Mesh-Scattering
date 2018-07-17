@@ -22,9 +22,6 @@ model *translucent_model;
 CGLSLProgram glsl_cornell;
 int selected_model = -1;
 
-GLfloat currenttime = 0.0f, timebase = 0.0f; GLint frame = 0;
-GLfloat lastFrame = 0.0f;
-
 void update_interface_menu()
 {
 	if (selecting_volume)
@@ -176,7 +173,11 @@ void key_input(GLFWwindow *window, int key, int scan_code, int action, int mods)
 			}
 		}
 		if (keys[GLFW_KEY_DELETE])
+		{
 			transfer_function->delete_point();
+			volumes->change_values = true;
+		}
+			
 		if (keys[GLFW_KEY_M])
 			transfer_function->movable = true;
 		if (keys[GLFW_KEY_N])

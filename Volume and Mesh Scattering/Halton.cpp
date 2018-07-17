@@ -24,7 +24,7 @@ double halton::halton_sequence(int index, int base)
 
 glm::vec2 halton::halton_point_circle(glm::vec2 halton_point)
 {
-	float x, y;
+	double x, y;
 	x = sqrt(1 - pow(2 * halton_point.x - 1, 2)) * cos(2 * PI * halton_point.y);
 	y = sqrt(1 - pow(2 * halton_point.x - 1, 2)) * sin(2 * PI * halton_point.y);
 	return glm::vec2(x, y);
@@ -41,7 +41,7 @@ int halton::negative_positive()
 void halton::generate_orthographic_cameras(int num_of_orto_cameras)
 {
 	double x_pos, y_pos, z_pos;
-	for (size_t i = 0; i < num_of_orto_cameras; i++)
+	for (int i = 0; i < num_of_orto_cameras; i++)
 	{
 		x_pos = this->halton_sequence(i, 2) + (15.0f * this->negative_positive());
 		y_pos = this->halton_sequence(i, 3) + (15.0f * this->negative_positive());

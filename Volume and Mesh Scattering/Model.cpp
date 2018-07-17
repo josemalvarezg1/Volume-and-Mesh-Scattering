@@ -60,12 +60,14 @@ void mesh::calculate_center()
 	this->max_value = max(this->max_vertex.x, max(this->max_vertex.y, this->max_vertex.z));
 }
 
-void mesh::calculate_normals(std::vector<glm::vec3> &aux_normals, std::vector<glm::vec3> aux_vertices, std::vector<glm::uvec3> index_vertices) {
+void mesh::calculate_normals(std::vector<glm::vec3> &aux_normals, std::vector<glm::vec3> aux_vertices, std::vector<glm::uvec3> index_vertices) 
+{
 	std::vector<glm::vec3> normals(aux_vertices.size(), glm::vec3(0.0f));
 	std::vector<float> totals(aux_vertices.size(), 0.0f);
 	glm::vec3 u, v, v1, v2, v3, normal;
 
-	for (int i = 0; i < index_vertices.size(); i++) {
+	for (size_t i = 0; i < index_vertices.size(); i++) 
+	{
 		v1 = aux_vertices[index_vertices[i].x];
 		v2 = aux_vertices[index_vertices[i].y];
 		v3 = aux_vertices[index_vertices[i].z];
@@ -83,7 +85,7 @@ void mesh::calculate_normals(std::vector<glm::vec3> &aux_normals, std::vector<gl
 		totals[index_vertices[i].z] += 1.0f;
 	}
 
-	for (int i = 0; i < normals.size(); i++)
+	for (size_t i = 0; i < normals.size(); i++)
 		aux_normals.push_back(-normals[i] / glm::vec3(totals[i]));
 }
 
@@ -150,7 +152,7 @@ void mesh::load(std::string path)
 							aux_index_normals.push_back((atoi(aux_tokens[2].c_str()) - 1));
 					}
 
-					for (int i = 1; (i + 1) < aux_index_vertices.size(); i++)
+					for (size_t i = 1; (i + 1) < aux_index_vertices.size(); i++)
 					{
 						index_vertices.push_back(glm::uvec3(aux_index_vertices[0], aux_index_vertices[i], aux_index_vertices[i + 1]));
 						index_normals.push_back(glm::uvec3(aux_index_normals[0], aux_index_normals[i], aux_index_normals[i + 1]));
@@ -168,7 +170,7 @@ void mesh::load(std::string path)
 		if (aux_normals.empty()) {
 			this->calculate_normals(aux_normals, aux_vertices, index_vertices);
 
-			for (int i = 0; i < index_vertices.size(); i++)
+			for (size_t i = 0; i < index_vertices.size(); i++)
 			{
 				vertex_aux_index = index_vertices[i];
 				this->vertices[(i * 3)] = (aux_vertices[vertex_aux_index.x] - this->center) / this->max_value;
@@ -181,7 +183,7 @@ void mesh::load(std::string path)
 			}
 		}
 		else {
-			for (int i = 0; i < index_vertices.size(); i++)
+			for (size_t i = 0; i < index_vertices.size(); i++)
 			{
 				vertex_aux_index = index_vertices[i];
 				this->vertices[(i * 3)] = (aux_vertices[vertex_aux_index.x] - this->center) / this->max_value;
@@ -602,7 +604,7 @@ void model::display(glm::mat4 projection, glm::mat4 view, int g_width, int g_hei
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			materials->materials[scene_model->current_material]->precalculate_values(scene_model->asymmetry_param_g);
 			sigma_tr = materials->materials[scene_model->current_material]->effective_transport_coeff;
-			halton_generator->generate_samples(min(sigma_tr.x, sigma_tr.y, sigma_tr.z) / scene_model->q, scene_model->radius, num_of_samples_per_frag);
+			halton_generator->generate_samples(min(min(sigma_tr.x, sigma_tr.y), sigma_tr.z) / scene_model->q, scene_model->radius, num_of_samples_per_frag);
 
 			std::vector<glm::mat4> view_proj_ortho_randoms;
 

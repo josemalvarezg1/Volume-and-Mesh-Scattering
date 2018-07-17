@@ -50,7 +50,8 @@ public:
 	bool no_collision(glm::mat4 &model);
 };
 
-class model {
+class model 
+{
 public:
 	CGLSLProgram glsl_g_buffer, glsl_g_buffer_plane, glsl_scattered_map, glsl_blending, glsl_phong;
 	mesh *scene_model;
