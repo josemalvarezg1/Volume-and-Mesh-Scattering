@@ -89,7 +89,7 @@ void light::load(std::string path)
 		}
 		file.close();
 		calculate_center();
-		for (int i = 0; i < this->vertices.size(); i++) this->vertices[i] = (this->vertices[i] - this->center) / this->max_value;
+		for (size_t i = 0; i < this->vertices.size(); i++) this->vertices[i] = (this->vertices[i] - this->center) / this->max_value;
 		max_vertex = (max_vertex - center) / max_value;
 		min_vertex = (min_vertex - center) / max_value;
 		this->create_vbo();

@@ -102,8 +102,9 @@ void interface_menu::hide()
 	TwDefine("Menú visible = false");
 }
 
-void TW_CALL set_model_scattering(const void *value, void *clientData) {
-	scattering_model = *(const int *)value;
+void TW_CALL set_model_scattering(const void *value, void *clientData) 
+{
+	scattering_model = *(bool *)value;
 	if (!scattering_model) {
 		TwDefine("Menú/shininess visible = true");
 		TwDefine("Menú/specular_flag visible = false");
@@ -114,57 +115,68 @@ void TW_CALL set_model_scattering(const void *value, void *clientData) {
 	}
 }
 
-void TW_CALL get_model_scattering(void *value, void *clientData) {
+void TW_CALL get_model_scattering(void *value, void *clientData) 
+{
 	(void)clientData;
 	*(int *)value = scattering_model;
 }
 
-void TW_CALL set_volume_scattering(const void *value, void *clientData) {
-	scattering_volume = *(const int *)value;
+void TW_CALL set_volume_scattering(const void *value, void *clientData) 
+{
+	scattering_volume = *(bool *)value;
 }
 
-void TW_CALL get_volume_scattering(void *value, void *clientData) {
+void TW_CALL get_volume_scattering(void *value, void *clientData) 
+{
 	(void)clientData;
 	*(int *)value = scattering_volume;
 }
 
-void TW_CALL set_volume_gradient(const void *value, void *clientData) {
-	gradient_volume = *(const int *)value;
+void TW_CALL set_volume_gradient(const void *value, void *clientData) 
+{
+	gradient_volume = *(bool *)value;
 }
 
-void TW_CALL get_volume_gradient(void *value, void *clientData) {
+void TW_CALL get_volume_gradient(void *value, void *clientData)
+{
 	(void)clientData;
 	*(int *)value = gradient_volume;
 }
 
-void TW_CALL set_volume_transparent(const void *value, void *clientData) {
-	volume_transparent = *(const int *)value;
+void TW_CALL set_volume_transparent(const void *value, void *clientData) 
+{
+	volume_transparent = *(bool *)value;
 }
 
-void TW_CALL get_volume_transparent(void *value, void *clientData) {
+void TW_CALL get_volume_transparent(void *value, void *clientData)
+{
 	(void)clientData;
 	*(int *)value = volume_transparent;
 }
 
 
-void TW_CALL set_model_center(const void *value, void *clientData) {
-	model_center = *(const int *)value;
+void TW_CALL set_model_center(const void *value, void *clientData)
+{
+	model_center = *(bool *)value;
 }
 
-void TW_CALL get_model_center(void *value, void *clientData) {
+void TW_CALL get_model_center(void *value, void *clientData) 
+{
 	(void)clientData;
 	*(int *)value = model_center;
 }
 
-void TW_CALL set_model_specular(const void *value, void *clientData) {
-	specular_flag = *(const int *)value;
+void TW_CALL set_model_specular(const void *value, void *clientData) 
+{
+	specular_flag = *(bool *)value;
 	if (specular_flag)
 		TwDefine("Menú/shininess visible = true");
 	else
 		TwDefine("Menú/shininess visible = false");
 }
 
-void TW_CALL get_model_specular(void *value, void *clientData) {
+void TW_CALL get_model_specular(void *value, void *clientData) 
+{
 	(void)clientData;
 	*(int *)value = specular_flag;
 }

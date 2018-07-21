@@ -1,9 +1,8 @@
 #pragma once
-#define BUFFER_OFFSET(i) ((char *)NULL + (i))
-
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include "BufferOffset.h"
 #include "GLSLProgram.h"
 #include "Texture.h"
 #include <GL/glew.h>
@@ -18,7 +17,7 @@ enum structure
 	POINTSELECT,
 };
 
-#define ERROR 0.0001
+#define ERROR_T 0.0001
 #define HISTDISP_X 0.65
 #define HISTDISP_Y 0.65
 #define HISTSIZE_X 0.6

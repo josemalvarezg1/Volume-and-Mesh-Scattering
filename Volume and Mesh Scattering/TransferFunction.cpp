@@ -41,7 +41,7 @@ glm::vec3 hsv_to_rgb(double h, double s, double v)
 					else
 						if (300 <= h && h < 360)
 							rgb_aux = glm::vec3(c, 0.0, x);
-	return rgb_aux + glm::vec3(m);
+	return rgb_aux + glm::vec3((float)m);
 }
 
 quad_color::quad_color(std::vector<glm::vec2> coords_vertex, std::vector<glm::vec4> colors)
@@ -212,8 +212,8 @@ histogram::histogram(double disp_x, double disp_y, double size_x, double size_y,
 	std::vector<glm::vec2> coords_vertex;
 	std::vector<glm::vec4> colors;
 	this->cartesian_map = new region(MAPDISP_X, MAPDISP_Y, MAPSIZE_X, MAPSIZE_Y, true, true);
-	startPoint = new point((disp_x - (this->cartesian_map->size_x / 2.0) + ERROR), (disp_y - (this->cartesian_map->size_y / 2.0) + ERROR), POINTSIZE_X, POINTSIZE_Y, false, true, SELECTORDISP_X, glm::vec2(POINTDISP_X, AREADISP_Y - (AREASIZE_Y / 2.0)));
-	finalPoint = new point((disp_x + (this->cartesian_map->size_x / 2.0) - ERROR), (disp_y + (this->cartesian_map->size_y / 2.0) - ERROR), POINTSIZE_X, POINTSIZE_Y, false, true, SELECTORDISP_X, glm::vec2(POINTDISP_X, POINTDISP_Y));
+	startPoint = new point((disp_x - (this->cartesian_map->size_x / 2.0) + ERROR_T), (disp_y - (this->cartesian_map->size_y / 2.0) + ERROR_T), POINTSIZE_X, POINTSIZE_Y, false, true, SELECTORDISP_X, glm::vec2(POINTDISP_X, AREADISP_Y - (AREASIZE_Y / 2.0)));
+	finalPoint = new point((disp_x + (this->cartesian_map->size_x / 2.0) - ERROR_T), (disp_y + (this->cartesian_map->size_y / 2.0) - ERROR_T), POINTSIZE_X, POINTSIZE_Y, false, true, SELECTORDISP_X, glm::vec2(POINTDISP_X, POINTDISP_Y));
 	this->control_points.push_back(startPoint);
 	this->control_points.push_back(finalPoint);
 	colors.push_back(glm::vec4(1.0, 1.0, 1.0, 0.0));

@@ -480,6 +480,7 @@ unsigned int volume_render::get_axis(unsigned value)
 		this->volumes[this->index_select]->step_light_volume.push_back(1.0f / this->volumes[this->index_select]->depth);
 		return 2;
 	}
+	return -1;
 }
 
 std::vector<glm::vec4> volume_render::calculate_dir_max(glm::vec3 light_pos, glm::mat4 model)
@@ -887,7 +888,7 @@ void volume_render::change_volume(int type)
 				this->index_select = this->volumes.size() - 1;
 		else
 			if (type == 1)
-				if (this->index_select < this->volumes.size() - 1)
+				if ((unsigned int) this->index_select < this->volumes.size() - 1)
 					this->index_select++;
 				else
 					this->index_select = 0;

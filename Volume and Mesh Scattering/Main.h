@@ -4,8 +4,9 @@
 
 #include <iostream>
 #include <string.h>
-#include "Camera.h"
 #include <vector>
+#include <random>
+#include <windows.h>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
@@ -13,7 +14,7 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <AntTweakBar.h>
-#include <random>
+#include "Camera.h"
 #include "GLSLProgram.h"
 #include "Light.h"
 #include "InterfaceMenu.h"

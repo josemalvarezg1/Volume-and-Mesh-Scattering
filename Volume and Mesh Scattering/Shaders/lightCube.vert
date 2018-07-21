@@ -18,6 +18,10 @@ void main()
 	vec3 new_position, new_texture;
 	float new_distance;
 
+	new_position = vec3(0.0f);
+	new_texture = vec3(0.0f);
+	new_distance = 0.0f;
+
 	if (axis == 0)
 	{
 		new_position = vec3(position.x, vertex_coords.x, vertex_coords.y);

@@ -15,6 +15,10 @@ void main()
 {
 	vec3 new_position, new_texture, new_frag_pos;
 
+	new_position = vec3(0.0f);
+	new_texture = vec3(0.0f);
+	new_frag_pos = vec3(0.0f);
+
 	if (axis == 0)
 	{
 		new_position = vec3(position.x, vertex_coords.x * 2.0f, vertex_coords.y * 2.0f);

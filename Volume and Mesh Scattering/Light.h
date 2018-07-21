@@ -1,11 +1,11 @@
 #pragma once
-#define BUFFER_OFFSET(i) ((char *)NULL + (i))
 #include <GL/glew.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <fstream>
 
+#include "BufferOffset.h"
 #include "GLSLProgram.h"
 #include "InterfaceLight.h"
 

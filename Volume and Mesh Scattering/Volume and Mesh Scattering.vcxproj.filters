@@ -113,6 +113,9 @@
     <ClInclude Include="InterfaceMenu.h">
       <Filter>Archivos de encabezado</Filter>
     </ClInclude>
+    <ClInclude Include="BufferOffset.h">
+      <Filter>Archivos de encabezado</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\gBuffer.vert">

@@ -108,8 +108,8 @@ void click_interface_menu()
 
 void reshape(GLFWwindow *window, int width, int height)
 {
-	g_width = max(width, 1);
-	g_height = max(height, 1);
+	g_width = std::max(width, 1);
+	g_height = std::max(height, 1);
 
 	volumes->resize_screen(glm::vec2(g_width, g_height));
 	translucent_model->scene_model->model_interface->reshape(g_width, g_height);
@@ -120,8 +120,8 @@ void reshape(GLFWwindow *window, int width, int height)
 	translucent_model->scene_model->change_values = true;
 
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-	g_width = max(width, 16);
-	g_height = max(height, 16);
+	g_width = std::max(width, 16);
+	g_height = std::max(height, 16);
 	translucent_model->scattered_maps->update_scattered_map(g_width, g_height, translucent_model->num_of_ortho_cameras);
 	glViewport(0, 0, g_width, g_height);
 }
@@ -276,7 +276,7 @@ void scroll(GLFWwindow* window, double x_offset, double y_offset)
 
 void pos_cursor(GLFWwindow* window, double x, double y)
 {
-	if (TwEventMousePosGLFW(x, y))
+	if (TwEventMousePosGLFW((int) x, (int) y))
 	{
 		last_x = x;
 		last_y = y;

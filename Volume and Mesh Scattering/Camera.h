@@ -23,16 +23,8 @@ const GLfloat ZOOM = 45.0f;
 class camera
 {
 public:
-	glm::vec3 position;
-	glm::vec3 front;
-	glm::vec3 up;
-	glm::vec3 right;
-	glm::vec3 world_up;
-	GLfloat yaw;
-	GLfloat pitch;
-	GLfloat movement_speed;
-	GLfloat mouse_sensitivity;
-	GLfloat zoom;
+	glm::vec3 position, front, up, right, world_up;
+	GLfloat yaw, pitch, movement_speed, mouse_sensitivity, zoom;
 
 	camera(glm::vec3 position);
 	bool check_position(glm::vec3 position);

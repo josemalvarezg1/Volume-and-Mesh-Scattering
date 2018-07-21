@@ -1,5 +1,4 @@
 #pragma once
-#define BUFFER_OFFSET(offset) ((char*)NULL + (offset))
 #include <GL/glew.h>
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
@@ -14,6 +13,7 @@
 #include <vector>
 #include <sstream>
 #include <windows.h>
+#include "BufferOffset.h"
 #include "InterfaceModel.h"
 #include "G-Buffer.h"
 #include "Material.h"

@@ -1,11 +1,11 @@
 #pragma once
-#define BUFFER_OFFSET(i) ((char *)NULL + (i))
 #include <vector>
 #include <string>
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <algorithm>
+#include "BufferOffset.h"
 #include "GLSLProgram.h"
 #include "Light.h"
 #include "InterfaceVolume.h"
