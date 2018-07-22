@@ -40,7 +40,7 @@ public:
 	GLfloat escalation, step, cos_beta, cos_gamma;
 	std::vector<GLfloat> step_light_volume;
 	std::vector<glm::vec3> bounding_box;
-	bool change_values;
+	bool change_values, first;
 
 	volume(std::string path, GLuint width, GLuint height, GLuint depth, GLuint bits, GLuint g_width, GLuint g_height);
 	void create_quad_light_volume();

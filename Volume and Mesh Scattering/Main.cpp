@@ -408,6 +408,7 @@ bool init_ant_tweak_bar()
 
 bool init_scene()
 {	
+	glm::mat4 MVP;
 	translucent_model = new model(g_width, g_height);
 	scene_interface = interface_menu::instance();
 	click_interface_menu();
@@ -420,7 +421,6 @@ bool init_scene()
 	transfer_function->hide = true;
 
 	scene_light = new light();
-	scene_light->translation = glm::vec3(0.0, 6.0f, 5.0f);	
 
 	scene_camera = new camera(glm::vec3(0.0f, 0.0f, 14.5f));
 

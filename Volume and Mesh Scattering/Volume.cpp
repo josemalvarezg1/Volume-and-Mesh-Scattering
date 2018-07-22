@@ -85,7 +85,8 @@ volume::volume(std::string path, GLuint width, GLuint height, GLuint depth, GLui
 	this->translation = glm::vec3(2.25f, 0.0f, 0.0f);
 	this->escalation = 4.0f;
 	this->step = (GLfloat)(1.0f / sqrt((this->width * this->width) + (this->height * this->height) + (this->depth * this->depth)));
-	
+	this->first = true;
+
 	this->bounding_box.push_back(glm::vec3(0.5f, 0.5f, 0.5f));
 	this->bounding_box.push_back(glm::vec3(-0.5f, 0.5f, 0.5f));
 	this->bounding_box.push_back(glm::vec3(0.5f, 0.5f, -0.5f));
@@ -688,10 +689,9 @@ void volume_render::render_light_cube(glm::mat4 &MVP, glm::mat4 &model, glm::vec
 	int actual_texture;
 	glm::vec4 position_sign;
 	std::vector<glm::vec4> dir_max;
-	glm::vec3 ray_step, position, volume_center;
+	glm::vec3 ray_step, position, volume_center, new_light_pos;
 	float lenght_in_out, step_size, texture_step, start_texture;
 	glm::mat4 projection_ortho, view_ortho, view_proj_ortho_light, new_model_mat;
-	
 	
 	if (!volume_transparent)
 	{
@@ -703,17 +703,25 @@ void volume_render::render_light_cube(glm::mat4 &MVP, glm::mat4 &model, glm::vec
 	{
 		this->update_transfer_function(transfer_function->get_color_points());
 		actual_texture = 1;
+		if (!this->volumes[this->index_select]->first)
+			new_light_pos = glm::vec3(scene_lights->translation.x, scene_lights->translation.y, 5.0f);
+		else
+		{
+			new_light_pos = glm::vec3(0.0, 6.0f, 5.0f);
+			this->volumes[this->index_select]->first = false;
+		}
+			
 		new_model_mat = glm::translate(glm::mat4(1.0f), glm::vec3(2.25f, 0.0f, 0.0f)) * glm::mat4_cast(glm::quat(1.0f, 0.0f, 0.0f, 0.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(4.0f));
-		dir_max = calculate_dir_max(scene_lights->translation, new_model_mat);
+		dir_max = calculate_dir_max(new_light_pos, new_model_mat);
 		projection_ortho = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.01f, 40.0f);
 		volume_center = glm::vec3(new_model_mat * glm::vec4(glm::vec3(0.0f), 1.0f));
-		view_ortho = glm::lookAt(scene_lights->translation, volume_center, glm::vec3(0.0f, 1.0f, 0.0f));
+		view_ortho = glm::lookAt(new_light_pos, volume_center, glm::vec3(0.0f, 1.0f, 0.0f));
 		view_proj_ortho_light = projection_ortho * view_ortho;
 
-		this->volumes[this->index_select]->cos_beta = (glm::dot(glm::vec3(dir_max[0]), glm::normalize(scene_lights->translation - volume_center))) / (glm::length(glm::vec3(dir_max[0])) * glm::length(scene_lights->translation - volume_center));
-		this->volumes[this->index_select]->cos_gamma = (glm::dot(glm::vec3(dir_max[1]), glm::normalize(scene_lights->translation - volume_center))) / (glm::length(glm::vec3(dir_max[1])) * glm::length(scene_lights->translation - volume_center));
+		this->volumes[this->index_select]->cos_beta = (glm::dot(glm::vec3(dir_max[0]), glm::normalize(new_light_pos - volume_center))) / (glm::length(glm::vec3(dir_max[0])) * glm::length(new_light_pos - volume_center));
+		this->volumes[this->index_select]->cos_gamma = (glm::dot(glm::vec3(dir_max[1]), glm::normalize(new_light_pos - volume_center))) / (glm::length(glm::vec3(dir_max[1])) * glm::length(new_light_pos - volume_center));
 
-		for (size_t f = 0; f < 2; f++)
+		for (size_t f = 0; f < 1; f++)
 		{
 			step_size = this->volumes[this->index_select]->step_light_volume[f];
 			position_sign = this->get_position(this->volumes[this->index_select]->current_index[f]);
@@ -747,7 +755,7 @@ void volume_render::render_light_cube(glm::mat4 &MVP, glm::mat4 &model, glm::vec
 				glUniform3fv(this->lightcube.getLocation("position"), 1, &position[0]);
 				glUniform1f(this->lightcube.getLocation("iteration"), i);
 				glUniform1i(this->lightcube.getLocation("direction"), f);
-				glUniform3fv(this->lightcube.getLocation("light_pos"), 1, glm::value_ptr(scene_lights->translation));
+				glUniform3fv(this->lightcube.getLocation("light_pos"), 1, glm::value_ptr(new_light_pos));
 				glUniform3fv(this->lightcube.getLocation("normal"), 1, glm::value_ptr(-glm::vec3(dir_max[f].x, dir_max[f].y, dir_max[f].z)));
 				glUniform3iv(this->lightcube.getLocation("volume_size"), 1, glm::value_ptr(glm::ivec3(this->volumes[this->index_select]->width, this->volumes[this->index_select]->height, this->volumes[this->index_select]->depth)));
 				glUniformMatrix4fv(this->lightcube.getLocation("vp_matrix"), 1, GL_FALSE, glm::value_ptr(view_proj_ortho_light));
